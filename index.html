@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ✏️ 改成你的名字 + 一句話 -->
+<title>Claire Chen · 資安作品集</title>
+<meta name="description" content="資安 / 滲透測試學習歷程與作品集">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#0e1118; --bg2:#141a27; --panel:#181f2e; --panel2:#1f2838; --line:#2a3347;
+  --fg:#e8edf7; --muted:#93a0bc; --accent:#34d3c0; --accent-ink:#04140f;
+  --display:"Space Grotesk","Noto Sans TC",system-ui,sans-serif;
+  --body:"Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root{
+  --bg:#eef1f7; --bg2:#ffffff; --panel:#ffffff; --panel2:#f3f6fc; --line:#d3dcec;
+  --fg:#17203a; --muted:#56637f; --accent:#0a9e8c; --accent-ink:#ffffff; color-scheme:light }}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.7 var(--body);
+  background-image:radial-gradient(1100px 500px at 50% -200px,rgba(52,211,192,.08),transparent 70%)}
+.wrap{max-width:860px;margin:0 auto;padding:0 max(20px,env(safe-area-inset-left,0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.2;margin:0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+
+/* hero */
+header.hero{padding:72px 0 44px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px}
+.hero .eyebrow{font-family:var(--mono);font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.hero h1{font-size:clamp(2.2rem,7vw,3.4rem)}
+.hero .tagline{font-size:1.15rem;color:var(--muted);max-width:50ch}
+.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:6px}
+.links a{font-family:var(--mono);font-size:.88rem;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;color:var(--fg)}
+.links a:hover{border-color:var(--accent);text-decoration:none}
+
+section{padding:36px 0;border-top:1px solid var(--line)}
+section h2{font-size:1.5rem;margin-bottom:6px}
+section .lead{color:var(--muted);margin-bottom:22px}
+.sec-label{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:6px}
+
+/* about */
+.about p{max-width:62ch;color:var(--fg)}
+.about p + p{margin-top:12px}
+
+/* skills */
+.skills{display:flex;flex-direction:column;gap:16px}
+.skillgroup b{font-family:var(--display);display:block;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--mono);font-size:.82rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 13px;color:var(--muted)}
+
+/* projects */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card .ico{width:42px;height:42px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-size:1.3rem}
+.card h3{font-size:1.1rem}
+.card p{color:var(--muted);font-size:.92rem;flex:1;margin:0}
+.card .go{font-family:var(--mono);font-size:.82rem;color:var(--accent)}
+.card .soon{font-family:var(--mono);font-size:.72rem;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:2px 8px;align-self:flex-start}
+
+/* contact */
+.contact p{color:var(--muted);max-width:60ch}
+.contact .big{font-family:var(--mono);font-size:1.05rem;color:var(--fg);margin-top:10px;word-break:break-all}
+
+footer{padding:34px 0 56px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:.84rem}
+footer .mono{display:block;margin-top:6px;font-size:.78rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ====== 首屏 HERO：改成你的名字、一句介紹、連結 ====== -->
+  <header class="hero">
+    <span class="eyebrow">Cybersecurity · Penetration Testing</span>
+    <h1>Claire Chen</h1>
+    <p class="tagline">資安 / 滲透測試學習者。正在透過實作靶機、CTF 與自建工具,一步步累積能力與作品。</p>
+    <div class="links">
+      <!-- ✏️ 把下面連結換成你的 -->
+      <a href="https://github.com/chairchennn" target="_blank" rel="noopener">GitHub</a>
+      <a href="#projects">作品 ↓</a>
+      <!-- 之後可加：LinkedIn、TryHackMe profile、Email -->
+    </div>
+  </header>
+
+  <!-- ====== 關於我 ====== -->
+  <section class="about" id="about">
+    <span class="sec-label">About</span>
+    <h2>關於我</h2>
+    <!-- ✏️ 用 2–3 句話介紹自己：背景、在學什麼、目標 -->
+    <p>我是資安領域的學習者,目前專注在滲透測試(攻擊方向)。會基礎 Python,熟悉 Linux 與網路基礎,正透過 TryHackMe、CTF 與自己架設的靶場持續練習。</p>
+    <p>這個網站記錄我的學習歷程與作品 —— 包含靶機 writeup、自己寫的安全工具、滲透測試報告,以及一個招牌專案。目標是在這個暑假累積足夠的能力與作品,去找資安實習。</p>
+  </section>
+
+  <!-- ====== 技能 ====== -->
+  <section id="skills">
+    <span class="sec-label">Skills</span>
+    <h2>技能</h2>
+    <p class="lead">隨著學習進度,把你真的會的東西加進來(不會的先別放)。</p>
+    <div class="skills">
+      <div class="skillgroup"><b>作業系統 / 基礎</b>
+        <div class="chips"><span class="chip">Linux</span><span class="chip">命令列</span><span class="chip">網路 TCP/IP</span><span class="chip">HTTP</span></div></div>
+      <div class="skillgroup"><b>攻擊 / 工具</b>
+        <div class="chips"><span class="chip">Nmap</span><span class="chip">Burp Suite</span><span class="chip">Metasploit</span><span class="chip">Wireshark</span></div></div>
+      <div class="skillgroup"><b>程式</b>
+        <div class="chips"><span class="chip">Python</span><span class="chip">Bash</span></div></div>
+    </div>
+  </section>
+
+  <!-- ====== 作品 PROJECTS ====== -->
+  <section id="projects">
+    <span class="sec-label">Portfolio</span>
+    <h2>作品</h2>
+    <p class="lead">完成一件就把對應卡片的連結換成實際成果;未完成的先留「即將推出」。</p>
+    <div class="grid">
+
+      <a class="card" href="https://github.com/chairchennn/chairchennn.github.io/tree/main/writeups" target="_blank" rel="noopener">
+        <span class="ico">📓</span>
+        <h3>靶機 / CTF Writeups</h3>
+        <p>解題與攻擊過程紀錄:思路、指令、修補建議。</p>
+        <span class="go">查看 writeups →</span>
+      </a>
+
+      <a class="card" href="https://github.com/chairchennn/chairchennn.github.io/tree/main/tools" target="_blank" rel="noopener">
+        <span class="ico">🛠️</span>
+        <h3>自製安全工具</h3>
+        <p>用 Python 寫的工具,例如 port scanner、目錄爆破器。</p>
+        <span class="go">查看 tools →</span>
+      </a>
+
+      <a class="card" href="https://github.com/chairchennn/chairchennn.github.io/tree/main/reports" target="_blank" rel="noopener">
+        <span class="ico">📄</span>
+        <h3>滲透測試報告</h3>
+        <p>專業格式的報告:摘要、弱點、重現步驟、修補建議。</p>
+        <span class="go">查看 reports →</span>
+      </a>
+
+      <!-- ✏️ Capstone：完成後把 href 換成專案 repo，拿掉 soon -->
+      <div class="card">
+        <span class="ico">🚀</span>
+        <h3>Capstone 招牌專案</h3>
+        <p>暑假的重頭戲 —— 一個能在面試講 10 分鐘的專案。</p>
+        <span class="soon">即將推出</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ====== 聯絡 ====== -->
+  <section class="contact" id="contact">
+    <span class="sec-label">Contact</span>
+    <h2>聯絡我</h2>
+    <p>對資安實習機會有興趣。歡迎透過以下方式聯繫:</p>
+    <!-- ✏️ 換成你願意公開的 email（或刪掉改放表單/LinkedIn）。公開 email 可能收到垃圾信，自行斟酌。 -->
+    <p class="big">GitHub: github.com/chairchennn</p>
+  </section>
+
+  <footer>
+    <div>© <span id="yr"></span> Claire Chen · 以 GitHub Pages 建置</div>
+    <span class="mono">持續更新中 — last updated 2026</span>
+  </footer>
+
+</div>
+<script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+</body>
+</html>
