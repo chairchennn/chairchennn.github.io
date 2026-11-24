@@ -1,37 +1,29 @@
-# chairchennn.github.io
+# 你好,我是 Claire 👋
 
-我的資安 / 滲透測試學習歷程與作品集。這個 repo 同時是:
+這裡是我的資安 / 滲透測試學習歷程與作品集。
 
-- 一個**公開的作品集網站**(GitHub Pages)→ `index.html`
-- 一個**作品倉庫**:writeups、工具、報告都放在這裡
+👉 **線上作品集:https://chairchennn.github.io/**
 
-> ⚠️ 所有練習都在授權靶場(TryHackMe、PortSwigger、自架 DVWA / Juice Shop…)進行。未經授權攻擊他人系統是違法的。
+我正在透過實作靶機、CTF 和自己寫工具,一步步把資安能力練起來,目標是找資安實習。
 
-## 🌐 開啟網站(GitHub Pages)
+## 這個倉庫裡有什麼
 
-1. 到這個 repo 的 **Settings → Pages**
-2. 「Source」選 **Deploy from a branch**
-3. Branch 選 **main**、資料夾選 **/(root)**,按 Save
-4. 等 1–2 分鐘,你的網站就會在 **https://chairchennn.github.io/** 上線
+- **`index.html`** — 我的作品集網站首頁
+- **`writeups/`** — 靶機 / CTF 的解題紀錄
+- **`tools/`** — 我自己寫的小工具(例如用 Python 寫的掃描器)
+- **`reports/`** — 滲透測試報告
 
-之後每次 push 到 `main`,網站會自動更新。
+> 所有練習都在合法、授權的靶場上進行(TryHackMe、自己架的練習環境等)。
 
-## 📁 資料夾結構
+---
 
-| 項目 | 放什麼 |
-|---|---|
-| `index.html` | 作品集首頁(改這個就能改網站內容,`✏️` 標記處是要你填的) |
-| `writeups/` | 靶機 / CTF 解題紀錄 |
-| `tools/` | 自己寫的安全工具(每個工具一個子資料夾) |
-| `reports/` | 滲透測試報告 |
+<details>
+<summary>📝 給我自己:怎麼更新這個網站(點開看)</summary>
 
-每個資料夾裡都有 `_TEMPLATE` 或 `README` 可以照著套用。
-
-## ✏️ 怎麼更新
-
-- **改網站文字**:編輯 `index.html`,找 `✏️` 註解的地方換成你的內容。
-- **加一篇 writeup**:複製 `writeups/_TEMPLATE.md`,改名成題目名稱,填內容。
-- **加一個工具**:在 `tools/` 下開一個子資料夾,放程式 + 該工具的 `README.md`。
+- **改網站內容**:編輯 `index.html`,找有 `✏️` 的地方換成自己的內容,存檔 → push。
+- **加一篇 writeup**:複製 `writeups/_TEMPLATE.md`,改名、填內容。
+- **加一個工具**:在 `tools/` 下開一個新資料夾,放程式 + 說明。
 - **加一份報告**:複製 `reports/_TEMPLATE.md`,填內容。
+- 每次 push 到 `main`,網站會在 1–2 分鐘後自動更新。
 
-改完 commit、push 到 `main` 即可(網站會自動更新)。
+</details>
