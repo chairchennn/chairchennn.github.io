@@ -1098,6 +1098,9 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
   text-align: center;
 }
 .toast::before { content: "♡"; color: #ffc4d2; flex: none; }
+/* 提示不擋手指：只有「復原」按鈕可以點 */
+.toast { pointer-events: none; }
+.toast-act { pointer-events: auto; }
 .toast-act {
   position: relative;
   flex: none;
@@ -1378,4 +1381,25 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
   * { transition: none !important; }
   .tool:hover img, .tool:nth-child(even):hover img, .sticker-grid button:hover, .tape-grid button:hover, .card:hover canvas { transform: none !important; }
   .spinner { animation-duration: 2.4s; }
+}
+
+/* 面板標題的「收起」（只在手機；電腦的面板一直開著） */
+.panel-close {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  min-height: 44px;
+  margin-top: -11px;
+  margin-bottom: -11px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 700 12.5px/1 var(--round);
+}
+.panel-close svg { width: 16px; height: 16px; }
+@media (max-width: 899px) {
+  .panel-close { display: inline-flex; }
 }

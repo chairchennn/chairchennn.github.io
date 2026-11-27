@@ -136,6 +136,8 @@
       <div class="panel-head">
         <h2 id="panelTitle">底片</h2>
         <p id="panelHint"></p>
+        <button class="panel-close" id="btnPanelClose" type="button" aria-label="收起面板，讓照片大一點">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7l6 5 6-5M6 13l6 5 6-5"/></svg><span>收起</span></button>
       </div>
       <div class="tab-body">
         <!-- 底片：底片色調＋常用調整，其他收進「更多」 -->
@@ -231,6 +233,10 @@
             <div class="sub">
               <span class="sub-label">排法</span>
               <div class="chips" id="fourLayouts"></div>
+            </div>
+            <div class="sub">
+              <span class="sub-label">照片</span>
+              <button class="chip" type="button" data-goto="crop">用「裁切」調整每一格的大小、角度</button>
             </div>
           </div>
           <div class="sub" id="optPaper">

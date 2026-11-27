@@ -38,7 +38,7 @@ const PANES = [...TABS, 'add', 'stamp', 'crop', 'tape', 'note'];
 const TOOL_INFO = {
   add: { name: '新增', tip: '新增：換照片、上傳自己的貼圖', icon: 'add' },
   stamp: { name: '印章', tip: '印章：像橡皮章蓋在照片上', icon: 'stamp' },
-  crop: { name: '裁切', tip: '裁切：比例、取景、旋轉', icon: 'scissors' },
+  crop: { name: '裁切', tip: '裁切：縮放、角度、取景、比例', icon: 'scissors' },
   tape: { name: '膠帶', tip: '紙膠帶：貼在照片邊上', icon: 'tape' },
   glue: { name: '膠水', tip: '膠水：把所有貼圖黏好，不會再被拖動', icon: 'glue' },
   note: { name: '便條', tip: '便條：便條紙、方格紙片、迴紋針', icon: 'notebook' },
@@ -47,10 +47,10 @@ const PANE_INFO = {
   film: ['底片', '選一種底片色調，再調閃光燈與顆粒'],
   doodle: ['塗鴉框', '一鍵在照片邊緣加上手繪塗鴉'],
   sticker: ['貼圖', '點一下貼到照片上'],
-  frame: ['相框', '相框樣式與日期戳記'],
+  frame: ['相框', '相框樣式、相紙與相機日期'],
   add: ['新增', '換照片，或把自己的圖變成貼圖'],
   stamp: ['印章', '選印泥顏色，點一下蓋到照片上'],
-  crop: ['裁切', '比例、取景位置與方向'],
+  crop: ['裁切', '縮放、角度、取景與比例'],
   tape: ['紙膠帶', '點一下貼上；連續貼會換到別的邊角'],
   note: ['便條', '便條紙、方格紙片、迴紋針'],
 };
@@ -61,6 +61,8 @@ const TAPE_SPOTS = [[0.5, 0.02, 0, 0.42], [0.5, 0.98, 0, 0.42], [0.07, 0.05, -0.
 const RATIOS = [[0, '原比例'], [1, '1:1'], [5 / 4, '4:5'], [3 / 2, '2:3'], [16 / 9, '9:16']];
 const STAMP_INKS = ['#e0574f', '#d9467e', '#f08a4b', '#4a6fb5', '#3e8a6e', '#7a5aa8', '#6b4a3f', '#2f2a33'];
 const STATION_CATS = new Set(['stamp', 'note']); // 只在文具工具列出現，不放進貼圖面板
+const finePointer = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
+const xfHowTo = () => (finePointer() ? '拖曳移動・滾輪縮放・Shift＋滾輪轉動' : '拖曳移動・兩指縮放和轉動');
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -167,7 +169,7 @@ let toastTimer = 0;
 function toast(msg, action) {
   const t = $('#toast');
   t.textContent = msg;
-  if (action) {
+  if (action?.label) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'toast-act'; b.textContent = action.label;
     b.addEventListener('click', () => { t.hidden = true; action.run(); });
@@ -175,7 +177,7 @@ function toast(msg, action) {
   }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 5000 : 2400);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action?.ms || (action?.label ? 5000 : 2400));
 }
 function busy(on, text = '沖洗中…') {
   $('#busyText').textContent = text;
@@ -690,8 +692,9 @@ function toLocal(st, p) {
   const g = stickerGeom(st, lastL), dx = p.x - g.cx, dy = p.y - g.cy, c = Math.cos(-g.rot), s = Math.sin(-g.rot);
   return { x: dx * c - dy * s, y: dx * s + dy * c, g };
 }
+let coarse = false; // 這次是手指（觸控）按的
 function hitSticker(p, glued = false) {
-  const pad = 6 * pxPerCss();
+  const pad = (coarse ? 12 : 6) * pxPerCss();
   for (let i = state.stickers.length - 1; i >= 0; i--) {
     const st = state.stickers[i];
     if (!!st.glued !== glued) continue;
@@ -726,6 +729,7 @@ view.addEventListener('pointerdown', (e) => {
   try { view.setPointerCapture(e.pointerId); } catch { /* 不支援就算了 */ }
   const p = toCanvas(e);
   pointers.set(e.pointerId, p);
+  coarse = e.pointerType === 'touch' || e.pointerType === 'pen';
   const sel = selectedSticker();
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()];
@@ -754,8 +758,9 @@ view.addEventListener('pointerdown', (e) => {
     const g = stickerGeom(hit, lastL);
     gesture = { type: 'move', ox: p.x - g.cx, oy: p.y - g.cy };
   } else {
-    if (state.selected) select(null);
     gesture = null;
+    // 選中貼圖時沒按中：只取消選取，不要順便拖到底下的照片
+    if (state.selected) { select(null); return; }
     const glued = hitSticker(p, true);
     if (glued) {
       // 黏住的貼圖：點一下提示，長按只撕下這一張
@@ -807,7 +812,7 @@ view.addEventListener('pointermove', (e) => {
   if (!pointers.has(e.pointerId)) {
     if (e.pointerType === 'mouse') {
       const sel = selectedSticker(), h = sel && hitHandle(sel, p);
-      view.style.cursor = h === 'rot' ? 'nwse-resize' : h === 'del' ? 'pointer' : hitSticker(p) ? 'move' : 'default';
+      view.style.cursor = h === 'rot' ? 'nwse-resize' : h === 'del' ? 'pointer' : hitSticker(p) ? 'move' : (!sel && photoTargetAt(p)) ? 'grab' : 'default';
     }
     return;
   }
@@ -940,6 +945,7 @@ async function loadFile(file) {
     refreshWorkspace();
     queueDateClear();
     if (first) resetHistory();
+    if (first && !xfHintShown) { xfHintShown = true; setTimeout(() => toast(`照片可以放大、轉角度：按「裁切」，或直接${xfHowTo()}`, { ms: 5000 }), 600); }
   } catch (err) {
     console.error(err);
     toast('這張照片打不開，換成 JPG 或 PNG 試試看');
@@ -1012,17 +1018,21 @@ async function loadFourFiles(files, startSlot = 0) {
   busy(true, '讀取照片…');
   await nextFrame();
   let slot = startSlot, failed = 0;
+  const firstFour = !hasFour();
+  // 一次換掉兩張以上（重選 4 張）：舊照片不留著復原，避免記憶體不夠
+  const bulk = state.four.photos.filter((ph, i) => ph && ((i - startSlot + 4) % 4) < list.length).length > 1;
+  if (bulk) {
+    state.four.photos.forEach((ph, i) => { if (ph && ((i - startSlot + 4) % 4) < list.length) freePhoto(ph); });
+  }
   for (const file of list) {
     try {
       const full = await decodeToCanvas(file, FOUR_SRC_SIDE);
-      const old = state.four.photos[slot];
-      if (old) old.full.width = 0;
       state.four.photos[slot] = { full, preview: downscale(full, 900), thumb: downscale(full, 240), ver: ++fourVer, t: XF0() };
       if (slot === startSlot) {
         const d = (await readPhotoDate(file)) || (file.lastModified ? isoOf(new Date(file.lastModified)) : todayISO());
         state.photoDate = d; state.date.value = d;
       }
-    } catch (err) { console.error(err); failed++; }
+    } catch (err) { console.error(err); failed++; if (bulk) state.four.photos[slot] = null; }
     slot = (slot + 1) % 4;
   }
   state.four.ver++;
@@ -1033,7 +1043,8 @@ async function loadFourFiles(files, startSlot = 0) {
   refreshWorkspace();
   queueDateClear();
   syncCropUI();
-  if (!xfHintShown && !failed) { xfHintShown = true; setTimeout(() => toast('每一格的照片都可以直接拖曳移動、兩指縮放轉動'), 300); }
+  if (firstFour || bulk) resetHistory();
+  if (!xfHintShown && !failed) { xfHintShown = true; setTimeout(() => toast(`每一格的照片都可以調整：${xfHowTo()}`, { ms: 5000 }), 300); }
   if (failed) toast(`有 ${failed} 張照片打不開，換成 JPG 或 PNG 試試看`);
 }
 function refreshFourSlots() {
@@ -1138,6 +1149,7 @@ cmp.addEventListener('contextmenu', (e) => e.preventDefault());
 // ---------------------------------------------------------------- tabs
 function setTab(t) {
   if (!PANES.includes(t)) t = 'film';
+  if (t === 'crop') $('#xfHint').textContent = `直接在照片上${xfHowTo()}；也可以用下面的滑桿。`;
   state.tab = t;
   $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
   $$('#stationery .tool[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
@@ -1151,13 +1163,28 @@ function setTab(t) {
   requestRender();
   savePrefs();
 }
-function togglePane(t) {
-  const closed = $('#app').dataset.panel === 'closed';
-  if (t === state.tab && !closed && matchMedia('(max-width: 899px)').matches) { $('#app').dataset.panel = 'closed'; fitView(); return; }
-  $('#app').dataset.panel = 'open';
-  setTab(t);
+const isPhone = () => matchMedia('(max-width: 899px)').matches;
+function setPanel(open) {
+  $('#app').dataset.panel = open ? 'open' : 'closed';
+  // 收起時，分頁和文具都不顯示選中（看得出面板是關著的）
+  $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(open && b.dataset.tab === state.tab)));
+  $$('#stationery .tool[data-tool]').forEach((b) => { if (b.dataset.tool !== 'glue') b.setAttribute('aria-pressed', String(open && b.dataset.tool === state.tab)); });
   fitView();
 }
+function togglePane(t, isTool = false) {
+  const closed = $('#app').dataset.panel === 'closed';
+  // 文具再點一次可以收起面板（主分頁不收，用面板上的「收起」）
+  if (isTool && t === state.tab && !closed && isPhone()) { setPanel(false); return; }
+  setTab(t);
+  // 四格在手機上格子很小：打開裁切時先把面板收起來，照片大一點
+  if (t === 'crop' && state.mode === 'four' && isPhone() && hasFour() && closed === false) {
+    setPanel(false);
+    toast('面板先收起來，照片比較大；再點一次「裁切」可以打開滑桿', { ms: 4000 });
+    return;
+  }
+  setPanel(true);
+}
+$('#btnPanelClose').addEventListener('click', () => setPanel(false));
 $$('.tabs button').forEach((b) => b.addEventListener('click', () => togglePane(b.dataset.tab)));
 $$('[data-goto]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.goto)));
 
@@ -1733,7 +1760,7 @@ function buildStationery() {
 }
 function useTool(t) {
   if (t === 'glue') { useGlue(); return; }
-  togglePane(t);
+  togglePane(t, true);
 }
 function openToolsDialog() {
   renderToolOrder();
@@ -1795,8 +1822,9 @@ function snapshot() {
   const stickers = state.stickers.map((st) => (st.img ? { ...st, img: ref(st.img) } : st));
   const f = state.frame;
   const photo = state.mode === 'single' ? state.orig : null;
+  const photos = state.mode === 'single' ? [state.orig] : state.four.photos.slice();
   return {
-    photo,
+    photo, photos,
     json: JSON.stringify({
       photo: ref(photo), photoDate: state.photoDate,
       preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
@@ -1817,18 +1845,30 @@ function commitHistory() {
   if (pointers.size || state.dragging || sliderActive || longPress) { noteChange(); return; }
   const snap = snapshot();
   if (!history.cur) { history.cur = snap; return; }
-  if (snap.json === history.cur.json) return;
+  if (snap.json === history.cur.json && samePhotos(snap, history.cur)) return;
   history.undo.push(history.cur);
   if (history.undo.length > HISTORY_MAX) history.undo.shift();
   history.redo = [];
   history.cur = snap;
-  // 照片很佔記憶體：最多只留「上一張照片」可以復原
-  if (snap.photo) {
-    const prev = [...history.undo].reverse().find((h) => h.photo && h.photo !== snap.photo)?.photo;
-    history.undo = history.undo.filter((h) => !h.photo || h.photo === snap.photo || h.photo === prev);
-  }
+  // 照片很佔記憶體：最多只留「上一次換照片之前」的照片可以復原
+  const prev = [...history.undo].reverse().find((h) => !samePhotos(h, snap));
+  const keep = new Set([...snap.photos, ...(prev?.photos || [])]);
+  const gone = new Set();
+  history.undo = history.undo.filter((h) => {
+    const ok = h.photos.every((ph) => !ph || keep.has(ph));
+    if (!ok) h.photos.forEach((ph) => { if (ph && !keep.has(ph)) gone.add(ph); });
+    return ok;
+  });
+  gone.forEach(freePhoto);
   syncHistoryUI();
 }
+// 不會再用到的照片：立刻釋放畫布記憶體（iPhone Safari 記憶體很少）
+function freePhoto(ph) {
+  if (!ph) return;
+  if (ph.full) { ph.full.width = 0; return; }
+  if (ph !== state.orig) ph.width = 0;
+}
+const samePhotos = (a, b) => a.photos.length === b.photos.length && a.photos.every((ph, i) => ph === b.photos[i]);
 function resetHistory() {
   clearTimeout(historyTimer);
   history.undo = []; history.redo = [];
@@ -1855,6 +1895,12 @@ function restoreSnapshot(snap) {
   state.frame.crop = normXf(s.frame.crop);
   state.stickers = s.stickers.map((st) => (typeof st.img === 'number' ? { ...st, img: snap.imgs[st.img] } : st));
   state.selected = null;
+  if (state.mode === 'four' && !samePhotos(snap, { photos: state.four.photos })) {
+    state.four.photos = snap.photos.slice();
+    state.four.photos.forEach((ph, i) => { if (ph) ph.t = normXf(s.four.xf[i]); });
+    state.four.ver++;
+    refreshFourSlots();
+  }
   const photo = s.photo >= 0 ? snap.imgs[s.photo] : null;
   if (state.mode === 'single' && photo && (photo !== state.orig || s.rotation !== state.rotation)) {
     if (state.full && state.full !== state.orig) state.full.width = 0;
