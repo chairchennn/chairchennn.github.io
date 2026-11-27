@@ -3,15 +3,24 @@
 //               由墨水筆刷加上顆粒與缺墨，像橡皮章蓋在照片上。線條偏粗、一致。
 //   ART_NOTES ：便條紙、迴紋針、長尾夾（cat: 'note'）。'M' = 紙張／金屬線的主色，線條、格子、陰影用固定色。
 // 格式同 stickers.js：{ id, name, cat, color, vb?, parts: [...] }；全部原創繪製，英文字母用線條畫（不用字型）。
-import { s, f, circ, ell, poly, starPts, scallop, sparkleD, heartD, n } from './shapes.js';
+import { s, f, circ, ell, poly, starPts, scallop, heartD, n } from './shapes.js';
 
-const { PI, cos, sin, max, min } = Math;
+const { PI, cos, sin, min } = Math;
 const g = (d, lg, a) => ({ d, f: { lg }, a }); // 線性漸層填色
 // 圓角矩形
 const rr = (x, y, w, h, r) => `M${n(x + r)} ${n(y)}H${n(x + w - r)}Q${n(x + w)} ${n(y)} ${n(x + w)} ${n(y + r)}V${n(y + h - r)}` +
   `Q${n(x + w)} ${n(y + h)} ${n(x + w - r)} ${n(y + h)}H${n(x + r)}Q${n(x)} ${n(y + h)} ${n(x)} ${n(y + h - r)}V${n(y + r)}Q${n(x)} ${n(y)} ${n(x + r)} ${n(y)}Z`;
-// 平移（只適用絕對座標 M L Q C 的 path）
-const mv = (d, dx, dy) => d.replace(/(-?\d*\.?\d+)\s+(-?\d*\.?\d+)/g, (_, x, y) => `${n(+x + dx)} ${n(+y + dy)}`);
+// 平移（只適用絕對座標命令 M L H V Q C S T A Z 的 path）
+const mv = (d, dx, dy) => d.replace(/([MLHVQCSTAZ])([^MLHVQCSTAZ]*)/g, (_, c, args) => {
+  const v = args.trim() ? args.trim().split(/[\s,]+/).map(Number) : [];
+  const out = v.map((x, i) => {
+    if (c === 'H') return n(x + dx);
+    if (c === 'V') return n(x + dy);
+    if (c === 'A') return i % 7 === 5 ? n(x + dx) : i % 7 === 6 ? n(x + dy) : x;
+    return n(x + (i % 2 ? dy : dx));
+  });
+  return c + out.join(' ');
+});
 // 一組點繞 (cx,cy) 旋轉
 const rotPts = (pts, deg, cx, cy) => {
   const a = (deg * PI) / 180, c = cos(a), sn = sin(a);
@@ -142,7 +151,6 @@ const STAMP_DEFS = [
       st(scallop(50, 50, 16, 40, 45.5, -PI / 2, 0.1), 4.6),
       st(circ(50, 50, 32), 2.6),
       sf(starPts(50, 52, 5, 22, 10.5)), st(starPts(50, 52, 5, 22, 10.5), 4.5),
-      sf(sparkleD(26, 32, 5, 0.25)), sf(sparkleD(74, 70, 4, 0.25)),
     ]
   },
   {
@@ -192,9 +200,9 @@ const STAMP_DEFS = [
   {
     id: 'st_ticket', name: 'FILM 票根章', color: INK_G, vb: [100, 64], parts: [
       st(TICKET, 4.6),
-      st(dashes([[72, 13], [72, 51]], 4, 3.6), 3),
-      st(word('FILM', 40, 32, 14, 0.3), 3.8),
-      sf(starPts(81.5, 32.5, 5, 6.2, 2.8)), st(starPts(81.5, 32.5, 5, 6.2, 2.8), 2.2),
+      st(dashes([[67, 13], [67, 51]], 4, 3.6), 3),
+      st(word('FILM', 37.5, 32, 13.5, 0.3), 3.8),
+      sf(starPts(77, 32.5, 5, 5.6, 2.5)), st(starPts(77, 32.5, 5, 5.6, 2.5), 2.2),
     ]
   },
   {
@@ -272,7 +280,10 @@ const HEART_CLIP = (() => {
   return poly(outer, true) + poly([tip, ...inner, tip], false);
 })();
 // --- 長尾夾 ---
-const BINDER = 'M14 50Q14 46 18 46H62Q66 46 66 50L70 80Q70 84 66 84H14Q10 84 10 80Z';
+// 長尾夾：握把往前折下來，夾著一小張橫線紙（這樣小尺寸也看得出是夾子）
+const BINDER = 'M17 12L63 12L69 40Q70 44 66 44L14 44Q10 44 11 40Z', BINDER_LIP = rr(13, 7, 54, 9, 4.5);
+const BINDER_WIRE = 'M14.5 11.5L17 60Q17.5 66 23 66L57 66Q62.5 66 63 60L65.5 11.5';
+const BINDER_PAPER = 'M20 30L60 30L62 78L18 78Z';
 
 export const ART_NOTES = [
   {
@@ -338,11 +349,16 @@ export const ART_NOTES = [
     ]
   },
   {
-    id: 'nt_binder', name: '長尾夾', color: '#f6a9ba', vb: [80, 90], parts: [
-      s('M22 48L26 12Q26.5 9 29.5 9H50.5Q53.5 9 54 12L58 48', SHADOW, 5.4, 0.25), s('M22 48L26 12Q26.5 9 29.5 9H50.5Q53.5 9 54 12L58 48', '#c9c4cf', 3.4),
-      s('M28 48L31 20Q31.5 17 34.5 17H45.5Q48.5 17 49 20L52 48', SHADOW, 5.4, 0.25), s('M28 48L31 20Q31.5 17 34.5 17H45.5Q48.5 17 49 20L52 48', '#dcd8e0', 3.4),
-      ...shade(BINDER), f(BINDER), g(BINDER, [0, 46, 0, 84, 'rgba(255,255,255,0.5)', 'rgba(107,74,63,0.08)']), edge(BINDER),
-      s('M16 52H64', '#ffffff', 2, 0.55), f(heartD(40, 66, 11), '#ffffff', 0.7),
+    id: 'nt_binder', name: '長尾夾', color: '#f6a9ba', vb: [80, 84], parts: [
+      ...shade(BINDER_PAPER), f(BINDER_PAPER, '#fffdf6'), edge(BINDER_PAPER),
+      s('M24 52H56M24 60H56M24 68H50', BLUE_LN, 1.1, 0.8),
+      s(mv(BINDER_WIRE, 2, 3), SHADOW, 3.6, 0.12),
+      ...shade(BINDER), f(BINDER), g(BINDER, [0, 12, 0, 44, 'rgba(255,255,255,0.35)', 'rgba(107,74,63,0.14)']), edge(BINDER),
+      s('M14 39.5H66', SHADOW, 1.4, 0.25),
+      f(BINDER_LIP), g(BINDER_LIP, [0, 7, 0, 16, 'rgba(255,255,255,0.6)', 'rgba(107,74,63,0.14)']), edge(BINDER_LIP),
+      f(heartD(40, 27, 11), '#ffffff', 0.8),
+      s(BINDER_WIRE, SHADOW, 5.2, 0.25), s(BINDER_WIRE, '#d8d4de', 3.2), s('M17.6 20L18.8 44', '#ffffff', 1.1, 0.7),
+      ...[14.5, 65.5].flatMap((x) => [f(circ(x, 11.5, 3.2), '#d8d4de'), s(circ(x, 11.5, 3.2), SHADOW, 1, 0.3)]),
     ]
   },
 ].map((d) => ({ ...d, cat: 'note' }));
