@@ -2,7 +2,7 @@
 import {
   PRESETS, developBase, applyFx, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, formatDate,
 } from './film.js';
-import { DOODLE_PRESETS, LAYOUTS, THEMES, generateDoodles } from './doodles.js';
+import { DOODLE_PRESETS, LAYOUTS, PACKS, generateDoodles } from './doodles.js';
 import {
   FRAMES, FRAME_COLORS, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
@@ -19,9 +19,10 @@ const SLIDERS = [
   ['exposure', '曝光', -100, 100], ['contrast', '對比', -100, 100], ['saturation', '飽和度', -100, 100],
   ['temp', '色溫', -100, 100], ['tint', '色調', -100, 100], ['fade', '褪色', 0, 100],
   ['grain', '顆粒', 0, 100], ['vignette', '暗角', 0, 100], ['halation', '光暈', 0, 100],
+  ['flash', '閃光燈', 0, 100], ['soften', '柔焦', 0, 100],
   ['leak', '漏光', 0, 100], ['dust', '灰塵刮痕', 0, 100],
 ];
-const COLOR_KEYS = new Set(['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade']);
+const COLOR_KEYS = new Set(['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade', 'flash']);
 const TEXT_STYLES = [['bubble', '泡泡'], ['neon', '霓虹'], ['outline', '描邊'], ['hand', '手寫']];
 const TEXT_QUICK = ['Hello!', 'Love', 'Holiday', 'Good day', '日常', '好開心', '旅行中', '想你'];
 const ROUND_FONT = '"Fredoka", "Chiron GoRound TC", sans-serif';
@@ -38,6 +39,8 @@ function presetFx(id) {
     grain: Math.round((p.fx?.grain || 0) * 100),
     vignette: Math.round((p.fx?.vignette || 0) * 100),
     halation: Math.round((p.fx?.halation || 0) * 100),
+    flash: Math.round((p.fx?.flash || 0) * 100),
+    soften: Math.round((p.fx?.soften || 0) * 100),
   };
 }
 const defaultAdj = (id) => ({
@@ -47,9 +50,9 @@ const defaultAdj = (id) => ({
 
 const state = {
   orig: null, full: null, preview: null, thumb: null, srcVersion: 0, rotation: 0, photoDate: null,
-  preset: 'none',
-  adj: defaultAdj('none'),
-  doodle: { preset: 'none', layout: 'band', theme: 'neon', density: 60, scale: 100, seed: 1, label: '', labelStyle: 'bubble' },
+  preset: 'flash',
+  adj: defaultAdj('flash'),
+  doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, scale: 100, seed: 1, label: '', labelStyle: 'bubble' },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, cropPos: 0.5, seed: 7 },
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br' },
   glow: true,
@@ -60,7 +63,7 @@ const state = {
 };
 
 // ---------------------------------------------------------------- prefs
-const STORE_KEY = 'filmdoodle:v2';
+const STORE_KEY = 'filmdoodle:v3';
 function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -76,7 +79,7 @@ function loadPrefs() {
     if (p.date) for (const k of ['on', 'format', 'color', 'pos']) if (typeof p.date[k] === typeof state.date[k]) state.date[k] = p.date[k];
     if (typeof p.glow === 'boolean') state.glow = p.glow;
     if (p.doodle && DOODLE_PRESETS.some((d) => d.id === p.doodle.preset)) {
-      for (const k of ['preset', 'layout', 'theme', 'density', 'scale', 'labelStyle']) if (typeof p.doodle[k] === typeof state.doodle[k]) state.doodle[k] = p.doodle[k];
+      for (const k of ['preset', 'pack', 'layout', 'count', 'scale', 'labelStyle']) if (typeof p.doodle[k] === typeof state.doodle[k]) state.doodle[k] = p.doodle[k];
     }
     if (['film', 'doodle', 'adjust', 'frame', 'sticker', 'date'].includes(p.tab)) state.tab = p.tab;
   } catch { /* 無法讀取就用預設值 */ }
@@ -261,11 +264,11 @@ function drawSticker(ctx, st, L) {
     const ss = st.lw ? Math.min(2.5, Math.max(0.5, (st.lw * Math.min(L.pw, L.ph)) / (4.5 * k))) : 1;
     ctx.translate(-g.w / 2, -g.h / 2);
     ctx.scale(k, k);
-    drawStickerDef(ctx, def, st.color, k, state.glow ? 1 : 0, ss);
+    drawStickerDef(ctx, def, st.color, k, st.glow ?? (state.glow ? 1 : 0), ss);
   } else if (st.kind === 'img') {
     ctx.drawImage(st.img, -g.w / 2, -g.h / 2, g.w, g.h);
   } else {
-    drawTextSticker(ctx, st, g.w, g.h, state.glow);
+    drawTextSticker(ctx, st, g.w, g.h, st.glow ?? state.glow);
   }
   ctx.restore();
 }
@@ -278,7 +281,7 @@ let fxCache = { key: '', canvas: null };
 let doodleCache = { key: '', items: [] };
 let fontsVersion = 0;
 let lastL = null;
-const COLOR_ADJ = ['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade'];
+const COLOR_ADJ = ['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade', 'flash'];
 const resetPhotoCache = () => { baseCache.key = ''; fxCache.key = ''; };
 
 // 塗鴉框用「原圖比例」產生，預覽和匯出才會一模一樣
@@ -947,32 +950,22 @@ function buildDoodlePane() {
     b.addEventListener('click', () => selectDoodle(p.id));
     box.append(b);
   }
-  const chipRow = (el, list, key, extra) => {
+  const chipRow = (el, list, key) => {
     for (const item of list) {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'chip'; b.dataset.id = item[0];
-      if (extra) extra(b, item);
-      b.append(document.createTextNode(item[1]));
-      b.addEventListener('click', () => { state.doodle[key] = item[0]; syncDoodleUI(); requestRender(); savePrefs(); });
-      el.append(b);
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'chip'; btn.dataset.id = item[0]; btn.textContent = item[1];
+      btn.addEventListener('click', () => { state.doodle[key] = item[0]; syncDoodleUI(); requestRender(); savePrefs(); });
+      el.append(btn);
     }
   };
   chipRow($('#doodleLayouts'), LAYOUTS, 'layout');
-  chipRow($('#doodleThemes'), THEMES, 'theme', (b, t) => {
-    const dots = document.createElement('span');
-    dots.className = 'theme-dots';
-    for (const col of [...new Set(t[2])].slice(0, 3)) {
-      const d = document.createElement('i'); d.style.background = col; dots.append(d);
-    }
-    b.append(dots);
-  });
+  chipRow($('#doodlePacks'), Object.entries(PACKS).map(([id, pk]) => [id, pk.name]), 'pack');
   chipRow($('#doodleLabelStyles'), TEXT_STYLES, 'labelStyle');
-  const bindRange = (id, key) => {
-    const el = $(id), out = el.parentElement.querySelector('output');
-    el.addEventListener('input', () => { state.doodle[key] = +el.value; out.textContent = el.value; requestRender(); savePrefs(); });
-  };
-  bindRange('#doodleDensity', 'density');
-  bindRange('#doodleScale', 'scale');
+  $('#doodleCount').addEventListener('input', (e) => { state.doodle.count = +e.target.value; syncDoodleUI(); requestRender(); savePrefs(); });
+  $('#doodleScale').addEventListener('input', (e) => { state.doodle.scale = +e.target.value; syncDoodleUI(); requestRender(); savePrefs(); });
+  const stepCount = (d) => { state.doodle.count = Math.min(40, Math.max(4, state.doodle.count + d)); syncDoodleUI(); requestRender(); savePrefs(); };
+  $('#doodleLess').addEventListener('click', () => stepCount(-2));
+  $('#doodleMore').addEventListener('click', () => stepCount(2));
   $('#doodleLabel').addEventListener('input', async (e) => {
     state.doodle.label = e.target.value;
     requestRender();
@@ -1001,7 +994,7 @@ function buildDoodlePane() {
 function selectDoodle(id) {
   const p = DOODLE_PRESETS.find((x) => x.id === id);
   state.doodle.preset = id;
-  if (p.layout) Object.assign(state.doodle, { layout: p.layout, theme: p.theme, density: p.density, scale: 100 });
+  if (p.pack) Object.assign(state.doodle, { pack: p.pack, layout: p.layout, count: p.count, scale: 100 });
   syncDoodleUI();
   requestRender();
   savePrefs();
@@ -1013,12 +1006,12 @@ function syncDoodleUI() {
   $$('#doodleList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.preset)));
   $('#doodleOpts').hidden = d.preset === 'none';
   $$('#doodleLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.layout)));
-  $$('#doodleThemes .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.theme)));
+  $$('#doodlePacks .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.pack)));
   $$('#doodleLabelStyles .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.labelStyle)));
-  for (const [id, key] of [['#doodleDensity', 'density'], ['#doodleScale', 'scale']]) {
-    $(id).value = d[key];
-    $(id).parentElement.querySelector('output').textContent = d[key];
-  }
+  $('#doodleCount').value = d.count;
+  $('#doodleCount').parentElement.querySelector('output').textContent = `${d.count} 個`;
+  $('#doodleScale').value = d.scale;
+  $('#doodleScale').parentElement.querySelector('output').textContent = `${d.scale}%`;
   if ($('#doodleLabel').value !== d.label) $('#doodleLabel').value = d.label;
 }
 
@@ -1033,10 +1026,10 @@ function refreshDoodleThumbs() {
     const c = b.querySelector('canvas'), ctx = c.getContext('2d');
     const S = Math.min(src.width, src.height);
     ctx.drawImage(src, (src.width - S) / 2, (src.height - S) / 2, S, S, 0, 0, c.width, c.height);
-    if (p.layout) {
-      const items = generateDoodles({ ...p, preset: p.id, seed: state.doodle.seed, scale: 100 }, 1);
+    if (p.pack) {
+      const items = generateDoodles({ ...p, preset: p.id, seed: state.doodle.seed, scale: 115 }, 1);
       const L = { x: 0, y: 0, pw: c.width, ph: c.height, W: c.width, H: c.height };
-      for (const it of items) drawSticker(ctx, { ...it, lw: 0.011 }, L);
+      for (const it of items) drawSticker(ctx, { ...it, lw: it.lw * 2.2 }, L);
     }
     setTimeout(step, 0);
   };

@@ -138,6 +138,18 @@
         <section class="pane" data-pane="doodle" role="tabpanel" hidden>
           <div class="cards" id="doodleList"></div>
           <div class="doodle-opts" id="doodleOpts" hidden>
+            <div class="count-row">
+              <span class="s-label">圖案數量</span>
+              <button class="round-btn" type="button" id="doodleLess" aria-label="少一點">−</button>
+              <input type="range" min="4" max="40" value="20" id="doodleCount" aria-label="圖案數量">
+              <button class="round-btn" type="button" id="doodleMore" aria-label="多一點">＋</button>
+              <output>20 個</output>
+            </div>
+            <label class="slider">
+              <span class="s-label">圖案大小</span>
+              <input type="range" min="60" max="150" value="100" id="doodleScale">
+              <output>100%</output>
+            </label>
             <div class="sub doodle-actions">
               <button class="chip strong" type="button" id="btnDoodleShuffle">🎲 換一組</button>
               <button class="chip" type="button" id="btnDoodleEdit">轉成貼圖（可個別移動、刪除）</button>
@@ -147,19 +159,9 @@
               <div class="chips" id="doodleLayouts"></div>
             </div>
             <div class="sub">
-              <span class="sub-label">配色</span>
-              <div class="chips" id="doodleThemes"></div>
+              <span class="sub-label">圖案風格</span>
+              <div class="chips" id="doodlePacks"></div>
             </div>
-            <label class="slider">
-              <span class="s-label">數量</span>
-              <input type="range" min="10" max="100" value="60" id="doodleDensity">
-              <output>60</output>
-            </label>
-            <label class="slider">
-              <span class="s-label">大小</span>
-              <input type="range" min="60" max="150" value="100" id="doodleScale">
-              <output>100</output>
-            </label>
             <label class="field">
               <span class="sub-label">加文字</span>
               <input type="text" id="doodleLabel" maxlength="24" placeholder="例如：Australia、東京、Summer" autocomplete="off">
@@ -169,7 +171,7 @@
               <div class="chips" id="doodleLabelStyles"></div>
             </div>
           </div>
-          <p class="note">選一種塗鴉框，照片四周就會自動長滿手繪塗鴉；不喜歡這一組就按「換一組」。</p>
+          <p class="note">選一種塗鴉框，照片邊緣就會自動撒上手繪塗鴉；用「圖案數量」調多少，不喜歡這一組就按「換一組」。</p>
         </section>
 
         <!-- 調整 -->

@@ -14,13 +14,21 @@ const softClip = (x) => (x <= 0.92 ? x : 0.92 + 0.08 * Math.tanh((x - 0.92) / 0.
 export const PRESETS = [
   { id: 'none', name: '原色', sub: 'Original', fx: { grain: 0, vignette: 0, halation: 0 } },
   {
+    id: 'flash', name: '閃光底片', sub: '開閃光燈',
+    exp: 0.05, wb: { temp: 0.04, tint: -0.03 }, contrast: 0.2, sat: 1.08, vib: 0.05,
+    hue: [{ c: 120, w: 55, h: 8, s: 0.92 }, { c: 25, w: 30, s: 1.05, l: 0.02 }, { c: 210, w: 45, h: -6, s: 0.9 }],
+    curves: { all: [[0, 0.05], [0.25, 0.24], [0.75, 0.8], [1, 0.97]], g: [[0, 0.015], [0.5, 0.51], [1, 1]] },
+    split: { sh: [-0.015, 0.02, 0.012], hi: [0.02, 0.012, -0.015] },
+    fx: { grain: 0.28, vignette: 0.16, halation: 0.15, flash: 0.6, soften: 0.35 },
+  },
+  {
     id: 'gr-pos', name: '理光 正片', sub: 'Positive', brand: 'ricoh',
     wb: { temp: 0.02, tint: 0.015 }, contrast: 0.24, sat: 1.2, vib: 0.08,
     hue: [{ c: 0, w: 40, h: -3, s: 1.12 }, { c: 30, w: 32, h: -3, s: 1.1 }, { c: 58, w: 36, h: -6, s: 1.05 },
       { c: 120, w: 60, h: -6, s: 0.92 }, { c: 210, w: 50, h: 5, s: 1.08, l: -0.02 }],
     curves: { b: [[0, 0.02], [0.5, 0.5], [1, 0.97]] },
     split: { sh: [-0.01, 0, 0.022], hi: [0.02, 0.01, -0.02] },
-    fx: { grain: 0.14, vignette: 0.16, halation: 0 },
+    fx: { grain: 0.14, vignette: 0.16, halation: 0, soften: 0.25 },
   },
   {
     id: 'gr-neg', name: '理光 負片', sub: 'Negative', brand: 'ricoh',
@@ -28,13 +36,13 @@ export const PRESETS = [
     hue: [{ c: 0, w: 40, h: 6, s: 0.86 }, { c: 58, w: 36, s: 0.8 }, { c: 120, w: 60, h: 12, s: 0.7 }, { c: 215, w: 50, h: -8, s: 0.82 }],
     curves: { all: [[0, 0.06], [0.25, 0.28], [0.75, 0.76], [1, 0.95]], g: [[0, 0.01], [0.5, 0.52], [1, 1]], b: [[0, 0.04], [0.5, 0.5], [1, 0.96]] },
     split: { sh: [-0.02, 0.01, 0.02], hi: [0.015, 0.01, -0.01] },
-    fx: { grain: 0.2, vignette: 0.1, halation: 0 },
+    fx: { grain: 0.2, vignette: 0.1, halation: 0, soften: 0.25 },
   },
   {
     id: 'gr-bleach', name: '理光 漂白', sub: 'Bleach Bypass', brand: 'ricoh',
     wb: { temp: -0.03 }, contrast: 0.42, sat: 0.45,
     curves: { all: [[0, 0], [0.2, 0.14], [0.8, 0.88], [1, 1]] },
-    fx: { grain: 0.22, vignette: 0.25, halation: 0 },
+    fx: { grain: 0.22, vignette: 0.25, halation: 0, soften: 0.25 },
   },
   {
     id: 'fuji-cc', name: '富士 Classic Chrome', sub: 'Classic Chrome', brand: 'fuji',
@@ -43,7 +51,7 @@ export const PRESETS = [
       { c: 110, w: 50, h: -14, s: 0.62 }, { c: 180, w: 40, h: 8, s: 0.82 }, { c: 222, w: 45, h: -12, s: 0.78, l: -0.02 }],
     curves: { all: [[0, 0.02], [0.2, 0.17], [0.5, 0.5], [0.85, 0.85], [1, 0.96]] },
     split: { sh: [0, 0.005, 0.015], hi: [0.01, 0.005, -0.01] },
-    fx: { grain: 0.12, vignette: 0.12, halation: 0 },
+    fx: { grain: 0.12, vignette: 0.12, halation: 0, soften: 0.25 },
   },
   {
     id: 'fuji-cn', name: '富士 Classic Neg.', sub: 'Classic Neg.', brand: 'fuji',
@@ -55,14 +63,14 @@ export const PRESETS = [
       b: [[0, 0.06], [0.3, 0.3], [0.75, 0.7], [1, 0.9]],
     },
     split: { sh: [-0.03, 0.01, 0.02], hi: [0.02, 0.01, -0.02] }, fade: 0.02,
-    fx: { grain: 0.18, vignette: 0.15, halation: 0 },
+    fx: { grain: 0.18, vignette: 0.15, halation: 0, soften: 0.25 },
   },
   {
     id: 'fuji-velvia', name: '富士 Velvia', sub: 'Velvia', brand: 'fuji',
     wb: { temp: -0.02, tint: 0.03 }, contrast: 0.3, sat: 1.36, vib: 0.1,
     hue: [{ c: 0, w: 40, s: 1.12 }, { c: 120, w: 55, h: -4, s: 1.1 }, { c: 205, w: 50, h: 4, s: 0.95, l: -0.05 }],
     curves: { all: [[0, 0], [0.2, 0.15], [0.8, 0.86], [1, 1]] },
-    fx: { grain: 0.08, vignette: 0.2, halation: 0 },
+    fx: { grain: 0.08, vignette: 0.2, halation: 0, soften: 0.25 },
   },
   {
     id: 'fuji-400h', name: '富士 Pro 400H', sub: '粉嫩空氣感', brand: 'fuji',
@@ -70,7 +78,7 @@ export const PRESETS = [
     hue: [{ c: 0, w: 35, h: -4, s: 0.9 }, { c: 58, w: 36, s: 0.8 }, { c: 120, w: 55, h: 16, s: 0.75 }, { c: 210, w: 45, h: -6, s: 0.82 }],
     curves: { all: [[0, 0.05], [0.5, 0.53], [1, 0.98]], g: [[0, 0.01], [0.5, 0.52], [1, 1]] },
     split: { sh: [-0.02, 0.01, 0.03], hi: [0.02, 0, 0.006] },
-    fx: { grain: 0.14, vignette: 0.06, halation: 0 },
+    fx: { grain: 0.14, vignette: 0.06, halation: 0, soften: 0.25 },
   },
   {
     id: 'fuji-superia', name: '富士 Superia 400', sub: 'Superia', brand: 'fuji',
@@ -78,7 +86,7 @@ export const PRESETS = [
     hue: [{ c: 0, w: 35, h: -4, s: 1.08 }, { c: 120, w: 55, h: 6, s: 1.04 }],
     curves: { g: [[0, 0.01], [0.45, 0.48], [1, 1]], b: [[0, 0.03], [0.5, 0.5], [1, 0.95]] },
     split: { sh: [-0.02, 0.02, 0.02] },
-    fx: { grain: 0.22, vignette: 0.15, halation: 0 },
+    fx: { grain: 0.24, vignette: 0.15, halation: 0.08, flash: 0.3, soften: 0.25 },
   },
   {
     id: 'kodak-portra', name: '柯達 Portra 400', sub: '溫柔膚色', brand: 'kodak',
@@ -87,7 +95,7 @@ export const PRESETS = [
       { c: 110, w: 50, h: -10, s: 0.72 }, { c: 215, w: 45, h: -8, s: 0.8 }],
     curves: { all: [[0, 0.03], [0.25, 0.26], [0.75, 0.77], [1, 0.97]], r: [[0, 0], [0.5, 0.51], [1, 1]] },
     split: { sh: [0, 0, 0.01], hi: [0.02, 0.01, -0.01] },
-    fx: { grain: 0.16, vignette: 0.08, halation: 0 },
+    fx: { grain: 0.16, vignette: 0.08, halation: 0, soften: 0.25 },
   },
   {
     id: 'kodak-gold', name: '柯達 Gold 200', sub: '金黃懷舊', brand: 'kodak',
@@ -95,7 +103,7 @@ export const PRESETS = [
     hue: [{ c: 30, w: 30, s: 1.1 }, { c: 55, w: 35, h: -4, s: 1.2 }, { c: 110, w: 50, h: -10, s: 0.85 }, { c: 215, w: 45, s: 0.9 }],
     curves: { r: [[0, 0], [0.5, 0.53], [1, 1]], b: [[0, 0], [0.5, 0.47], [1, 0.94]] },
     split: { hi: [0.03, 0.02, -0.03] }, fade: 0.02,
-    fx: { grain: 0.2, vignette: 0.15, halation: 0 },
+    fx: { grain: 0.22, vignette: 0.15, halation: 0.08, flash: 0.3, soften: 0.25 },
   },
   {
     id: 'cine-800t', name: '電影 800T', sub: '夜景鎢絲燈', brand: 'cine',
@@ -103,7 +111,7 @@ export const PRESETS = [
     hue: [{ c: 0, w: 35, s: 1.2, l: 0.02 }, { c: 30, w: 30, h: -6 }, { c: 120, w: 55, h: 14, s: 0.7 }, { c: 190, w: 40, s: 1.1 }],
     curves: { b: [[0, 0.04], [0.5, 0.52], [1, 0.98]] },
     split: { sh: [-0.02, 0.01, 0.04], hi: [0.02, 0, 0] },
-    fx: { grain: 0.25, vignette: 0.18, halation: 0.45 },
+    fx: { grain: 0.25, vignette: 0.18, halation: 0.45, soften: 0.25 },
   },
   {
     id: 'disposable', name: '拋棄式相機', sub: '閃光燈派對', brand: 'other',
@@ -111,19 +119,19 @@ export const PRESETS = [
     hue: [{ c: 120, w: 55, h: -6, s: 1.05 }],
     curves: { g: [[0, 0.02], [0.5, 0.52], [1, 1]] },
     split: { sh: [-0.01, 0.025, 0] }, fade: 0.03,
-    fx: { grain: 0.3, vignette: 0.35, halation: 0.1 },
+    fx: { grain: 0.32, vignette: 0.3, halation: 0.12, flash: 0.75, soften: 0.3 },
   },
   {
     id: 'bw-acros', name: '黑白 ACROS', sub: '細緻黑白', brand: 'fuji',
     bw: [0.3, 0.6, 0.1], contrast: 0.2,
     curves: { all: [[0, 0.02], [0.25, 0.2], [0.75, 0.8], [1, 0.98]] },
-    fx: { grain: 0.18, vignette: 0.15, halation: 0 },
+    fx: { grain: 0.18, vignette: 0.15, halation: 0, soften: 0.25 },
   },
   {
     id: 'bw-trix', name: '黑白 Tri-X', sub: '高反差顆粒', brand: 'kodak',
     bw: [0.4, 0.45, 0.15], contrast: 0.45,
     curves: { all: [[0, 0], [0.15, 0.08], [0.85, 0.93], [1, 1]] },
-    fx: { grain: 0.45, vignette: 0.22, halation: 0 },
+    fx: { grain: 0.45, vignette: 0.22, halation: 0, soften: 0.25 },
   },
 ];
 
@@ -473,6 +481,47 @@ export function applyDust(ctx, w, h, amount, seed) {
   ctx.restore();
 }
 
+
+// ---------- 閃光燈：中間（主體）亮、四周快速變暗，像真的開閃光燈拍 ----------
+const LIN8 = new Float32Array(256).map((_, i) => toLin(i / 255));
+// 線性亮度 0~3 → sRGB 0~255，超過 0.75 之後柔和壓縮，不會一下子死白
+const SHOULDER = new Uint8ClampedArray(3072).map((_, i) => {
+  const v = i / 1024, sv = v < 0.75 ? v : 0.75 + 0.25 * (1 - Math.exp(-(v - 0.75) / 0.25));
+  return Math.round(toSrgb(sv) * 255);
+});
+export function applyFlash(px, w, h, amount) {
+  if (amount <= 0) return;
+  const cx = w * 0.5, cy = h * 0.44, R2 = (w * w + h * h) / 4, G = new Float32Array(1025);
+  for (let i = 0; i <= 1024; i++) {
+    const r = Math.sqrt((i / 1024) * 1.6);
+    G[i] = Math.pow(2, Math.max(-1.6 * amount, amount * (0.55 - 1.55 * Math.pow(r, 1.6)))) * 1024;
+  }
+  for (let y = 0; y < h; y++) {
+    const dy = (y - cy) * (y - cy);
+    let p = y * w * 4;
+    for (let x = 0; x < w; x++, p += 4) {
+      const g = G[Math.min(1024, ((((x - cx) * (x - cx) + dy) / R2) * 640) | 0)];
+      px[p] = SHOULDER[Math.min(3071, (LIN8[px[p]] * g) | 0)];
+      px[p + 1] = SHOULDER[Math.min(3071, (LIN8[px[p + 1]] * g) | 0)];
+      px[p + 2] = SHOULDER[Math.min(3071, (LIN8[px[p + 2]] * g) | 0)];
+    }
+  }
+}
+
+// ---------- 柔焦：底片＋便宜鏡頭沒有手機那麼銳利 ----------
+export function applySoften(ctx, w, h, amount) {
+  if (amount <= 0) return;
+  const sw = Math.max(2, Math.round(w / 2.6)), sh = Math.max(2, Math.round(h / 2.6));
+  const small = makeCanvas(sw, sh), sc = small.getContext('2d');
+  sc.imageSmoothingQuality = 'high';
+  sc.drawImage(ctx.canvas, 0, 0, sw, sh);
+  ctx.save();
+  ctx.globalAlpha = Math.min(0.85, amount * 0.7);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(small, 0, 0, w, h);
+  ctx.restore();
+}
+
 // ---------- 日期戳記（七段顯示器） ----------
 const SEG = { 0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd', 6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
 
@@ -552,6 +601,7 @@ export function developBase(src, crop, outW, outH, s) {
   if (s.original) return c;
   const preset = PRESETS.find((p) => p.id === s.preset) || PRESETS[0];
   const id = ctx.getImageData(0, 0, c.width, c.height);
+  applyFlash(id.data, c.width, c.height, (s.adj.flash || 0) / 100);
   applyLUT(id.data, getLUT(preset, s.adj, s.lutN || 33));
   ctx.putImageData(id, 0, 0);
   return c;
@@ -567,6 +617,7 @@ export function applyFx(base, s, overlay, inPlace = false) {
   if (s.original) return c;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   const w = c.width, h = c.height, a = s.adj;
+  applySoften(ctx, w, h, (a.soften || 0) / 100);
   applyHalation(ctx, w, h, (a.halation || 0) / 100);
   applyLightLeak(ctx, w, h, (a.leak || 0) / 100, a.leakStyle || 'warm', a.leakSeed || 1);
   if (overlay) { ctx.save(); overlay(ctx, w, h); ctx.restore(); }
@@ -587,6 +638,7 @@ export function previewThumb(src, preset, adj, size) {
   ctx.drawImage(src, (src.width - S) / 2, (src.height - S) / 2, S, S, 0, 0, size, size);
   if (preset.id === 'none') return c;
   const id = ctx.getImageData(0, 0, size, size);
+  applyFlash(id.data, size, size, preset.fx?.flash || 0);
   applyLUT(id.data, getLUT(preset, { ...adj, intensity: 100 }, 17));
   ctx.putImageData(id, 0, 0);
   return c;

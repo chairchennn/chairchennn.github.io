@@ -598,5 +598,9 @@ dialog.sheet::backdrop { background: rgba(8, 6, 4, .7); -webkit-backdrop-filter:
 /* doodle frames */
 .doodle-actions { margin-top: 4px; }
 .doodle-actions .chip { min-height: 34px; }
-.theme-dots { display: inline-flex; gap: 2px; margin-right: 2px; }
-.theme-dots i { display: block; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
+/* 圖案數量：一眼看得到的 − 滑桿 ＋ */
+.count-row { display: grid; grid-template-columns: 70px 32px 1fr 32px 48px; align-items: center; gap: 8px; min-height: 40px; }
+.count-row output { text-align: right; font: 600 13px/1 var(--round); color: var(--fg); }
+.round-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); font-size: 18px; line-height: 1; padding: 0; }
+.round-btn:active { background: var(--panel3); }
+@media (min-width: 900px) { .count-row { grid-template-columns: 80px 32px 1fr 32px 48px; } }
