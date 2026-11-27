@@ -79,7 +79,7 @@ a { color: var(--accent); }
   gap: 6px;
   border-radius: 999px;
   border: 1px solid transparent;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 16px;
   font-weight: 600;
   text-decoration: none;
@@ -92,7 +92,7 @@ a { color: var(--accent); }
 .primary-btn:not(:disabled):active, .ghost-btn:active { transform: scale(.96); }
 .primary-btn.big { min-height: 50px; padding: 0 26px; font-size: 17px; }
 .ghost-btn { background: var(--panel2); border-color: var(--line); color: var(--fg); }
-.icon-btn { width: 38px; padding: 0; background: transparent; border-color: var(--line); color: var(--muted); }
+.icon-btn { width: 44px; padding: 0; background: transparent; border-color: var(--line); color: var(--muted); }
 .icon-btn:hover { color: var(--fg); }
 
 /* ---------- workspace ---------- */
@@ -554,7 +554,7 @@ dialog.sheet::backdrop { background: rgba(8, 6, 4, .7); -webkit-backdrop-filter:
   .brand-mark { width: 27px; height: 27px; }
   .top-actions { gap: 6px; }
   .top-actions .ghost-btn span { display: none; }
-  .top-actions .ghost-btn { width: 38px; padding: 0; }
+  .top-actions .ghost-btn { width: 44px; padding: 0; }
   .primary-btn { padding: 0 14px; }
 }
 @media (max-width: 340px) {
@@ -602,7 +602,7 @@ dialog.sheet::backdrop { background: rgba(8, 6, 4, .7); -webkit-backdrop-filter:
 .count-row { display: flex; align-items: center; gap: 6px; min-height: 44px; }
 .count-row .s-label { width: 70px; flex: none; }
 .count-row output { min-width: 52px; text-align: center; font: 700 15px/1 var(--round); color: var(--fg); font-variant-numeric: tabular-nums; }
-.count-row .chip { margin-left: auto; }
+.count-row .chip { margin-left: auto; min-height: 44px; }
 /* 看起來 36px、可以點的範圍 44px */
 .round-btn {
   width: 44px; height: 44px; padding: 4px; border: 0; border-radius: 50%;

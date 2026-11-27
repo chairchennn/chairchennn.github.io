@@ -31,18 +31,18 @@ export const PACKS = {
     name: '奶油貼紙', glow: 0, lw: 0.0034, label: '#f7a8bb',
     colors: ['#f7a8bb', '#f49ab0', '#ffb5c5', '#f6b38f', '#f4b6a6'],
     small: { cr_dotheart: 2, cr_sparkle: 1.5, cr_cross: 1.5, cr_flower4: 2, cr_candy: 1 },
-    medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 1, cr_bow: 1 },
+    medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 0.4, cr_bow: 1 },
     large: { cr_bigstar: 1, cr_heart: 1, cr_flower5: 1 },
   },
   kitty: {
     name: '貓咪小魚', glow: 0, lw: 0.0034, label: '#ff9b5e',
     sizes: { small: [0.035, 0.05], medium: [0.08, 0.1], large: [0.14, 0.17] },
-    small: { kt_blossom: 3, kt_blossom2: 2, kt_fish: 1.5 },
+    small: { kt_blossom: 3, kt_blossom2: 2 },
     medium: { kt_cat: 2.5, kt_cat2: 1.5, kt_fish: 1.5, kt_yarn: 0.8, kt_paw: 0.8 },
     large: { kt_cat: 1, kt_cat2: 1 },
   },
   flora: {
-    name: '花花世界', glow: 0, lw: 0.0034, label: '#f39552', largeExtra: 1, bleed: 0.2,
+    name: '花花世界', glow: 0, lw: 0.0034, label: '#f39552', largeExtra: 1, bleed: 0.3,
     sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
     colors: ['#f39552', '#f4a2b8', '#f8b48a', '#6f9ed9', '#94d3bd'], recolor: 0.3,
     small: { fl_star: 2, fl_blue: 2, kt_blossom2: 1, fl_round: 1 },
@@ -59,6 +59,7 @@ export const PACKS = {
   },
   neoncat: {
     name: '螢光貓咪', glow: 1, lw: 0.007, label: '#46d2f0',
+    fixed: { pl_catjump: ['#ffffff', '#ffd23c'] }, // 實心跳躍貓只用白／黃，配橘色條紋
     sizes: { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.22, 0.3] },
     colors: ['#ff8fc0', '#46d2f0', '#ffd23c', '#ff9a3c', '#ffffff', '#b48cff'], recolor: 0.8,
     small: { sparkle: 2, pl_twinkle: 1.5, pl_streak: 1.2, kt_blossom2: 1.4, zigzag: 0.6 },
@@ -104,6 +105,8 @@ function pick(r, weights, used) {
 }
 
 function colorFor(r, def, pack) {
+  const fixed = pack.fixed?.[def.id];
+  if (fixed) return fixed[Math.floor(r() * fixed.length)];
   if (!pack.colors || !isRecolorable(def)) return def.color;
   return r() < (pack.recolor ?? 0.4) ? pack.colors[Math.floor(r() * pack.colors.length)] : def.color;
 }

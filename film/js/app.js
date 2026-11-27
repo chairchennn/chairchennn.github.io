@@ -70,6 +70,9 @@ function loadPrefs() {
     if (!p) return;
     if (PRESETS.some((x) => x.id === p.preset)) state.preset = p.preset;
     if (p.adj) for (const k of Object.keys(state.adj)) if (typeof p.adj[k] === typeof state.adj[k]) state.adj[k] = p.adj[k];
+    for (const [k, , min, max] of [['intensity', '', 0, 100], ...SLIDERS]) {
+      if (typeof state.adj[k] === 'number') state.adj[k] = Math.min(max, Math.max(min, Number.isFinite(state.adj[k]) ? state.adj[k] : 0));
+    }
     if (p.frame && FRAMES.some((f) => f.id === p.frame.id)) {
       state.frame.id = p.frame.id;
       if (typeof p.frame.color === 'string') state.frame.color = p.frame.color;
@@ -80,7 +83,8 @@ function loadPrefs() {
     if (typeof p.glow === 'boolean') state.glow = p.glow;
     if (p.doodle && DOODLE_PRESETS.some((d) => d.id === p.doodle.preset)) {
       for (const k of ['preset', 'pack', 'layout', 'count', 'scale', 'labelStyle', 'countTouched']) if (typeof p.doodle[k] === typeof state.doodle[k]) state.doodle[k] = p.doodle[k];
-      state.doodle.count = Math.min(COUNT_MAX, Math.max(COUNT_MIN, state.doodle.count));
+      state.doodle.count = Math.min(COUNT_MAX, Math.max(COUNT_MIN, state.doodle.count || 20));
+      state.doodle.scale = Math.min(150, Math.max(60, state.doodle.scale || 100));
     }
     if (['film', 'doodle', 'adjust', 'frame', 'sticker', 'date'].includes(p.tab)) state.tab = p.tab;
   } catch { /* 無法讀取就用預設值 */ }
