@@ -1195,7 +1195,7 @@ function buildDateUI() {
   for (const [id] of DATE_FORMATS) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip date-chip'; b.dataset.id = id;
-    b.addEventListener('click', () => { state.date.format = id; state.date.on = true; syncDateUI(); requestRender(); savePrefs(); });
+    b.addEventListener('click', () => { const was = state.date.on; state.date.format = id; state.date.on = true; if (!was) clearDateArea(); syncDateUI(); requestRender(); savePrefs(); });
     fm.append(b);
   }
   const names = { orange: '橘', red: '紅', yellow: '黃', white: '白' };
@@ -1205,17 +1205,17 @@ function buildDateUI() {
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id;
     const dot = document.createElement('span'); dot.className = 'dot'; dot.style.background = col; dot.style.color = col;
     b.append(dot, document.createTextNode(names[id]));
-    b.addEventListener('click', () => { state.date.color = id; state.date.on = true; syncDateUI(); requestRender(); savePrefs(); });
+    b.addEventListener('click', () => { const was = state.date.on; state.date.color = id; state.date.on = true; if (!was) clearDateArea(); syncDateUI(); requestRender(); savePrefs(); });
     cl.append(b);
   }
   const ps = $('#datePos');
   for (const [id, name] of [['br', '右下'], ['bl', '左下']]) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
-    b.addEventListener('click', () => { state.date.pos = id; state.date.on = true; syncDateUI(); requestRender(); savePrefs(); });
+    b.addEventListener('click', () => { const changed = !state.date.on || state.date.pos !== id; state.date.pos = id; state.date.on = true; if (changed) clearDateArea(); syncDateUI(); requestRender(); savePrefs(); });
     ps.append(b);
   }
-  $('#dateOn').addEventListener('change', (e) => { state.date.on = e.target.checked; clearDateArea(); requestRender(); savePrefs(); });
+  $('#dateOn').addEventListener('change', (e) => { state.date.on = e.target.checked; if (state.date.on) clearDateArea(); requestRender(); savePrefs(); });
   $('#dateValue').addEventListener('change', (e) => {
     if (!e.target.value) return;
     state.date.value = e.target.value; state.date.on = true; syncDateUI(); requestRender();
@@ -1245,7 +1245,6 @@ function clearDateArea() {
 }
 
 function syncDateUI() {
-  clearDateArea();
   $('#dateOn').checked = state.date.on;
   $('#dateValue').value = state.date.value;
   $$('#dateFormats .chip').forEach((b) => {
