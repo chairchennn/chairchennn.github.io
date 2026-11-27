@@ -41,11 +41,12 @@ export const PACKS = {
     medium: { kt_cat: 2.5, kt_cat2: 1.5, kt_fish: 1.5, kt_yarn: 0.8, kt_paw: 0.8, kt_catsit: 1 },
     large: { kt_cat: 1, kt_cat2: 1, kt_catsit: 1, kt_peek: 0.8 },
     anchors: { kt_peek: 'bottom' }, // 探頭貓：不旋轉、貼齊照片底邊
+    max: { kt_peek: 1 }, // 每張最多一隻
   },
   flora: {
     name: '花花世界', glow: 0, lw: 0.0034, label: '#f39552', largeExtra: 1, bleed: 0.3,
     sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
-    colors: ['#f39552', '#f4a2b8', '#f8b48a', '#6f9ed9', '#94d3bd'], recolor: 0.3,
+    colors: ['#f39552', '#f4a2b8', '#f8b48a', '#6f9ed9', '#94d3bd'], recolor: 0.3, keepColor: ['fl_ginkgo'],
     small: { fl_star: 2, fl_blue: 2, kt_blossom2: 1, fl_round: 1 },
     medium: { fl_daisy: 2, fl_cosmos: 2, fl_round: 1.5, fl_tulip: 1, fl_ginkgo: 1.5 },
     large: { fl_sprig: 2, fl_bunch: 1.5, fl_fern: 1.2, fl_daisy: 1, fl_starbranch: 1.5 },
@@ -93,19 +94,22 @@ export const COUNT_MIN = 4, COUNT_MAX = 30;
 
 const byId = new Map(STICKERS.map((d) => [d.id, d]));
 
-function pick(r, weights, used) {
+// skip(id) = true 的圖案不選（例如已達每張上限、或這個排列不適合）
+function pick(r, weights, used, skip = () => false) {
   let total = 0;
-  const entries = Object.entries(weights).filter(([id]) => byId.has(id)).map(([id, w]) => {
+  const entries = Object.entries(weights).filter(([id]) => byId.has(id) && !skip(id)).map(([id, w]) => {
     const ww = w / (1 + (used.get(id) || 0) * 1.6);
     total += ww;
     return [id, ww];
   });
+  if (!entries.length) return null;
   let t = r() * total;
   for (const [id, w] of entries) { if ((t -= w) <= 0) return id; }
   return entries[entries.length - 1][0];
 }
 
 function colorFor(r, def, pack) {
+  if (pack.keepColor?.includes(def.id)) return def.color;
   const fixed = pack.fixed?.[def.id];
   if (fixed) return fixed[Math.floor(r() * fixed.length)];
   if (!pack.colors || !isRecolorable(def)) return def.color;
@@ -166,7 +170,10 @@ export function generateDoodles(o, aspect, datePos = null) {
   const nMedium = Math.round((count - nLarge) * 0.35);
   const plan = [...Array(nLarge).fill('large'), ...Array(nMedium).fill('medium'), ...Array(count - nLarge - nMedium).fill('small')];
   for (const kind of plan) {
-    const id = pick(r, pack[kind], used);
+    // 達到每張上限的不再選；「天空」排列不放貼齊底邊的探頭貓
+    const skip = (cid) => (pack.max?.[cid] && (used.get(cid) || 0) >= pack.max[cid]) || (o.layout === 'top' && pack.anchors?.[cid] === 'bottom');
+    const id = pick(r, pack[kind], used, skip);
+    if (!id) continue;
     const def = byId.get(id);
     const [lo, hi] = sizes[kind];
     const size = (lo + r() * (hi - lo)) * scale;
@@ -175,7 +182,11 @@ export function generateDoodles(o, aspect, datePos = null) {
     let pos;
     if (anchor === 'bottom') {
       const yb = 1 - (size * (vh / vw)) / 2 / sy, half = size / 2 / sx;
-      pos = tryPlace(size, { x0: half + 0.02, x1: 1 - half - 0.02, y0: yb, y1: yb });
+      // 只放左右兩側（0.02–0.32 或 0.68–0.98），不擋住底部中間的主角
+      const left = r() < 0.5;
+      const x0 = left ? Math.max(0.02 + half, 0.02 + half) : Math.max(0.68 + half, 0.02 + half);
+      const x1 = left ? Math.min(0.32 - half, 0.98 - half) : 0.98 - half;
+      pos = x1 >= x0 ? tryPlace(size, { x0, x1, y0: yb, y1: yb }) : null;
     } else pos = tryPlace(size);
     if (!pos) continue;
     used.set(id, (used.get(id) || 0) + 1);
