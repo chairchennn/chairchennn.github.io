@@ -1,7 +1,7 @@
 // FilmDoodle — 主程式（介面、手勢、匯出）
 import {
   PRESETS, developBase, applyFx, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, DATE_SIZES,
-  formatDate, dateStampBox,
+  formatDate, dateStampBox, drawDateStamp,
 } from './film.js';
 import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, generateDoodles } from './doodles.js';
 import {
@@ -371,7 +371,7 @@ let doodleCache = { key: '', items: [] };
 let fontsVersion = 0;
 let lastL = null;
 const COLOR_ADJ = ['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade', 'flash'];
-const resetPhotoCache = () => { baseCache.key = ''; fxCache.key = ''; fourCache.key = ''; devCache.key = ''; };
+const resetPhotoCache = () => { baseCache.key = ''; fxCache.key = ''; fourCache.key = ''; devCache.key = ''; wholeFxCache.key = ''; layerCache.key = ''; };
 const hasFour = () => state.four.photos.some(Boolean);
 const hasContent = () => (state.mode === 'four' ? hasFour() : !!state.preview);
 // 四格的日期印在最後一張有照片的格子
@@ -436,10 +436,51 @@ function developedWhole(src) {
   }
   return devCache.canvas;
 }
+// 拖照片時更快：整張照片的顆粒、暗角等也先做好，塗鴉另外畫成一層，每次移動只要裁切再疊上去
+let wholeFxCache = { key: '', canvas: null }, layerCache = { key: '', canvas: null };
+function wholeFx(src) {
+  const dev = developedWhole(src), key = JSON.stringify([devCache.key, state.adj]);
+  if (wholeFxCache.key !== key) {
+    if (wholeFxCache.canvas) wholeFxCache.canvas.width = 0;
+    wholeFxCache = { key, canvas: applyFx(dev, { adj: state.adj, date: null, original: state.compare }, null) };
+  }
+  return wholeFxCache.canvas;
+}
+function doodleLayer(w, h) {
+  const overlay = doodleOverlay();
+  if (!overlay) return null;
+  const key = JSON.stringify([doodleCache.key, w, h, state.glow, fontsVersion]);
+  if (layerCache.key !== key) {
+    if (layerCache.canvas) layerCache.canvas.width = 0;
+    const c = makeCanvas(w, h);
+    overlay(c.getContext('2d'), w, h);
+    layerCache = { key, canvas: c };
+  }
+  return layerCache.canvas;
+}
+function fastPreview(src, crop) {
+  const z = state.frame.crop.zoom || 1, ow = Math.round(crop.w * z), oh = Math.round(crop.h * z);
+  const c = makeCanvas(ow, oh), cx = c.getContext('2d');
+  cx.imageSmoothingQuality = 'high';
+  const whole = wholeFx(src);
+  if (crop.xf) drawXf(cx, whole, ow, oh, crop.xf); else cx.drawImage(whole, crop.x, crop.y, crop.w, crop.h, 0, 0, ow, oh);
+  if (!state.compare) {
+    const layer = doodleLayer(ow, oh);
+    if (layer) cx.drawImage(layer, 0, 0);
+    const d = state.date;
+    if (d.on) drawDateStamp(cx, ow, oh, formatDate(d.value, d.format), d.color, d.pos, d.size);
+  }
+  return c;
+}
 function getPreviewPhoto() {
   const src = state.preview;
   const crop = xfCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height, state.frame.ratio), state.frame.crop);
   const lutN = state.dragging ? 17 : 33, fast = state.dragging === 'photo';
+  if (fast) {
+    if (fxCache.canvas) fxCache.canvas.width = 0;
+    fxCache = { key: 'fast', canvas: fastPreview(src, crop) };
+    return fxCache.canvas;
+  }
   const baseKey = JSON.stringify([state.srcVersion, state.preset, COLOR_ADJ.map((k) => state.adj[k]),
     Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), crop.xf || 0, state.compare, lutN, fast]);
   if (baseCache.key !== baseKey) {
