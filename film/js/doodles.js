@@ -124,12 +124,10 @@ export const PACKS = {
 export const DOODLE_PRESETS = [
   { id: 'none', name: '無' },
   { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 20 },
-  { id: 'kitty', name: '貓咪小魚', pack: 'kitty', layout: 'band', count: 22 },
   { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16 },
   { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14 },
   { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16 },
   { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16 },
-  { id: 'emoji', name: '表情臉', pack: 'emoji', layout: 'band', count: 14 },
   { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14 },
   { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22 },
   { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24 },
@@ -247,7 +245,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
       const loose = def.cat === 'flora' || vh / vw < 0.7;
       slots.push({ spot: pos.spot, size, anchor, vh, vw,
         item: {
-          kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
+          kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size, seed: 1 + Math.floor(r() * 99999),
           rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow,
         } });
       break;

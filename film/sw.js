@@ -1,10 +1,10 @@
 // FilmDoodle service worker：把程式本身存起來，離線也能用。
 // 照片不會經過這裡（照片從來不會被送到網路上）。
-const VERSION = 'filmdoodle-v5';
+const VERSION = 'filmdoodle-v6';
 const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/film.js', './js/frames.js', './js/stickers.js', './js/exif.js', './js/doodles.js', './js/fourcut.js',
-  './js/art/shapes.js', './js/art/fr_jp.js', './js/art/y2k_emoji.js',
+  './js/art/shapes.js', './js/art/fr_jp.js', './js/art/y2k_emoji.js', './js/art/crayon.js', './js/crayon.js',
   './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
 ];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

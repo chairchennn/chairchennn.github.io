@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <title>FilmDoodle · 底片塗鴉機</title>
 <meta name="description" content="上傳照片，一鍵加上可愛的手繪塗鴉框、閃光燈底片色調、底片相框、四格拍貼與貼圖。照片只在你的裝置上處理，不會上傳。">
-<meta name="theme-color" content="#ffd6ec">
+<meta name="theme-color" content="#fff7fc">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="FilmDoodle">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Chiron+GoRound+TC:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DynaPuff:wght@500;700&family=Chiron+GoRound+TC:wght@500;700&display=swap">
 <link rel="stylesheet" href="style.css">
 <script type="module" src="js/app.js"></script>
 </head>
@@ -27,8 +27,16 @@
   <header class="topbar">
     <a class="brand" href="./" aria-label="FilmDoodle 首頁">
       <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
-        <rect x="3" y="7" width="34" height="26" rx="6"/>
-        <path d="M20 12.5l2.1 4.8 5.2.4-4 3.4 1.2 5.1L20 23.5l-4.5 2.7 1.2-5.1-4-3.4 5.2-.4z" class="fill"/>
+        <defs>
+          <linearGradient id="bmHolo" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffc2e4"/><stop offset=".5" stop-color="#d9c8ff"/><stop offset="1" stop-color="#b6e2ff"/>
+          </linearGradient>
+        </defs>
+        <rect class="bm-top" x="8" y="6.5" width="10" height="6" rx="2.5"/>
+        <rect class="bm-body" x="3" y="10.5" width="34" height="24" rx="8"/>
+        <circle class="bm-lens" cx="21" cy="22.5" r="7"/>
+        <path class="bm-star" d="M21 17.6q.6 4.3 4.9 4.9-4.3.6-4.9 4.9-.6-4.3-4.9-4.9 4.3-.6 4.9-4.9z"/>
+        <circle class="bm-dot" cx="31.5" cy="15.5" r="1.7"/>
       </svg>
       <span>Film<b>Doodle</b></span>
     </a>

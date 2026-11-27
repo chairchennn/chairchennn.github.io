@@ -4,6 +4,8 @@
 
 import { ART_FR_JP } from './art/fr_jp.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
+import { ART_CRAYON } from './art/crayon.js';
+import { drawCrayonDef } from './crayon.js';
 
 export const PALETTE = [
   '#ff8fc0', // 粉紅
@@ -670,11 +672,13 @@ const CUTE = [
     ]
   },
 ];
-STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI);
+STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON);
 
+// 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框
+export const HIDDEN_CATS = new Set(['kitty', 'emoji']);
 export const CATEGORIES = [
-  ['all', '全部'], ['cream', '奶油'], ['kitty', '貓咪'], ['flora', '花草'], ['pastel', '粉彩'],
-  ['french', '法式'], ['japan', '日式'], ['y2k', 'Y2K'], ['emoji', '表情'],
+  ['all', '全部'], ['crayon', '蠟筆'], ['cream', '奶油'], ['flora', '花草'], ['pastel', '粉彩'],
+  ['french', '法式'], ['japan', '日式'], ['y2k', 'Y2K'],
   ['face', '螢光表情'], ['animal', '動物'], ['travel', '旅行'], ['deco', '裝飾'], ['line', '線條'],
 ];
 
@@ -687,7 +691,9 @@ function hexToRgba(hex, a) {
 }
 
 // 在 (0,0)-(vbW,vbH) 座標系畫貼圖；pxPerUnit 用來把光暈換算成像素（shadowBlur 不吃 transform）
-export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeScale = 1) {
+export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeScale = 1, seed = 1) {
+  // 蠟筆風：手抖＋顆粒（不加霓虹光暈，保持粉彩筆的質感）
+  if (def.style === 'crayon') { drawCrayonDef(ctx, def, color, strokeScale, seed); return; }
   if (!def._paths) def._paths = def.parts.map((p) => new Path2D(p.d));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';

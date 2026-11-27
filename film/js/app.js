@@ -7,7 +7,7 @@ import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, generateDoodles }
 import {
   FRAMES, FRAME_COLORS, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
-import { STICKERS, CATEGORIES, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
+import { STICKERS, CATEGORIES, HIDDEN_CATS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
 
@@ -295,7 +295,7 @@ function drawSticker(ctx, st, L) {
     const ss = st.lw ? Math.min(2.5, Math.max(0.5, (st.lw * Math.min(L.pw, L.ph)) / (4.5 * k))) : 1;
     ctx.translate(-g.w / 2, -g.h / 2);
     ctx.scale(k, k);
-    drawStickerDef(ctx, def, st.color, k, st.glow ?? (state.glow ? 1 : 0), ss);
+    drawStickerDef(ctx, def, st.color, k, st.glow ?? (state.glow ? 1 : 0), ss, st.seed ?? st.uid ?? 1);
   } else if (st.kind === 'img') {
     ctx.drawImage(st.img, -g.w / 2, -g.h / 2, g.w, g.h);
   } else {
@@ -541,7 +541,7 @@ function select(id) {
 function addSticker(obj) {
   if (!hasContent()) { toast('先選照片，再來貼貼圖'); return; }
   const st = {
-    uid: uid++, x: 0.5 + (Math.random() - 0.5) * 0.36, y: 0.5 + (Math.random() - 0.5) * 0.36,
+    uid: uid++, seed: 1 + Math.floor(Math.random() * 99999), x: 0.5 + (Math.random() - 0.5) * 0.36, y: 0.5 + (Math.random() - 0.5) * 0.36,
     size: 0.26, rot: (Math.random() - 0.5) * 0.4, flip: false, ...obj,
   };
   state.stickers.push(st);
@@ -1289,7 +1289,7 @@ function renderStickerGrid() {
   const grid = $('#stickerGrid');
   grid.innerHTML = '';
   for (const def of STICKERS) {
-    if (state.cat !== 'all' && def.cat !== state.cat) continue;
+    if (HIDDEN_CATS.has(def.cat) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('aria-label', def.name);
@@ -1495,9 +1495,9 @@ function drawDeco() {
   ctx.scale(dpr, dpr);
   const W = r.width, H = r.height, S = Math.min(W, H);
   const items = [
-    ['y2k_chromeheart', 0.1, 0.12, 0.17, -0.2], ['kt_cat', 0.88, 0.13, 0.17, 0.15], ['em_love', 0.87, 0.86, 0.16, -0.15],
+    ['y2k_chromeheart', 0.1, 0.12, 0.17, -0.2], ['pl_catsit', 0.88, 0.13, 0.17, 0.15], ['fl_cosmos', 0.87, 0.86, 0.16, -0.15],
     ['y2k_glitter', 0.13, 0.85, 0.15, 0.1], ['jp_sakura', 0.5, 0.06, 0.11, 0.05], ['y2k_cd', 0.33, 0.93, 0.13, -0.1],
-    ['fr_heart', 0.08, 0.5, 0.13, -0.2], ['y2k_chromestar', 0.94, 0.5, 0.13, 0.25], ['em_smile', 0.67, 0.95, 0.12, 0],
+    ['fr_heart', 0.08, 0.5, 0.13, -0.2], ['y2k_chromestar', 0.94, 0.5, 0.13, 0.25], ['pl_twinkle', 0.67, 0.95, 0.12, 0],
   ];
   for (const [id, x, y, s, rot] of items) {
     const def = STICKERS.find((d) => d.id === id);
