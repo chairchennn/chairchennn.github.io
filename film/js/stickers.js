@@ -5,7 +5,8 @@
 import { ART_FR_JP } from './art/fr_jp.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
 import { ART_CRAYON } from './art/crayon.js';
-import { drawCrayonDef } from './crayon.js';
+import { ART_STAMPS, ART_NOTES } from './art/stationery.js';
+import { drawCrayonDef, drawStampDef } from './crayon.js';
 
 export const PALETTE = [
   '#ff8fc0', // 粉紅
@@ -672,7 +673,7 @@ const CUTE = [
     ]
   },
 ];
-STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON);
+STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_STAMPS, ...ART_NOTES);
 
 // 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框
 export const HIDDEN_CATS = new Set(['kitty', 'emoji']);
@@ -696,6 +697,8 @@ function hexToRgba(hex, a) {
 export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeScale = 1, seed = 1) {
   // 蠟筆風：手抖＋顆粒（不加霓虹光暈，保持粉彩筆的質感）
   if (def.style === 'crayon') { drawCrayonDef(ctx, def, color, strokeScale, seed); return; }
+  // 印章：單一墨色、顆粒與缺墨
+  if (def.style === 'stamp') { drawStampDef(ctx, def, color, strokeScale, seed); return; }
   if (!def._paths) def._paths = def.parts.map((p) => new Path2D(p.d));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';

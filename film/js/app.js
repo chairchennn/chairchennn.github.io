@@ -5,8 +5,9 @@ import {
 } from './film.js';
 import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, generateDoodles } from './doodles.js';
 import {
-  FRAMES, FRAME_COLORS, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
+  FRAMES, FRAME_COLORS, FREE_RATIO_FRAMES, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
+import { TAPES, TAPE_RATIO, TAPE_COLORS, tapeOf, drawTape } from './tape.js';
 import { STICKERS, CATEGORIES, HIDDEN_CATS, HIDDEN_IDS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
@@ -30,7 +31,35 @@ const COLOR_KEYS = new Set(['intensity', 'exposure', 'contrast', 'saturation', '
 const ROUND_FONT = '"Fredoka", "Chiron GoRound TC", sans-serif';
 const HAND_FONT = '"Fredoka", "Chiron GoRound TC", cursive';
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-const TABS = ['film', 'doodle', 'frame', 'sticker'];
+const TABS = ['film', 'doodle', 'sticker', 'frame'];            // 主要編輯（左側／手機底部導覽）
+const TOOLS = ['add', 'stamp', 'crop', 'tape', 'glue', 'note'];  // 文具工具列（快速創作）
+const PANES = [...TABS, 'add', 'stamp', 'crop', 'tape', 'note'];
+const TOOL_INFO = {
+  add: { name: '新增', tip: '新增：換照片、上傳自己的貼圖', icon: 'add' },
+  stamp: { name: '印章', tip: '印章：像橡皮章蓋在照片上', icon: 'stamp' },
+  crop: { name: '裁切', tip: '裁切：比例、取景、旋轉', icon: 'scissors' },
+  tape: { name: '膠帶', tip: '紙膠帶：貼在照片邊上', icon: 'tape' },
+  glue: { name: '膠水', tip: '膠水：把所有貼圖黏好，不會再被拖動', icon: 'glue' },
+  note: { name: '便條', tip: '便條：便條紙、方格紙片、迴紋針', icon: 'notebook' },
+};
+const PANE_INFO = {
+  film: ['底片', '選一種底片色調，再調閃光燈與顆粒'],
+  doodle: ['塗鴉框', '一鍵在照片邊緣加上手繪塗鴉'],
+  sticker: ['貼圖', '點一下貼到照片上'],
+  frame: ['相框', '相框樣式與日期戳記'],
+  add: ['新增', '換照片，或把自己的圖變成貼圖'],
+  stamp: ['印章', '選印泥顏色，點一下蓋到照片上'],
+  crop: ['裁切', '比例、取景位置與方向'],
+  tape: ['紙膠帶', '點一下貼上；連續貼會換到別的邊角'],
+  note: ['便條', '便條紙、方格紙片、迴紋針'],
+};
+const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1:1', polaroid: '1:1', square: '1:1', mini: '約 3:4', wide: '約 16:10' };
+// 紙膠帶連續貼時輪流換位置：上、下、四個角（斜貼）
+const TAPE_SPOTS = [[0.5, 0.02, 0, 0.42], [0.5, 0.98, 0, 0.42], [0.07, 0.05, -0.75, 0.3], [0.93, 0.05, 0.75, 0.3], [0.07, 0.95, 0.75, 0.3], [0.93, 0.95, -0.75, 0.3]];
+// 剪刀的比例（長邊／短邊；0 = 原比例），方向跟著照片
+const RATIOS = [[0, '原比例'], [1, '1:1'], [5 / 4, '4:5'], [3 / 2, '2:3'], [16 / 9, '9:16']];
+const STAMP_INKS = ['#e0574f', '#d9467e', '#f08a4b', '#4a6fb5', '#3e8a6e', '#7a5aa8', '#6b4a3f', '#2f2a33'];
+const STATION_CATS = new Set(['stamp', 'note']); // 只在文具工具列出現，不放進貼圖面板
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -58,7 +87,9 @@ const state = {
   preset: 'flash',
   adj: defaultAdj('flash'),
   doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, glow: null },
-  frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, cropPos: 0.5, seed: 7 },
+  frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, cropPos: 0.5, seed: 7, ratio: 0, paper: 'dots' },
+  stampInk: STAMP_INKS[0], cropCell: 0,
+  tools: { order: [...TOOLS], hidden: [] },
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
   glow: true,
   stickers: [], stash: { single: [], four: [] }, selected: null,
@@ -81,6 +112,14 @@ function loadPrefs() {
       state.frame.id = p.frame.id;
       if (typeof p.frame.color === 'string') state.frame.color = p.frame.color;
       if (typeof p.frame.slideColor === 'string') state.frame.slideColor = p.frame.slideColor;
+      if (RATIOS.some(([r]) => r === p.frame.ratio)) state.frame.ratio = p.frame.ratio;
+      if (PAPERS.some((x) => x.id === p.frame.paper)) state.frame.paper = p.frame.paper;
+    }
+    if (STAMP_INKS.includes(p.stampInk)) state.stampInk = p.stampInk;
+    if (p.tools && Array.isArray(p.tools.order)) {
+      const order = p.tools.order.filter((t) => TOOLS.includes(t));
+      for (const t of TOOLS) if (!order.includes(t)) order.push(t);
+      state.tools = { order: [...new Set(order)], hidden: (Array.isArray(p.tools.hidden) ? p.tools.hidden : []).filter((t) => TOOLS.includes(t)) };
     }
     if (p.date) for (const k of ['on', 'format', 'color', 'pos', 'size']) if (typeof p.date[k] === typeof state.date[k]) state.date[k] = p.date[k];
     if (!DATE_SIZES.some(([id]) => id === state.date.size)) state.date.size = 'md';
@@ -97,20 +136,23 @@ function loadPrefs() {
       if (PAPERS.some((x) => x.id === p.four.paper)) state.four.paper = p.four.paper;
     }
     if (p.mode === 'single' || p.mode === 'four') state.mode = p.mode;
-    if (TABS.includes(p.tab)) state.tab = p.tab;
+    if (TABS.includes(p.tab)) state.tab = p.tab; // 文具面板不記，下次打開回到主工具
   } catch { /* 無法讀取就用預設值 */ }
 }
-let saveTimer = 0;
+let saveTimer = 0, savePending = null;
+addEventListener('pagehide', () => { if (savePending) { clearTimeout(saveTimer); savePending(); } });
 function savePrefs() {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+  saveTimer = setTimeout(savePending = () => {
+    savePending = null;
     try {
       const f = state.frame, d = state.date;
       localStorage.setItem(STORE_KEY, JSON.stringify({
         preset: state.preset, adj: state.adj, mode: state.mode,
-        frame: { id: f.id, color: f.color, slideColor: f.slideColor },
+        frame: { id: f.id, color: f.color, slideColor: f.slideColor, ratio: f.ratio, paper: f.paper },
+        stampInk: state.stampInk, tools: state.tools,
         date: { on: d.on, format: d.format, color: d.color, pos: d.pos, size: d.size },
-        glow: state.glow, tab: state.tab,
+        glow: state.glow, tab: TABS.includes(state.tab) ? state.tab : 'film',
         doodle: { ...state.doodle, seed: 1 },
         four: { layout: state.four.layout, paper: state.four.paper },
       }));
@@ -121,12 +163,18 @@ function savePrefs() {
 // ---------------------------------------------------------------- helpers
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
 let toastTimer = 0;
-function toast(msg) {
+function toast(msg, action) {
   const t = $('#toast');
   t.textContent = msg;
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'toast-act'; b.textContent = action.label;
+    b.addEventListener('click', () => { t.hidden = true; action.run(); });
+    t.append(b);
+  }
   t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 2400);
+  toastTimer = setTimeout(() => { t.hidden = true; }, action ? 5000 : 2400);
 }
 function busy(on, text = '沖洗中…') {
   $('#busyText').textContent = text;
@@ -222,6 +270,8 @@ function stickerGeom(st, L) {
   } else if (st.kind === 'img') {
     const a = st.img.width / st.img.height;
     if (a >= 1) { w = unit; h = unit / a; } else { h = unit; w = unit * a; }
+  } else if (st.kind === 'tape') {
+    w = unit; h = unit * TAPE_RATIO;
   } else {
     h = unit * 0.42;
     w = textLayout(st, h).w;
@@ -298,6 +348,8 @@ function drawSticker(ctx, st, L) {
     drawStickerDef(ctx, def, st.color, k, st.glow ?? (state.glow ? 1 : 0), ss, st.seed ?? st.uid ?? 1);
   } else if (st.kind === 'img') {
     ctx.drawImage(st.img, -g.w / 2, -g.h / 2, g.w, g.h);
+  } else if (st.kind === 'tape') {
+    drawTape(ctx, g.w, g.h, tapeOf(st.id), st.color, st.seed ?? st.uid ?? 1);
   } else {
     drawTextSticker(ctx, st, g.w, g.h, st.glow ?? state.glow);
   }
@@ -325,7 +377,7 @@ const fourDateCell = () => state.four.photos.reduce((last, ph, i) => (ph ? i : l
 function photoAspect() {
   if (state.mode === 'four') { const L = fourLayout(state.four.layout); return L.W / L.H; }
   const f = state.full;
-  return cropAspect(state.frame.id, f.width, f.height) || f.width / f.height;
+  return cropAspect(state.frame.id, f.width, f.height, state.frame.ratio) || f.width / f.height;
 }
 // 日期戳記實際範圍（照片座標 0~1），給塗鴉和貼圖避開
 function dateBoxNorm() {
@@ -360,19 +412,19 @@ function doodleOverlay() {
 let pendingDateClear = false;
 const queueDateClear = () => { if (state.date.on && state.stickers.length) { pendingDateClear = true; requestRender(); } };
 let raf = 0;
-const requestRender = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
+const requestRender = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); noteChange(); }); };
 
 function frameOpts() {
   const f = state.frame, [Y, M] = (state.date.value || todayISO()).split('-');
   return {
-    color: f.color, slideColor: f.slideColor, caption: '', filmNo: f.filmNo, seed: f.seed,
+    color: f.color, slideColor: f.slideColor, caption: '', filmNo: f.filmNo, seed: f.seed, paper: f.paper,
     dateText: `${MONTHS[(+M || 1) - 1]} ${Y}`,
   };
 }
 
 function getPreviewPhoto() {
   const src = state.preview;
-  const crop = computeCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height), state.frame.cropPos);
+  const crop = computeCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height, state.frame.ratio), state.frame.cropPos);
   const lutN = state.dragging ? 17 : 33;
   const baseKey = JSON.stringify([state.srcVersion, state.preset, COLOR_ADJ.map((k) => state.adj[k]),
     Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), state.compare, lutN]);
@@ -402,10 +454,10 @@ function developCell(i, k, scaleKey, lutN) {
   const L = fourLayout(state.four.layout), c = L.cells[i];
   const w = Math.round(c.w * k), h = Math.round(c.h * k);
   const withDate = state.date.on && i === fourDateCell();
-  const key = JSON.stringify([ph.ver, scaleKey, w, h, state.preset, state.adj, withDate ? state.date : 0, state.compare, lutN]);
+  const key = JSON.stringify([ph.ver, ph.pos ?? 0.5, scaleKey, w, h, state.preset, state.adj, withDate ? state.date : 0, state.compare, lutN]);
   if (scaleKey !== 'export') { const hit = cellCache.get(i); if (hit && hit.key === key) return hit.canvas; }
   const src = scaleKey === 'export' ? ph.full : ph.preview;
-  const base = developBase(src, cellCrop(src, L.aspect), w, h, { preset: state.preset, adj: state.adj, original: state.compare, lutN });
+  const base = developBase(src, cellCrop(src, L.aspect, ph.pos ?? 0.5), w, h, { preset: state.preset, adj: state.adj, original: state.compare, lutN });
   const out = applyFx(base, { adj: state.adj, date: withDate ? state.date : null, original: state.compare }, null, true);
   if (scaleKey !== 'export') {
     const old = cellCache.get(i);
@@ -437,7 +489,7 @@ function buildFour(k, scaleKey) {
 }
 function getFourPreview() {
   const L = fourLayout(state.four.layout), k = FOUR_PREVIEW_H / L.H;
-  const key = JSON.stringify([state.four.ver, state.four.layout, state.four.paper, state.preset, state.adj, state.date,
+  const key = JSON.stringify([state.four.ver, state.four.photos.map((x) => x?.pos ?? 0.5), state.four.layout, state.four.paper, state.preset, state.adj, state.date,
     state.doodle, state.glow, fontsVersion, state.compare, state.dragging]);
   if (fourCache.key !== key) {
     if (fourCache.canvas) fourCache.canvas.width = 0;
@@ -481,6 +533,7 @@ function render() {
   compose(vctx, photo, L, o);
   const sel = selectedSticker();
   if (sel) drawSelection(vctx, sel, L);
+  if (state.mode === 'four' && state.tab === 'crop') drawCellOutline(vctx);
 }
 
 function fitView() {
@@ -538,6 +591,7 @@ const selectedSticker = () => state.stickers.find((s) => s.uid === state.selecte
 function select(id) {
   state.selected = id;
   updateStickerBar();
+  syncGlueUI();
   requestRender();
 }
 
@@ -560,15 +614,16 @@ let showColors = false;
 
 function removeSticker(st) {
   state.stickers = state.stickers.filter((s) => s !== st);
-  if (state.selected === st.uid) select(null); else requestRender();
+  if (state.selected === st.uid) select(null); else { syncGlueUI(); requestRender(); }
 }
 
 function updateStickerBar() {
   const st = selectedSticker(), bar = $('#stickerBar');
   bar.hidden = !st;
+  $('#app').dataset.selected = String(!!st);
   $('#stageTools').hidden = !!st || !hasContent();
   if (!st) { showColors = false; return; }
-  const colorable = st.kind === 'text' || (st.kind === 'svg' && isRecolorable(defOf(st)));
+  const colorable = st.kind === 'text' || st.kind === 'tape' || (st.kind === 'svg' && isRecolorable(defOf(st)));
   const sw = $('#stickerColors');
   $('#actColor').hidden = !colorable;
   $('#actColorDot').style.background = st.color || '#fff';
@@ -580,8 +635,10 @@ function updateStickerBar() {
 
 // 有些貼圖換成某些顏色會看不清楚：表情臉不給深色、棋盤格愛心不給白色
 function paletteFor(st) {
+  if (st.kind === 'tape') return TAPE_COLORS;
   if (st.kind !== 'svg') return PALETTE;
   const def = defOf(st);
+  if (def.style === 'stamp') return STAMP_INKS;
   if (def.cat === 'emoji') return PALETTE.filter((c) => hexLum(c) > 0.55);
   if (def.id === 'y2k_checkheart') return PALETTE.filter((c) => hexLum(c) < 0.92);
   return PALETTE;
@@ -632,10 +689,12 @@ function toLocal(st, p) {
   const g = stickerGeom(st, lastL), dx = p.x - g.cx, dy = p.y - g.cy, c = Math.cos(-g.rot), s = Math.sin(-g.rot);
   return { x: dx * c - dy * s, y: dx * s + dy * c, g };
 }
-function hitSticker(p) {
+function hitSticker(p, glued = false) {
   const pad = 6 * pxPerCss();
   for (let i = state.stickers.length - 1; i >= 0; i--) {
-    const st = state.stickers[i], { x, y, g } = toLocal(st, p);
+    const st = state.stickers[i];
+    if (!!st.glued !== glued) continue;
+    const { x, y, g } = toLocal(st, p);
     if (Math.abs(x) <= g.w / 2 + pad && Math.abs(y) <= g.h / 2 + pad) return st;
   }
   return null;
@@ -692,8 +751,32 @@ view.addEventListener('pointerdown', (e) => {
   } else {
     if (state.selected) select(null);
     gesture = null;
+    const glued = hitSticker(p, true);
+    if (glued) {
+      // 黏住的貼圖：點一下提示，長按只撕下這一張
+      toast('黏住了・長按可以撕下來');
+      const id = e.pointerId, sx = e.clientX, sy = e.clientY;
+      longPress = {
+        id, sx, sy,
+        timer: setTimeout(() => {
+          longPress = null;
+          glued.glued = false;
+          select(glued.uid);
+          syncGlueUI();
+          const pp = pointers.get(id), g = stickerGeom(glued, lastL);
+          if (pp) gesture = { type: 'move', ox: pp.x - g.cx, oy: pp.y - g.cy };
+          toast('撕下來了，可以移動');
+          navigator.vibrate?.(15);
+        }, 550),
+      };
+    } else if (state.mode === 'four' && state.tab === 'crop') {
+      const i = fourCellAt(p);
+      if (i >= 0 && state.four.photos[i]) { state.cropCell = i; syncCropUI(); requestRender(); }
+    }
   }
 });
+let longPress = null;
+const cancelLongPress = () => { if (longPress) { clearTimeout(longPress.timer); longPress = null; } };
 
 view.addEventListener('pointermove', (e) => {
   if (!lastL) return;
@@ -706,6 +789,7 @@ view.addEventListener('pointermove', (e) => {
     return;
   }
   pointers.set(e.pointerId, p);
+  if (longPress && Math.hypot(e.clientX - longPress.sx, e.clientY - longPress.sy) > 8) cancelLongPress();
   const sel = selectedSticker();
   if (!sel || !gesture) return;
   if (gesture.type === 'move' && pointers.size === 1) {
@@ -728,6 +812,7 @@ view.addEventListener('pointermove', (e) => {
 
 function endPointer(e) {
   pointers.delete(e.pointerId);
+  cancelLongPress();
   if (gesture?.type === 'pinch' && pointers.size < 2) {
     // 放開一指後，剩下那隻手指可以繼續拖曳
     const sel = selectedSticker(), rest = [...pointers.values()][0];
@@ -779,6 +864,7 @@ async function loadFile(file) {
     const c = makeCanvas(w * k, h * k), ctx = c.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, c.width, c.height);
+    const first = !state.orig;
     if (state.full && state.full !== state.orig) state.full.width = 0;
     state.orig = c;
     state.full = null;
@@ -790,8 +876,10 @@ async function loadFile(file) {
     state.date.value = d;
     syncDateUI();
     buildSources();
+    syncCropUI();
     refreshWorkspace();
     queueDateClear();
+    if (first) resetHistory();
   } catch (err) {
     console.error(err);
     toast('這張照片打不開，換成 JPG 或 PNG 試試看');
@@ -838,7 +926,7 @@ function refreshWorkspace() {
 
 const fileInput = $('#fileInput'), fourInput = $('#fourInput'), slotInput = $('#slotInput');
 const pickPhoto = () => (state.mode === 'four' ? fourInput : fileInput).click();
-$('#btnNew').addEventListener('click', pickPhoto);
+$('#btnReplace').addEventListener('click', pickPhoto);
 $('#btnPick').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => { loadFile(fileInput.files[0]); fileInput.value = ''; });
 
@@ -885,6 +973,7 @@ async function loadFourFiles(files, startSlot = 0) {
   refreshPresetThumbs(); refreshDoodleThumbs();
   refreshWorkspace();
   queueDateClear();
+  syncCropUI();
   if (failed) toast(`有 ${failed} 張照片打不開，換成 JPG 或 PNG 試試看`);
 }
 function refreshFourSlots() {
@@ -903,7 +992,7 @@ function refreshFourSlots() {
 }
 function syncFourUI() {
   $$('#fourLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.four.layout)));
-  $$('#fourPapers .swatch').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.id === state.four.paper)));
+  syncPaperUI();
 }
 function buildFourUI() {
   for (const [id, name] of FOUR_LAYOUTS) {
@@ -911,14 +1000,6 @@ function buildFourUI() {
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
     b.addEventListener('click', () => { state.four.layout = id; cellCache.clear(); resetPhotoCache(); syncFourUI(); refreshWorkspace(); queueDateClear(); savePrefs(); });
     $('#fourLayouts').append(b);
-  }
-  for (const pp of PAPERS) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'swatch paper'; b.dataset.id = pp.id;
-    b.style.background = pp.swatch;
-    b.setAttribute('role', 'radio'); b.setAttribute('aria-label', pp.name); b.title = pp.name;
-    b.addEventListener('click', () => { state.four.paper = pp.id; syncFourUI(); requestRender(); savePrefs(); });
-    $('#fourPapers').append(b);
   }
   $('#btnFourAll').addEventListener('click', () => fourInput.click());
   $('#btnPickFour').addEventListener('click', () => fourInput.click());
@@ -939,13 +1020,16 @@ function setMode(m, initial = false) {
   state.mode = m;
   $('#app').dataset.mode = m;
   $$('.mode-switch button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.mode === m)));
-  $('#frameSingle').hidden = m !== 'single';
-  $('#frameFour').hidden = m !== 'four';
+  $$('[data-only]').forEach((el) => { el.hidden = el.dataset.only !== m; });
   doodleCache.key = '';
   resetPhotoCache();
   if (!initial) { refreshPresetThumbs(); refreshDoodleThumbs(); }
   refreshWorkspace();
+  syncPaperUI();
+  syncCropUI();
   if (!initial) queueDateClear();
+  history = histories[m];
+  rebaseHistory();
   savePrefs();
 }
 $$('.mode-switch button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -988,13 +1072,29 @@ cmp.addEventListener('contextmenu', (e) => e.preventDefault());
 
 // ---------------------------------------------------------------- tabs
 function setTab(t) {
+  if (!PANES.includes(t)) t = 'film';
   state.tab = t;
   $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  $$('#stationery .tool[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
   $$('.pane').forEach((p) => { p.hidden = p.dataset.pane !== t; });
+  const [title, hint] = PANE_INFO[t];
+  $('#panelTitle').textContent = title;
+  $('#panelHint').textContent = hint;
+  $('#panel').dataset.pane = t;
   $('.tab-body').scrollTop = 0;
+  if (t === 'crop') syncCropUI();
+  requestRender();
   savePrefs();
 }
-$$('.tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+function togglePane(t) {
+  const closed = $('#app').dataset.panel === 'closed';
+  if (t === state.tab && !closed && matchMedia('(max-width: 899px)').matches) { $('#app').dataset.panel = 'closed'; fitView(); return; }
+  $('#app').dataset.panel = 'open';
+  setTab(t);
+  fitView();
+}
+$$('.tabs button').forEach((b) => b.addEventListener('click', () => togglePane(b.dataset.tab)));
+$$('[data-goto]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.goto)));
 
 // ---------------------------------------------------------------- film presets
 function buildPresetCards() {
@@ -1113,12 +1213,12 @@ function buildFrameCards() {
   }
 }
 function renderFrameThumb(c, id, src) {
-  const cr = computeCrop(src.width, src.height, cropAspect(id, src.width, src.height), 0.5);
+  const cr = computeCrop(src.width, src.height, cropAspect(id, src.width, src.height, state.frame.ratio), 0.5);
   const k = Math.min(1, 150 / Math.max(cr.w, cr.h));
   const pw = Math.max(1, Math.round(cr.w * k)), ph = Math.max(1, Math.round(cr.h * k));
   const photo = makeCanvas(pw, ph);
   photo.getContext('2d').drawImage(src, cr.x, cr.y, cr.w, cr.h, 0, 0, pw, ph);
-  const o = { color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, seed: 7, dateText: '' };
+  const o = { color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, seed: 7, dateText: '', paper: state.frame.paper };
   const L = layoutFrame(id, pw, ph, o);
   const tmp = makeCanvas(L.W, L.H), t = tmp.getContext('2d');
   drawFrameBack(t, L, id, o);
@@ -1138,10 +1238,9 @@ function refreshFrameThumbs() {
 function selectFrame(id) {
   state.frame.id = id;
   state.frame.cropPos = 0.5;
-  $('#cropPos').value = 50;
-  $('#cropPos').parentElement.querySelector('output').textContent = '50';
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
   updateFrameOpts();
+  syncPaperUI();
   requestRender();
   queueDateClear();
   savePrefs();
@@ -1149,9 +1248,10 @@ function selectFrame(id) {
 function updateFrameOpts() {
   const f = FRAMES.find((x) => x.id === state.frame.id) || FRAMES[0];
   const src = state.preview;
-  const axis = src ? computeCrop(src.width, src.height, cropAspect(f.id, src.width, src.height), 0.5).axis : null;
-  $('#optCrop').hidden = !axis;
-  $('#optCropLabel').textContent = axis === 'x' ? '左右取景' : '上下取景';
+  const axis = src ? computeCrop(src.width, src.height, cropAspect(f.id, src.width, src.height, state.frame.ratio), 0.5).axis : null;
+  $('#optCropLink').hidden = !axis;
+  syncPaperUI();
+  syncCropUI();
   $('#optColor').hidden = !f.colors;
   if (f.colors) {
     const slide = f.id === 'slide';
@@ -1167,6 +1267,90 @@ $('#cropPos').addEventListener('input', (e) => {
   e.target.parentElement.querySelector('output').textContent = e.target.value;
   requestRender();
 });
+
+// ---------------------------------------------------------------- 剪刀：比例、取景、旋轉；四格每一格的取景
+function buildCropUI() {
+  for (const [r, name] of RATIOS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.r = String(r); b.textContent = name;
+    b.addEventListener('click', () => {
+      if (!FREE_RATIO_FRAMES.has(state.frame.id)) return;
+      state.frame.ratio = r; state.frame.cropPos = 0.5;
+      updateFrameOpts(); refreshFrameThumbs(); requestRender(); queueDateClear(); savePrefs();
+    });
+    $('#cropRatios').append(b);
+  }
+  $('#cellPos').addEventListener('input', (e) => {
+    const ph = state.four.photos[state.cropCell];
+    if (!ph) return;
+    ph.pos = +e.target.value / 100;
+    e.target.parentElement.querySelector('output').textContent = e.target.value;
+    requestRender();
+  });
+}
+function syncCropUI() {
+  // 單張
+  const f = state.frame, free = FREE_RATIO_FRAMES.has(f.id), src = state.preview;
+  $$('#cropRatios .chip').forEach((b) => {
+    b.setAttribute('aria-pressed', String(free && +b.dataset.r === f.ratio));
+    b.disabled = !free;
+  });
+  const note = $('#ratioNote');
+  note.hidden = free;
+  if (!free) note.textContent = `「${(FRAMES.find((x) => x.id === f.id) || FRAMES[0]).name}」固定 ${FIXED_RATIO[f.id] || '比例'}；想自由裁切，先到「相框」選無邊框、白邊相紙、粗糙黑邊或手帳紙。`;
+  const axis = src ? computeCrop(src.width, src.height, cropAspect(f.id, src.width, src.height, f.ratio), 0.5).axis : null;
+  $('#optCrop').hidden = !axis;
+  $('#optCropLabel').textContent = axis === 'x' ? '左右取景' : '上下取景';
+  $('#cropPos').value = Math.round(f.cropPos * 100);
+  $('#cropPos').parentElement.querySelector('output').textContent = String(Math.round(f.cropPos * 100));
+  // 四格：在照片上直接點一格（選中的格子有外框）
+  if (!state.four.photos[state.cropCell]) state.cropCell = Math.max(0, state.four.photos.findIndex(Boolean));
+  const ph = state.four.photos[state.cropCell];
+  const L = fourLayout(state.four.layout);
+  const cellAxis = ph ? cellCrop(ph.preview, L.aspect, 0.5).axis : null;
+  $('#optCellPos').hidden = !ph;
+  $('#cellPosLabel').textContent = `第 ${state.cropCell + 1} 格・${cellAxis === 'x' ? '左右' : '上下'}`;
+  $('#cellPos').value = Math.round((ph?.pos ?? 0.5) * 100);
+  $('#cellPos').parentElement.querySelector('output').textContent = $('#cellPos').value;
+}
+// 四格＋裁切：點到的是哪一格
+function fourCellAt(p) {
+  const L = fourLayout(state.four.layout), k = view.width / L.W;
+  return L.cells.findIndex((c) => p.x >= c.x * k && p.x <= (c.x + c.w) * k && p.y >= c.y * k && p.y <= (c.y + c.h) * k);
+}
+function drawCellOutline(ctx) {
+  const L = fourLayout(state.four.layout), k = view.width / L.W, c = L.cells[state.cropCell], px = pxPerCss();
+  if (!c || !state.four.photos[state.cropCell]) return;
+  ctx.save();
+  ctx.lineWidth = 3 * px;
+  ctx.strokeStyle = '#ff6f91';
+  ctx.setLineDash([8 * px, 6 * px]);
+  ctx.strokeRect(c.x * k + 2 * px, c.y * k + 2 * px, c.w * k - 4 * px, c.h * k - 4 * px);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- 相紙（四格）／手帳紙（單張）：都在「相框」
+function buildPaperUI() {
+  for (const pp of PAPERS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'swatch paper'; b.dataset.id = pp.id;
+    b.style.background = pp.swatch;
+    b.setAttribute('role', 'radio'); b.setAttribute('aria-label', pp.name); b.title = pp.name;
+    b.addEventListener('click', () => {
+      if (state.mode === 'four') state.four.paper = pp.id;
+      else { state.frame.paper = pp.id; refreshFrameThumbs(); }
+      syncPaperUI(); requestRender(); savePrefs();
+    });
+    $('#paperList').append(b);
+  }
+}
+function syncPaperUI() {
+  const four = state.mode === 'four';
+  $('#optPaper').hidden = !four && state.frame.id !== 'paper';
+  const cur = four ? state.four.paper : state.frame.paper;
+  $$('#paperList .swatch').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.id === cur)));
+  $('#paperLabel').textContent = four ? '相紙' : '紙張';
+}
 
 // ---------------------------------------------------------------- doodle frames（塗鴉框）
 function buildDoodlePane() {
@@ -1225,7 +1409,7 @@ function selectDoodle(id) {
   state.doodle.glow = null; // 換款式時光暈回到這一款的預設
   if (p.pack) {
     Object.assign(state.doodle, { pack: p.pack, layout: p.layout });
-    // 使用者自己調過數量就保留她的數字，沒調過就用這一款的預設
+    // 使用者自己調過數量就保留那個數字，沒調過就用這一款的預設
     if (!state.doodle.countTouched) state.doodle.count = p.count;
   }
   syncDoodleUI();
@@ -1300,7 +1484,7 @@ function renderStickerGrid() {
   const grid = $('#stickerGrid');
   grid.innerHTML = '';
   for (const def of STICKERS) {
-    if (HIDDEN_CATS.has(def.cat) || HIDDEN_IDS.has(def.id) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
+    if (HIDDEN_CATS.has(def.cat) || HIDDEN_IDS.has(def.id) || STATION_CATS.has(def.cat) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('aria-label', def.name);
@@ -1317,8 +1501,9 @@ function renderStickerGrid() {
 }
 $('#glow').addEventListener('change', (e) => { state.glow = e.target.checked; requestRender(); savePrefs(); });
 $('#btnClearStickers').addEventListener('click', () => {
-  if (!state.stickers.length) return;
-  if (window.confirm('要清除照片上所有的貼圖嗎？')) { state.stickers = []; select(null); }
+  if (!state.stickers.length) { toast('照片上還沒有貼圖'); return; }
+  state.stickers = []; select(null);
+  toast('已清除全部貼圖', { label: '復原', run: undo });
 });
 const stickerInput = $('#stickerInput');
 $('#btnUploadSticker').addEventListener('click', () => {
@@ -1342,6 +1527,296 @@ stickerInput.addEventListener('change', async () => {
   } finally {
     URL.revokeObjectURL(url);
   }
+});
+
+// ---------------------------------------------------------------- 文具：印章、紙膠帶、便條紙
+function stickerButton(def, color, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.setAttribute('aria-label', def.name);
+  b.title = def.name;
+  const c = makeCanvas(112, 112), ctx = c.getContext('2d');
+  const [vw, vh] = stickerBox(def), k = 92 / Math.max(vw, vh);
+  ctx.translate(56 - (vw * k) / 2, 56 - (vh * k) / 2);
+  ctx.scale(k, k);
+  drawStickerDef(ctx, def, color, k, 0, 1, 3);
+  b.append(c);
+  b.addEventListener('click', onClick);
+  return b;
+}
+function buildStampUI() {
+  buildSwatches($('#stampInks'), STAMP_INKS, state.stampInk, (c) => {
+    state.stampInk = c;
+    buildStampUI();
+    const st = selectedSticker();
+    if (st && st.kind === 'svg' && defOf(st).style === 'stamp') { st.color = c; requestRender(); }
+    savePrefs();
+  });
+  const grid = $('#stampGrid');
+  grid.innerHTML = '';
+  for (const def of STICKERS) {
+    if (def.cat !== 'stamp' || HIDDEN_IDS.has(def.id)) continue;
+    grid.append(stickerButton(def, state.stampInk, () => addSticker({ kind: 'svg', id: def.id, color: state.stampInk, size: 0.22, rot: (Math.random() - 0.5) * 0.5 })));
+  }
+  if (!grid.children.length) grid.innerHTML = '<p class="note">印章準備中</p>';
+}
+function buildNoteUI() {
+  const grid = $('#noteGrid');
+  grid.innerHTML = '';
+  for (const def of STICKERS) {
+    if (def.cat !== 'note' || HIDDEN_IDS.has(def.id)) continue;
+    grid.append(stickerButton(def, def.color, () => addSticker({ kind: 'svg', id: def.id, color: def.color, size: 0.3 })));
+  }
+  if (!grid.children.length) grid.innerHTML = '<p class="note">便條紙準備中</p>';
+}
+function buildTapeUI() {
+  const grid = $('#tapeGrid');
+  for (const t of TAPES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', `${t.name}紙膠帶`);
+    b.title = t.name;
+    const c = makeCanvas(200, 80), ctx = c.getContext('2d');
+    ctx.translate(100, 40);
+    ctx.rotate(-0.06);
+    drawTape(ctx, 180, 180 * TAPE_RATIO, t, t.color, 5);
+    const n = document.createElement('span'); n.textContent = t.name;
+    b.append(c, n);
+    // 第一條貼在照片上緣中間（像把照片貼在手帳上），之後輪流換到下緣、四個角
+    b.addEventListener('click', () => {
+      const n = state.stickers.filter((x) => x.kind === 'tape').length;
+      const [x, y, rot, size] = TAPE_SPOTS[n % TAPE_SPOTS.length];
+      addSticker({ kind: 'tape', id: t.id, color: t.color, size: state.mode === 'four' ? size * 1.15 : size, x, y, rot: rot + (Math.random() - 0.5) * 0.16 });
+    });
+    grid.append(b);
+  }
+}
+
+// ---------------------------------------------------------------- 膠水：把貼圖黏好（點照片不會再選到、拖動）
+function glueState() {
+  const n = state.stickers.length, glued = state.stickers.filter((s) => s.glued).length;
+  return { n, glued, all: n > 0 && glued === n };
+}
+function useGlue() {
+  const g = glueState();
+  if (!g.n) { toast('還沒有貼圖可以黏；先加一些貼圖、印章或紙膠帶'); return; }
+  if (g.all) {
+    state.stickers.forEach((s) => { s.glued = false; });
+    toast('撕開了，貼圖可以再移動');
+  } else {
+    state.stickers.forEach((s) => { s.glued = true; });
+    select(null);
+    toast(`${g.n} 個貼圖都黏好了，不會再被拖動`);
+  }
+  syncGlueUI();
+  requestRender();
+}
+function syncGlueUI() {
+  const b = $('#stationery .tool[data-tool="glue"]');
+  if (!b) return;
+  const g = glueState();
+  b.setAttribute('aria-pressed', String(g.all));
+  b.classList.toggle('glued', g.all);
+  b.querySelector('.tool-badge').hidden = !g.all;
+  const label = g.all ? '膠水：全部已黏好，按一下全部撕開（長按單一貼圖可以只撕那一張）' : TOOL_INFO.glue.tip;
+  b.setAttribute('aria-label', label);
+  b.dataset.tip = label;
+}
+
+// ---------------------------------------------------------------- 文具工具列（順序可以自己調）
+function buildStationery() {
+  const bar = $('#stationery');
+  bar.innerHTML = '';
+  for (const t of state.tools.order) {
+    if (state.tools.hidden.includes(t)) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tool';
+    b.dataset.tool = t;
+    b.dataset.tip = TOOL_INFO[t].tip;
+    b.setAttribute('aria-label', TOOL_INFO[t].tip);
+    if (t !== 'glue') b.setAttribute('aria-pressed', String(state.tab === t));
+    const img = document.createElement('img');
+    img.src = `icons/tools/${TOOL_INFO[t].icon}.svg`;
+    img.alt = ''; img.width = 48; img.height = 48; img.draggable = false;
+    const n = document.createElement('span'); n.className = 'tool-name'; n.textContent = TOOL_INFO[t].name;
+    b.append(img, n);
+    if (t === 'glue') { const bd = document.createElement('span'); bd.className = 'tool-badge'; bd.textContent = '已黏'; bd.hidden = true; b.append(bd); }
+    b.addEventListener('click', () => useTool(t));
+    bar.append(b);
+  }
+  const edit = document.createElement('button');
+  edit.type = 'button';
+  edit.className = 'tool tool-edit';
+  edit.dataset.tip = '整理工具列：調整順序、收起不常用的';
+  edit.setAttribute('aria-label', '整理文具工具列（收起來的工具也在這裡）');
+  edit.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.6" class="fill"/><circle cx="12" cy="12" r="1.6" class="fill"/><circle cx="18.5" cy="12" r="1.6" class="fill"/></svg><span class="tool-name">整理</span>';
+  edit.addEventListener('click', openToolsDialog);
+  bar.append(edit);
+  syncGlueUI();
+}
+function useTool(t) {
+  if (t === 'glue') { useGlue(); return; }
+  togglePane(t);
+}
+function openToolsDialog() {
+  renderToolOrder();
+  $('#toolsDialog').showModal();
+}
+function renderToolOrder() {
+  const list = $('#toolOrder');
+  list.innerHTML = '';
+  const order = state.tools.order;
+  order.forEach((t, i) => {
+    const li = document.createElement('li');
+    const shown = !state.tools.hidden.includes(t);
+    li.className = shown ? '' : 'off';
+    li.innerHTML = `<img src="icons/tools/${TOOL_INFO[t].icon}.svg" alt="" width="36" height="36"><span class="t-name"></span>
+      <button type="button" class="round-btn" data-move="-1" aria-label="往前移">↑</button>
+      <button type="button" class="round-btn" data-move="1" aria-label="往後移">↓</button>
+      <label class="toggle"><input type="checkbox" ${shown ? 'checked' : ''}><span>顯示</span></label>
+      <button type="button" class="chip use-btn">用</button>`;
+    li.querySelector('.t-name').textContent = TOOL_INFO[t].name;
+    const use = li.querySelector('.use-btn');
+    use.hidden = shown;
+    use.setAttribute('aria-label', `使用${TOOL_INFO[t].name}`);
+    use.addEventListener('click', () => { $('#toolsDialog').close(); useTool(t); });
+    if (t === 'add') { const cb = li.querySelector('input'); cb.disabled = true; cb.title = '「新增」不能收起來'; }
+    li.querySelector('[data-move="-1"]').disabled = i === 0;
+    li.querySelector('[data-move="1"]').disabled = i === order.length - 1;
+    li.querySelectorAll('[data-move]').forEach((b) => b.addEventListener('click', () => {
+      const j = i + +b.dataset.move;
+      [order[i], order[j]] = [order[j], order[i]];
+      buildStationery(); renderToolOrder(); savePrefs();
+      $(`#toolOrder li:nth-child(${j + 1}) [data-move="${b.dataset.move}"]`)?.focus();
+    }));
+    li.querySelector('input').addEventListener('change', (e) => {
+      const hidden = new Set(state.tools.hidden);
+      if (e.target.checked) hidden.delete(t);
+      else if (TOOLS.length - hidden.size > 1) hidden.add(t);
+      else { e.target.checked = true; toast('至少留一個工具'); }
+      state.tools.hidden = [...hidden];
+      buildStationery(); renderToolOrder(); savePrefs();
+    });
+    list.append(li);
+  });
+}
+$('#btnToolsReset').addEventListener('click', () => {
+  state.tools = { order: [...TOOLS], hidden: [] };
+  buildStationery(); renderToolOrder(); savePrefs();
+});
+$('#btnToolsDone').addEventListener('click', () => $('#toolsDialog').close());
+
+// ---------------------------------------------------------------- 復原／重做
+// 每次畫面更新後（手指放開、滑桿停下）比對一次設定，有變就記一筆。換照片、換模式時清空。
+const newHistory = () => ({ undo: [], redo: [], cur: null });
+const histories = { single: newHistory(), four: newHistory() };
+let history = histories.single, historyTimer = 0, restoring = false, sliderActive = false;
+const HISTORY_MAX = 60;
+function snapshot() {
+  const imgs = [];
+  const ref = (img) => { if (!img) return -1; let i = imgs.indexOf(img); if (i < 0) { imgs.push(img); i = imgs.length - 1; } return i; };
+  const stickers = state.stickers.map((st) => (st.img ? { ...st, img: ref(st.img) } : st));
+  const f = state.frame;
+  const photo = state.mode === 'single' ? state.orig : null;
+  return {
+    photo,
+    json: JSON.stringify({
+      photo: ref(photo), photoDate: state.photoDate,
+      preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
+      frame: { id: f.id, color: f.color, slideColor: f.slideColor, cropPos: f.cropPos, ratio: f.ratio, paper: f.paper },
+      four: { layout: state.four.layout, paper: state.four.paper, pos: state.four.photos.map((x) => x?.pos ?? 0.5) },
+      rotation: state.rotation, stickers,
+    }),
+    imgs,
+  };
+}
+function noteChange() {
+  if (restoring) return;
+  clearTimeout(historyTimer);
+  historyTimer = setTimeout(commitHistory, 300);
+}
+function commitHistory() {
+  if (restoring) return;
+  if (pointers.size || state.dragging || sliderActive || longPress) { noteChange(); return; }
+  const snap = snapshot();
+  if (!history.cur) { history.cur = snap; return; }
+  if (snap.json === history.cur.json) return;
+  history.undo.push(history.cur);
+  if (history.undo.length > HISTORY_MAX) history.undo.shift();
+  history.redo = [];
+  history.cur = snap;
+  // 照片很佔記憶體：最多只留「上一張照片」可以復原
+  if (snap.photo) {
+    const prev = [...history.undo].reverse().find((h) => h.photo && h.photo !== snap.photo)?.photo;
+    history.undo = history.undo.filter((h) => !h.photo || h.photo === snap.photo || h.photo === prev);
+  }
+  syncHistoryUI();
+}
+function resetHistory() {
+  clearTimeout(historyTimer);
+  history.undo = []; history.redo = [];
+  history.cur = snapshot();
+  syncHistoryUI();
+}
+function rebaseHistory() {
+  clearTimeout(historyTimer);
+  history.cur = snapshot();
+  syncHistoryUI();
+}
+function syncHistoryUI() {
+  $('#btnUndo').disabled = !history.undo.length;
+  $('#btnRedo').disabled = !history.redo.length;
+}
+function restoreSnapshot(snap) {
+  const s = JSON.parse(snap.json);
+  restoring = true;
+  clearTimeout(historyTimer);
+  state.preset = s.preset; state.adj = s.adj; state.doodle = s.doodle; state.date = s.date; state.glow = s.glow;
+  Object.assign(state.frame, s.frame);
+  state.four.layout = s.four.layout; state.four.paper = s.four.paper;
+  state.four.photos.forEach((ph, i) => { if (ph) ph.pos = s.four.pos[i] ?? 0.5; });
+  state.stickers = s.stickers.map((st) => (typeof st.img === 'number' ? { ...st, img: snap.imgs[st.img] } : st));
+  state.selected = null;
+  const photo = s.photo >= 0 ? snap.imgs[s.photo] : null;
+  if (state.mode === 'single' && photo && (photo !== state.orig || s.rotation !== state.rotation)) {
+    if (state.full && state.full !== state.orig) state.full.width = 0;
+    state.orig = photo; state.full = null; state.rotation = s.rotation; state.photoDate = s.photoDate;
+    buildSources();
+  }
+  doodleCache.key = ''; cellCache.clear(); resetPhotoCache();
+  $$('#presetList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.preset)));
+  $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.frame.id)));
+  $('#glow').checked = state.glow;
+  syncSliders(); syncDoodleUI(); updateFrameOpts(); syncDateUI(); syncFourUI(); syncCropUI(); syncGlueUI();
+  refreshFrameThumbs();
+  refreshWorkspace();
+  savePrefs();
+  history.cur = snap;
+  syncHistoryUI();
+  requestAnimationFrame(() => requestAnimationFrame(() => { restoring = false; }));
+}
+function undo() {
+  commitHistory();
+  if (!history.undo.length) return;
+  history.redo.push(history.cur);
+  restoreSnapshot(history.undo.pop());
+}
+function redo() {
+  if (!history.redo.length) return;
+  history.undo.push(history.cur);
+  restoreSnapshot(history.redo.pop());
+}
+// 拖滑桿的過程不算，放開才算一步
+document.addEventListener('pointerdown', (e) => { if (e.target.matches?.('input[type="range"]')) sliderActive = true; }, true);
+['pointerup', 'pointercancel'].forEach((t) => document.addEventListener(t, () => { if (sliderActive) { sliderActive = false; noteChange(); } }, true));
+$('#btnUndo').addEventListener('click', undo);
+$('#btnRedo').addEventListener('click', redo);
+document.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.target.closest('input[type="date"], textarea, dialog')) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
 });
 
 // ---------------------------------------------------------------- date stamp
@@ -1394,6 +1869,7 @@ function clearDateArea() {
   const left = (R.x0 + R.x1) / 2 < L.x + L.pw / 2;
   let moved = 0;
   for (const st of state.stickers) {
+    if (st.glued) continue; // 使用者用膠水黏好的不動
     const g = stickerGeom(st, L), rad = Math.hypot(g.w, g.h) / 2; // 用完整對角線，轉過的貼圖角落也不會壓到
     const nx = Math.max(R.x0, Math.min(g.cx, R.x1)), ny = Math.max(R.y0, Math.min(g.cy, R.y1));
     if (Math.hypot(g.cx - nx, g.cy - ny) >= rad) continue;
@@ -1446,7 +1922,7 @@ async function exportImage() {
       return;
     }
     const src = state.full, id = state.frame.id, o = frameOpts();
-    const crop = computeCrop(src.width, src.height, cropAspect(id, src.width, src.height), state.frame.cropPos);
+    const crop = computeCrop(src.width, src.height, cropAspect(id, src.width, src.height, state.frame.ratio), state.frame.cropPos);
     let L = layoutFrame(id, crop.w, crop.h, o);
     const f = Math.min(1, Math.sqrt(MAX_OUT_AREA / (L.W * L.H)), MAX_OUT_SIDE / Math.max(L.W, L.H));
     const pw = Math.round(crop.w * f), ph = Math.round(crop.h * f);
@@ -1490,7 +1966,7 @@ $('#btnShare').addEventListener('click', async () => {
   try { await navigator.share({ files: [resultFile], title: 'FilmDoodle' }); } catch { /* 使用者取消 */ }
 });
 $('#btnCloseResult').addEventListener('click', () => $('#resultDialog').close());
-$('#btnInfo').addEventListener('click', () => $('#infoDialog').showModal());
+['#btnInfo', '#btnAbout', '#btnAbout2'].forEach((id) => $(id).addEventListener('click', () => $('#infoDialog').showModal()));
 $('#btnCloseInfo').addEventListener('click', () => $('#infoDialog').close());
 // 點對話框外面的背景就關閉
 $$('dialog.sheet').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close('cancel'); }));
@@ -1538,6 +2014,12 @@ function init() {
   buildDoodlePane();
   buildStickerPanel();
   buildFourUI();
+  buildPaperUI();
+  buildCropUI();
+  buildStampUI();
+  buildTapeUI();
+  buildNoteUI();
+  buildStationery();
   buildDateUI();
   syncSliders();
   syncDateUI();
@@ -1546,6 +2028,7 @@ function init() {
   syncDoodleUI();
   setTab(state.tab);
   setMode(state.mode, true);
+  resetHistory();
   refreshPresetThumbs();
   refreshFrameThumbs();
   refreshDoodleThumbs();

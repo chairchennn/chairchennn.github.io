@@ -179,3 +179,50 @@ export function drawCrayonDef(ctx, def, color, strokeScale = 1, seed = 1) {
   });
   ctx.globalAlpha = 1;
 }
+
+// ---------- 印章：單一墨色、帶顆粒與少許缺墨，像橡皮章蓋在照片上 ----------
+const inkCache = new Map();
+function inkCanvas(color) {
+  if (inkCache.has(color)) return inkCache.get(color);
+  const S = 128, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, S, S);
+  const id = ctx.getImageData(0, 0, S, S), px = id.data;
+  // 大塊的深淺（印泥沾得不均）＋細顆粒＋零星沒印到的白點；邊界要能無縫重複
+  const big = (x, y, s) => {
+    const fx = (x / S) * 4, fy = (y / S) * 4;
+    const ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+    const h = (a, b) => hash(((a % 4) + 4) % 4 + (((b % 4) + 4) % 4) * 7, s);
+    const u = tx * tx * (3 - 2 * tx), v = ty * ty * (3 - 2 * ty);
+    return (h(ix, iy) * (1 - u) + h(ix + 1, iy) * u) * (1 - v) + (h(ix, iy + 1) * (1 - u) + h(ix + 1, iy + 1) * u) * v;
+  };
+  let seed = 98765;
+  const r = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const i = (y * S + x) * 4, b = big(x, y, 5), g = r();
+    let a = 0.78 + 0.22 * b - 0.18 * g * g;
+    if (g > 0.965 || (b < 0.18 && g > 0.6)) a = 0.12; // 沒沾到墨的小點
+    px[i + 3] = Math.round(255 * Math.max(0, Math.min(1, a)));
+  }
+  ctx.putImageData(id, 0, 0);
+  inkCache.set(color, c);
+  return c;
+}
+export function drawStampDef(ctx, def, color, strokeScale = 1, seed = 1) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const pat = ctx.createPattern(inkCanvas(color), 'repeat');
+  if (pat.setTransform && typeof DOMMatrix !== 'undefined') {
+    // 每個印章的顆粒位置不同
+    pat.setTransform(new DOMMatrix().translate((seed * 37) % 128, (seed * 61) % 128).scale(0.45));
+  }
+  ctx.globalAlpha = 0.9;
+  def.parts.forEach((p, i) => {
+    const path = wobblePath(p.d, 0.35, seed + i * 11, 0.05);
+    if (p.f) { ctx.fillStyle = pat; ctx.fill(path, 'evenodd'); }
+    if (p.s) { ctx.strokeStyle = pat; ctx.lineWidth = p.w * strokeScale; ctx.stroke(path); }
+  });
+  ctx.globalAlpha = 1;
+}

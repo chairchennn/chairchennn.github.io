@@ -4,6 +4,7 @@
 // 方形相紙 72×86 / 62×62；寬幅相紙 108×86 / 99×62；幻燈片框 50×50 / 開窗 36×24。
 
 import { rng, makeCanvas } from './film.js';
+import { drawPaper } from './fourcut.js';
 
 export const FRAMES = [
   { id: 'none', name: '無邊框' },
@@ -17,6 +18,7 @@ export const FRAMES = [
   { id: 'mini', name: '迷你相紙', colors: true, caption: true },
   { id: 'square', name: '方形相紙', colors: true, caption: true },
   { id: 'wide', name: '寬幅相紙', colors: true, caption: true },
+  { id: 'paper', name: '手帳紙', paper: true },
 ];
 
 export const FRAME_COLORS = ['#fbfaf6', '#f3ead8', '#1e1d1c', '#f9cdd9', '#c7e6f5', '#cdeedd', '#fde59a', '#d9ccf5'];
@@ -26,14 +28,16 @@ const EDGE_FONT = '"Helvetica Neue", Arial, sans-serif';
 const HAND_FONT = '"Caveat", "LXGW WenKai TC", cursive';
 
 // 需要的畫面比例（寬/高），null = 保留原比例
-export function cropAspect(id, w, h) {
+// ratio：使用者用剪刀選的比例（長邊／短邊，0 = 原比例），只用在沒有固定比例的相框
+export const FREE_RATIO_FRAMES = new Set(['none', 'white', 'filed', 'paper']);
+export function cropAspect(id, w, h, ratio = 0) {
   const land = w >= h;
   switch (id) {
     case 'film35': case 'film35neg': case 'slide': return land ? 3 / 2 : 2 / 3;
     case 'film120': case 'polaroid': case 'square': return 1;
     case 'mini': return 46 / 62;
     case 'wide': return 99 / 62;
-    default: return null;
+    default: return ratio ? (land ? ratio : 1 / ratio) : null;
   }
 }
 
@@ -96,6 +100,11 @@ export function layoutFrame(id, pw, ph, o = {}) {
     case 'wide': {
       const u = pw / 99;
       return { W: 108 * u, H: 86 * u, x: 4.5 * u, y: 7 * u, pw, ph, u };
+    }
+    case 'paper': {
+      // 手帳紙：照片像印出來貼在紙上（白色細邊），下方留多一點
+      const m = S * 0.09, mat = S * 0.018;
+      return { W: pw + 2 * m, H: ph + m * 2.3, x: m, y: m, pw, ph, mat };
     }
     default:
       return { W: pw, H: ph, x: 0, y: 0, pw, ph };
@@ -177,6 +186,18 @@ export function drawFrameBack(ctx, L, id, o = {}) {
       ctx.fillStyle = id === 'film35neg' ? '#c4692f' : '#0e0d0c';
       ctx.fillRect(0, 0, W, H);
       break;
+    case 'paper': {
+      drawPaper(ctx, { W, H }, o.paper || 'dots', Math.min(W, H) / 640);
+      const { x, y, pw, ph, mat } = L;
+      ctx.save();
+      ctx.shadowColor = 'rgba(60,40,30,.22)';
+      ctx.shadowBlur = mat * 1.6;
+      ctx.shadowOffsetY = mat * 0.45;
+      ctx.fillStyle = '#fffdf8';
+      ctx.fillRect(x - mat, y - mat, pw + mat * 2, ph + mat * 2);
+      ctx.restore();
+      break;
+    }
   }
 }
 

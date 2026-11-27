@@ -130,11 +130,11 @@ export function drawPaperFront(ctx, L, paper, k) {
 }
 
 // 把一張照片裁成格子的比例（置中），回傳裁切框
-export function cellCrop(src, aspect) {
+export function cellCrop(src, aspect, pos = 0.5) {
   const sa = src.width / src.height;
-  if (sa > aspect) { const w = src.height * aspect; return { x: (src.width - w) / 2, y: 0, w, h: src.height }; }
+  if (sa > aspect) { const w = src.height * aspect; return { x: (src.width - w) * pos, y: 0, w, h: src.height, axis: 'x' }; }
   const h = src.width / aspect;
-  return { x: 0, y: (src.height - h) / 2, w: src.width, h };
+  return { x: 0, y: (src.height - h) * pos, w: src.width, h, axis: 'y' };
 }
 
 export { makeCanvas };
