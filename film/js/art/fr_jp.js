@@ -2,7 +2,7 @@
 // 共用工具從 ./shapes.js 匯入。格式同 stickers.js：{ id, name, cat, color, vb?, parts: [...] }
 // 法式：'M' = 墨線色（預設深藍或酒紅），淡色填色固定；線稿底下墊一層紙色，深色照片上也看得清楚。
 // 日式：'M' = 主要填色（櫻粉、朱紅、靛藍、抹茶…），輪廓用柔和的墨色，部分線條用毛筆般的粗細變化。
-import { s, f, circ, ell, poly, scallop, heartD, petalD, notchPetalD, n } from './shapes.js';
+import { s, f, circ, ell, poly, sparkleD, heartD, petalD, notchPetalD, n } from './shapes.js';
 
 // ---------- 小工具 ----------
 const { PI, cos, sin, hypot, atan2, abs, max, min } = Math;
@@ -14,6 +14,8 @@ const rot = (d, deg, cx = 50, cy = 50) => {
     return `${n(cx + dx * c - dy * sn)} ${n(cy + dx * sn + dy * c)}`;
   });
 };
+// 單一點繞 (cx,cy) 旋轉（圓、橢圓這種用相對弧線的 path 不能用 rot，改成旋轉圓心）
+const rp = (x, y, deg, cx = 50, cy = 50) => { const a = (deg * PI) / 180; return [n(cx + (x - cx) * cos(a) - (y - cy) * sin(a)), n(cy + (x - cx) * sin(a) + (y - cy) * cos(a))]; };
 // 平移＋縮放（絕對座標 path）
 const fit = (d, k, dx, dy) => d.replace(/(-?\d*\.?\d+)\s+(-?\d*\.?\d+)/g, (_, x, y) => `${n(+x * k + dx)} ${n(+y * k + dy)}`);
 // 左右對稱
@@ -83,16 +85,16 @@ const NAVY = '#2b3a67', WINE = '#8c2f39', PAPER = '#fffaf0', BUTTER = '#f8e3a3',
   SKY = '#cfe1f3', CRUST = '#f2cd8a', SAGE = '#d8e5c6';
 const FW = 2.6, FW2 = 1.9, HALO = 8; // 主線、細節線、紙色底邊
 
-// 可頌：七段由外往內疊，重疊處自然留下分節線
-const CROIS = [[82, 5.5, 7.5], [62, 8.5, 12], [31, 11, 15.5], [0, 13.5, 19]].flatMap(([a, rx, ry], i) => {
-  const r = 34, t = (a * PI) / 180, cx = 50, cy = 80;
-  const one = (sg) => rotEll(n(cx + sg * r * sin(t)), n(cy - r * cos(t) + (i === 0 ? 1.5 : 0)), rx, ry, sg * a);
+// 可頌：七段沿著弧線排，由兩端往中間疊，重疊處自然留下分節線
+const CROIS = [[67, 6.5, 8.5], [47, 9.5, 12], [24, 12, 15], [0, 14, 16.5]].flatMap(([a, rx, ry]) => {
+  const r = 40, t = (a * PI) / 180, cx = 50, cy = 84;
+  const one = (sg) => rotEll(n(cx + sg * r * sin(t)), n(cy - r * cos(t)), rx, ry, sg * a);
   return a ? [one(-1), one(1)] : [one(1)];
 });
 // 長棍麵包：先畫成水平，再整個轉 -32°
 const BAG_H = 'M18 41C40 37 62 37 84 41Q94 43 93 50Q92 58 82 59C60 62 40 62 18 59Q8 58 8 50Q8 42 18 41Z';
 const BAG_CUTS = [24, 38, 52, 66].map((x) => `M${x} 53Q${x + 4} 46 ${x + 11} 44`).join('');
-const BAG_WRAP = 'M10 36L36 33Q38 50 36 67L10 64Q6 50 10 36Z';
+const BAG_WRAP = 'M5 35L40 32L36.5 37L41 42L36.5 47L41 52L36.5 57L41 62L37 66L5 65Q1 50 5 35Z';
 // 紅酒杯
 const GLASS = 'M31 16C29 38 36 54 50 56C64 54 71 38 69 16Z';
 const WINE_IN = 'M31.6 32C33 46 40 54 50 55C60 54 67 46 68.4 32Q50 36 31.6 32Z';
@@ -112,14 +114,13 @@ const MAC_FILL = 'M21 50Q50 47 79 50Q81 56 79 62Q50 65 21 62Q19 56 21 50Z';
 const BIKE_FRAME = 'M24 50L42 50L62 30L36 30L24 50M42 50L33 22M62 30L76 50M60 22L62 30';
 const BIKE_BITS = 'M27 21L38 21M54 19Q60 17 66 21';
 // 書寫風捲線（vb 100×50）
-const SWASH = [[6, 30], [18, 22], [30, 30], [26, 38], [20, 32], [32, 22], [50, 26], [66, 32], [80, 24], [74, 16], [68, 22], [78, 30], [94, 28]];
+const SWASH = [[7, 31], [13, 25], [21, 25], [23, 31], [18, 34], [14, 29], [20, 22], [33, 21], [44, 27], [50, 33], [56, 27], [67, 21], [80, 22], [86, 29], [82, 34], [77, 31], [79, 25], [87, 25], [93, 31]];
 
 const FRENCH = [
   {
     id: 'fr_croissant', name: '可頌', cat: 'french', color: NAVY, parts: [
       ...CROIS.flatMap((d) => [f(d, CRUST), s(d, 'M', FW)]),
-      s('M45 38Q50 35 55 38M43 47Q50 44 57 47', 'M', FW2, 0.8),
-      f(rotEll(44, 32, 4, 1.6, -30), '#ffffff', 0.8),
+      f(rotEll(44, 36, 4.5, 1.8, -28), '#ffffff', 0.85), f(rotEll(29, 46, 3, 1.4, -50), '#ffffff', 0.7),
     ]
   },
   {
@@ -127,7 +128,7 @@ const FRENCH = [
       f(rot(BAG_H, -32), CRUST), s(rot(BAG_H, -32), 'M', FW),
       s(rot(BAG_CUTS, -32), 'M', FW2),
       f(rot(BAG_WRAP, -32), PAPER), s(rot(BAG_WRAP, -32), 'M', FW),
-      s(rot('M12 44L37 42M11 52L38 51M12 60L37 60', -32), SKY, 2.6),
+      s(rot('M7 43L33 41.5M6 50.5L34 50.5M7 58L33 59', -32), SKY, 2.8),
     ]
   },
   {
@@ -135,7 +136,7 @@ const FRENCH = [
       f(GLASS, PAPER, 0.92), f(WINE_IN, '#e48e9b'),
       s(GLASS, 'M', FW), s('M50 56L50 84', 'M', FW), f(ell(50, 85, 15, 3.6), PAPER), s(ell(50, 85, 15, 3.6), 'M', FW),
       s('M37 21Q36 30 38 36', '#ffffff', 2.6, 0.9),
-      s('M78 14L78 24M73 19L83 19', 'M', FW2),
+      f(sparkleD(80, 16, 8, 0.22), BUTTER), s(sparkleD(80, 16, 8, 0.22), 'M', 1.6),
     ]
   },
   {
@@ -161,7 +162,6 @@ const FRENCH = [
   {
     id: 'fr_bike', name: '小腳踏車', cat: 'french', color: NAVY, vb: [100, 72], parts: [
       s(circ(24, 50, 16) + circ(76, 50, 16) + BIKE_FRAME + BIKE_BITS, PAPER, HALO),
-      f(circ(24, 50, 16), PAPER, 0.5), f(circ(76, 50, 16), PAPER, 0.5),
       s(circ(24, 50, 16), 'M', FW), s(circ(76, 50, 16), 'M', FW), f(circ(24, 50, 2.2)), f(circ(76, 50, 2.2)),
       s(BIKE_FRAME, 'M', FW), s(BIKE_BITS, 'M', FW),
       f('M64 21L84 21L81 32L67 32Z', PAPER), s('M64 21L84 21L81 32L67 32Z', 'M', FW2),
@@ -184,16 +184,18 @@ const FRENCH = [
   },
   {
     id: 'fr_macaron', name: '馬卡龍', cat: 'french', color: WINE, parts: [
-      f(MAC_FILL, BUTTER), s(MAC_FILL, 'M', FW2),
-      f(MAC_TOP, ROSE), s(MAC_TOP, 'M', FW), f(MAC_BOT, ROSE), s(MAC_BOT, 'M', FW),
-      s('M30 41Q36 36 44 35', '#ffffff', 2.6, 0.85),
+      ...[[0.74, 32, -14, SKY], [1, -8, 10, ROSE]].flatMap(([k, dx, dy, c]) => [
+        f(fit(MAC_FILL, k, dx, dy), BUTTER), s(fit(MAC_FILL, k, dx, dy), 'M', FW2),
+        f(fit(MAC_TOP, k, dx, dy), c), s(fit(MAC_TOP, k, dx, dy), 'M', FW), f(fit(MAC_BOT, k, dx, dy), c), s(fit(MAC_BOT, k, dx, dy), 'M', FW),
+        s(fit('M30 41Q36 36 44 35', k, dx, dy), '#ffffff', 2.6, 0.85),
+      ]),
     ]
   },
   {
     id: 'fr_swash', name: '裝飾捲線', cat: 'french', color: NAVY, vb: [100, 50], parts: [
       s(curve(SWASH), PAPER, HALO),
-      f(brush(SWASH, 4.4, { nib: 40, taper: [0.08, 0.1], minW: 0.25, per: 12 })),
-      f(heartD(50, 40, 9), ROSE), s(heartD(50, 40, 9), 'M', 1.5),
+      f(brush(SWASH, 3.6, { nib: 35, taper: [0.06, 0.06], minW: 0.3, per: 12 })),
+      s(heartD(50, 17, 11), PAPER, 6), f(heartD(50, 17, 11), ROSE), s(heartD(50, 17, 11), 'M', 1.6),
     ]
   },
 ];
@@ -237,14 +239,14 @@ const JAPAN = [
   {
     id: 'jp_fuji', name: '富士山', cat: 'japan', color: AI, vb: [100, 72], parts: [
       f(circ(76, 22, 12), SHU, 0.95),
-      f(FUJI), s(FUJI, SUMI, JW),
+      s(FUJI, KINARI, 7), f(FUJI), s(FUJI, SUMI, JW),
       f(SNOW, '#ffffff'), s(SNOW, SUMI, JW2),
       f(brush([[8, 70], [30, 68], [50, 70], [70, 68], [92, 70]], 3.2, { taper: [0.15, 0.15] }), SUMI),
     ]
   },
   {
     id: 'jp_wave', name: '青海波', cat: 'japan', color: AI, vb: [100, 70], parts: [
-      ...[[30, 66], [70, 66], [50, 48]].flatMap(([x, y]) => {
+      ...[[50, 48], [30, 66], [70, 66]].flatMap(([x, y]) => {
         const half = (r) => `M${n(x - r)} ${y}A${r} ${r} 0 0 1 ${n(x + r)} ${y}`;
         return [f(half(22) + 'Z', KINARI), s([22, 15.5, 9].map(half).join(''), 'M', 3), f(half(4) + 'Z')];
       }),
@@ -265,7 +267,7 @@ const JAPAN = [
         const half = (r) => `M${n(x - r)} ${y}A${r} ${r} 0 0 1 ${n(x + r)} ${y}`;
         return [f(half(9) + 'Z', KINARI), s(half(9) + half(5), 'M', 1.8, 0.85)];
       }),
-      f(rot('M44 26C48 22 56 22 58 27C56 31 48 31 44 27L38 23L39 30Z', 0), SHU), f(circ(54, 26, 1), '#ffffff'),
+      f('M42 27C47 20 58 20 62 27C58 34 47 34 42 27L33 20L34.5 34Z', SHU), f(circ(56, 26, 1.6), SUMI),
     ]
   },
   {
@@ -277,16 +279,16 @@ const JAPAN = [
       f(rot('M44 30C48 24 58 26 60 36C58 44 50 48 44 42C42 38 42 34 44 30Z', 20)),
       f(rot('M44 54C48 50 56 52 55 58C52 62 46 62 44 54Z', 20)),
       s(rot(KOI, 20), SUMI, JW),
-      f(rot(circ(45.5, 19, 2), 20), SUMI), f(rot(circ(54.5, 19, 2), 20), SUMI),
+      f(circ(...rp(45.5, 19, 20), 2.2), SUMI), f(circ(...rp(54.5, 19, 20), 2.2), SUMI),
     ]
   },
   {
     id: 'jp_dango', name: '糰子', cat: 'japan', color: SAKURA, parts: [
-      s(rot('M50 8L50 94', 18), '#c9a26a', 4.5), s(rot('M50 8L50 94', 18), SUMI, 1.4, 0.4),
-      f(rot(circ(50, 26, 15), 18)), s(rot(circ(50, 26, 15), 18), SUMI, JW2),
-      f(rot(circ(50, 52, 15), 18), '#ffffff'), s(rot(circ(50, 52, 15), 18), SUMI, JW2),
-      f(rot(circ(50, 78, 15), 18), MATCHA), s(rot(circ(50, 78, 15), 18), SUMI, JW2),
-      ...[[45, 21], [45, 47], [45, 73]].map(([x, y]) => f(rot(rotEll(x, y, 3.2, 2, -30), 18), '#ffffff', 0.7)),
+      s(rot('M50 6L50 95', 18), '#c9a26a', 4.5), s(rot('M50 6L50 95', 18), SUMI, 1.4, 0.4),
+      ...[[26, 'M'], [52, '#ffffff'], [78, MATCHA]].flatMap(([y, c]) => [
+        f(circ(...rp(50, y, 18), 15), c), s(circ(...rp(50, y, 18), 15), SUMI, JW2),
+        f(rotEll(...rp(44, y - 6, 18), 3.6, 2.2, -20), '#ffffff', 0.75),
+      ]),
     ]
   },
   {
@@ -295,7 +297,7 @@ const JAPAN = [
       f('M34 22Q30 14 28 8Q36 10 42 16Z', '#ffffff'), s('M34 22Q30 14 28 8Q36 10 42 16', SUMI, JW2),
       f('M66 22Q70 14 72 8Q64 10 58 16Z', '#ffffff'), s('M66 22Q70 14 72 8Q64 10 58 16', SUMI, JW2),
       f('M58 20Q64 16 70 20Q70 28 62 28Q57 26 58 20Z', '#f2a35e', 0.95),
-      f('M72 50C78 44 80 36 78 28Q84 24 88 30C88 40 84 48 78 54Z', '#ffffff'), s('M72 50C78 44 80 36 78 28Q84 24 88 30C88 40 84 48 78 54', SUMI, JW2),
+      f('M69 55C74 49 75 42 74 36C73 28 77 23 82 23C87 23 90 28 89 35C88 43 84 50 77 58Z', '#ffffff'), s('M69 55C74 49 75 42 74 36C73 28 77 23 82 23C87 23 90 28 89 35C88 43 84 50 77 58', SUMI, JW2), s('M79 26.5V30M84.5 26.5V30', SUMI, 1.8),
       s('M37 36q4 -4.5 8 0M55 36q4 -4.5 8 0', SUMI, 2.4), s('M46 42q2 2.4 4 0q2 2.4 4 0', SUMI, 2.2),
       f(ell(34, 42, 4.5, 2.6), JCH, 0.9), f(ell(66, 42, 4.5, 2.6), JCH, 0.9),
       s('M30 52Q50 60 70 52', 'M', 5), f(circ(50, 60, 5), '#f6c64f'), s(circ(50, 60, 5), SUMI, 1.8), s('M46 61L54 61', SUMI, 1.4),
@@ -304,10 +306,12 @@ const JAPAN = [
   },
   {
     id: 'jp_bamboo', name: '竹葉', cat: 'japan', color: MATCHA, parts: [
-      f(brush([[30, 88], [42, 64], [50, 46]], 3.6, { taper: [0, 0.3] }), '#7a9a5e'),
-      f(brush([[48, 50], [38, 34], [22, 22]], 15, { taper: [0.15, 0.75], per: 12 })),
-      f(brush([[50, 48], [62, 28], [70, 10]], 15, { taper: [0.15, 0.75], per: 12 })),
-      f(brush([[48, 52], [66, 50], [88, 40]], 14, { taper: [0.15, 0.75], per: 12 })),
+      f(brush([[30, 96], [34, 60], [38, 26], [40, 4]], 6.5, { taper: [0, 0.25] }), '#9cbf7e'),
+      s('M29.6 72.5L37.6 73.3M33.4 42.6L40.6 43.2', '#6f8f55', 2.2),
+      f(brush([[36, 43], [52, 44], [66, 52], [80, 64]], 14, { taper: [0.12, 0.7], per: 12 })),
+      f(brush([[36, 46], [46, 56], [52, 70], [54, 86]], 12, { taper: [0.12, 0.7], per: 12 })),
+      f(brush([[38, 30], [54, 22], [70, 22], [86, 28]], 12, { taper: [0.12, 0.7], per: 12 })),
+      s('M38 44Q56 46 72 56M38 30Q56 22 78 25', '#6f8f55', 1.4, 0.55),
     ]
   },
 ];

@@ -71,6 +71,23 @@ export const PACKS = {
     large: { bear: 1, bunny: 1, puppy: 1, heartbuddy: 1, cloudface: 1, pl_catjump: 0.8 },
     fixed: { pl_catjump: ['#ffffff', '#ffd23c'] },
   },
+  // 法式手繪：細墨線、少量淡色（'M' 是墨線色）
+  french: {
+    name: '法式手繪', glow: 0, lw: 0.003,
+    colors: ['#2b3a67', '#8c2f39'], recolor: 0.25,
+    small: { fr_heart: 1.5, fr_macaron: 1.2, fr_swash: 1.2 },
+    medium: { fr_croissant: 1, fr_baguette: 1, fr_wine: 1, fr_coffee: 1, fr_letter: 1, fr_heart: 0.6 },
+    large: { fr_rose: 1.2, fr_bike: 1 },
+    max: { fr_bike: 1 },
+  },
+  // 日式手繪：和紙色系
+  japan: {
+    name: '日式手繪', glow: 0, lw: 0.0034,
+    small: { jp_sakura: 2.5, jp_wave: 1, jp_bamboo: 1 },
+    medium: { jp_onigiri: 1, jp_cloud: 1.2, jp_fan: 1, jp_koi: 1, jp_dango: 1 },
+    large: { jp_fuji: 1, jp_maneki: 1, jp_koi: 0.6 },
+    max: { jp_fuji: 1, jp_maneki: 1 },
+  },
   // Y2K：鉻銀、彩虹光碟、掀蓋手機（自帶漸層色，不換色）
   y2k: {
     name: 'Y2K', glow: 0.3, lw: 0.0034,
@@ -109,11 +126,13 @@ export const DOODLE_PRESETS = [
   { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 20 },
   { id: 'kitty', name: '貓咪小魚', pack: 'kitty', layout: 'band', count: 22 },
   { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16 },
-  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22 },
-  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24 },
+  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14 },
+  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16 },
   { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16 },
   { id: 'emoji', name: '表情臉', pack: 'emoji', layout: 'band', count: 14 },
   { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14 },
+  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22 },
+  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24 },
 ];
 export const COUNT_MIN = 4, COUNT_MAX = 30;
 

@@ -1495,9 +1495,9 @@ function drawDeco() {
   ctx.scale(dpr, dpr);
   const W = r.width, H = r.height, S = Math.min(W, H);
   const items = [
-    ['cr_heart', 0.1, 0.12, 0.17, -0.2], ['kt_cat', 0.88, 0.13, 0.17, 0.15], ['fl_daisy', 0.87, 0.86, 0.19, -0.15],
-    ['pl_twinkle', 0.13, 0.85, 0.15, 0.1], ['cr_flower5', 0.5, 0.06, 0.12, 0.05], ['kt_fish', 0.33, 0.93, 0.14, -0.1],
-    ['pl_catjump', 0.08, 0.5, 0.19, -0.2], ['cr_sparkle', 0.94, 0.5, 0.12, 0.25], ['fl_cosmos', 0.67, 0.95, 0.13, 0],
+    ['y2k_chromeheart', 0.1, 0.12, 0.17, -0.2], ['kt_cat', 0.88, 0.13, 0.17, 0.15], ['em_love', 0.87, 0.86, 0.16, -0.15],
+    ['y2k_glitter', 0.13, 0.85, 0.15, 0.1], ['jp_sakura', 0.5, 0.06, 0.11, 0.05], ['y2k_cd', 0.33, 0.93, 0.13, -0.1],
+    ['fr_heart', 0.08, 0.5, 0.13, -0.2], ['y2k_chromestar', 0.94, 0.5, 0.13, 0.25], ['em_smile', 0.67, 0.95, 0.12, 0],
   ];
   for (const [id, x, y, s, rot] of items) {
     const def = STICKERS.find((d) => d.id === id);
