@@ -861,7 +861,8 @@ function photoTargetAt(p) {
 }
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(1, z));
 const clampAngle = (a) => Math.min(ANGLE_MAX, Math.max(-ANGLE_MAX, a));
-let xfHintShown = false, wheelTimer = 0;
+const xfHintShown = { single: false, four: false }; // 單張、四格各提示一次
+let wheelTimer = 0;
 let longPress = null;
 const cancelLongPress = () => { if (longPress) { clearTimeout(longPress.timer); longPress = null; } };
 
@@ -1007,7 +1008,7 @@ async function loadFile(file) {
     refreshWorkspace();
     queueDateClear();
     if (first) resetHistory();
-    if (first && !xfHintShown) { xfHintShown = true; setTimeout(() => toast(`照片可以放大、轉角度：按「裁切」，或直接${xfHowTo()}`, { ms: 5000 }), 600); }
+    if (first && !xfHintShown.single) { xfHintShown.single = true; setTimeout(() => toast(`照片可以放大、轉角度：按「裁切」，或直接${xfHowTo()}`, { ms: 5000 }), 600); }
   } catch (err) {
     console.error(err);
     toast('這張照片打不開，換成 JPG 或 PNG 試試看');
@@ -1106,7 +1107,7 @@ async function loadFourFiles(files, startSlot = 0) {
   queueDateClear();
   syncCropUI();
   if (firstFour || bulk) resetHistory();
-  if (!xfHintShown && !failed) { xfHintShown = true; setTimeout(() => toast(`每一格的照片都可以調整：${xfHowTo()}`, { ms: 5000 }), 300); }
+  if (!xfHintShown.four && !failed) { xfHintShown.four = true; setTimeout(() => toast(`每一格的照片都可以調整：${xfHowTo()}`, { ms: 5000 }), 300); }
   if (failed) toast(`有 ${failed} 張照片打不開，換成 JPG 或 PNG 試試看`);
 }
 function refreshFourSlots() {
