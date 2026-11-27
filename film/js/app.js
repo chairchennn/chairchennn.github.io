@@ -299,8 +299,9 @@ function doodleItems() {
   const d = state.doodle;
   if (d.preset === 'none' || !state.full) return [];
   const aspect = photoAspect();
-  const key = JSON.stringify([d, aspect]);
-  if (doodleCache.key !== key) doodleCache = { key, items: generateDoodles(d, aspect) };
+  const datePos = state.date.on ? state.date.pos : null;
+  const key = JSON.stringify([d, aspect, datePos]);
+  if (doodleCache.key !== key) doodleCache = { key, items: generateDoodles(d, aspect, datePos) };
   return doodleCache.items;
 }
 function doodleOverlay() {

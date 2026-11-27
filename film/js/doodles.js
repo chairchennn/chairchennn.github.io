@@ -111,8 +111,8 @@ function colorFor(r, def, pack) {
   return r() < (pack.recolor ?? 0.4) ? pack.colors[Math.floor(r() * pack.colors.length)] : def.color;
 }
 
-// aspect = 照片寬 / 高
-export function generateDoodles(o, aspect) {
+// aspect = 照片寬 / 高；datePos = 日期戳記的位置（'br' 右下 / 'bl' 左下 / null），塗鴉會避開它
+export function generateDoodles(o, aspect, datePos = null) {
   if (!o || o.preset === 'none') return [];
   const pack = PACKS[o.pack] || PACKS.cream;
   const fn = LAYOUT_FN[o.layout] || LAYOUT_FN.edge;
@@ -122,6 +122,9 @@ export function generateDoodles(o, aspect) {
   const sizes = pack.sizes || SIZES;
   const count = Math.max(1, Math.round(o.count ?? 16));
   const placed = [], items = [], used = new Map();
+  // 日期戳記那一角留空（以短邊為單位：約 0.42 寬、0.15 高）
+  const avoid = datePos ? [{ X0: datePos === 'bl' ? 0 : sx - 0.42, X1: datePos === 'bl' ? 0.42 : sx, Y0: sy - 0.15, Y1: sy }] : [];
+  const hitsAvoid = (X, Y, rad) => avoid.some((a) => Math.hypot(X - Math.max(a.X0, Math.min(X, a.X1)), Y - Math.max(a.Y0, Math.min(Y, a.Y1))) < rad);
 
   // 「最佳候選」取樣：找幾個合格位置，挑離其他塗鴉最遠的 → 平均、留白
   const bleed = pack.bleed ?? 0.45;
@@ -134,6 +137,7 @@ export function generateDoodles(o, aspect) {
       const y = region ? region.y0 + r() * (region.y1 - region.y0) : my + r() * (1 - 2 * my);
       if (!region && r() > fn(x, y, sx, sy)) continue;
       const X = x * sx, Y = y * sy;
+      if (hitsAvoid(X, Y, rad)) continue;
       let gap = Infinity;
       for (const p of placed) gap = Math.min(gap, Math.hypot(p.X - X, p.Y - Y) - p.rad - rad);
       if (gap < 0) continue;
@@ -149,7 +153,9 @@ export function generateDoodles(o, aspect) {
   const label = (o.label || '').trim();
   if (label) {
     const h = 0.075 * scale;
-    const region = o.layout === 'top' ? { x0: 0.3, x1: 0.7, y0: 0.08, y1: 0.16 } : { x0: 0.55, x1: 0.78, y0: 0.82, y1: 0.9 };
+    // 文字放下方；日期在右下時改放左下，不要擠在一起
+    const region = o.layout === 'top' ? { x0: 0.3, x1: 0.7, y0: 0.08, y1: 0.16 }
+      : datePos === 'br' ? { x0: 0.22, x1: 0.45, y0: 0.8, y1: 0.88 } : { x0: 0.55, x1: 0.78, y0: 0.8, y1: 0.88 };
     const pos = tryPlace(h * 3, region);
     if (pos) items.push({ kind: 'text', text: label, style: o.labelStyle || 'bubble', color: pack.label, x: pos.x, y: pos.y, size: h / 0.42, rot: (r() - 0.5) * 0.12, flip: false, glow: pack.glow });
   }
