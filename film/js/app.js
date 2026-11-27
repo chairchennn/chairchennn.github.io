@@ -357,6 +357,8 @@ function doodleOverlay() {
     for (const it of items) drawSticker(ctx, it, L);
   };
 }
+let pendingDateClear = false;
+const queueDateClear = () => { if (state.date.on && state.stickers.length) { pendingDateClear = true; requestRender(); } };
 let raf = 0;
 const requestRender = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
 
@@ -474,8 +476,9 @@ function render() {
   if (view.width !== W || view.height !== H) { view.width = W; view.height = H; fitView(); }
   vctx.setTransform(1, 0, 0, 1, 0, 0);
   vctx.clearRect(0, 0, W, H);
-  compose(vctx, photo, L, o);
   lastL = L;
+  if (pendingDateClear) { pendingDateClear = false; clearDateArea(); }
+  compose(vctx, photo, L, o);
   const sel = selectedSticker();
   if (sel) drawSelection(vctx, sel, L);
 }
@@ -542,7 +545,8 @@ function addSticker(obj) {
   if (!hasContent()) { toast('先選照片，再來貼貼圖'); return; }
   const st = {
     uid: uid++, seed: 1 + Math.floor(Math.random() * 99999), x: 0.5 + (Math.random() - 0.5) * 0.36, y: 0.5 + (Math.random() - 0.5) * 0.36,
-    size: 0.26, rot: (Math.random() - 0.5) * 0.4, flip: false, ...obj,
+    size: state.mode === 'four' ? (state.four.layout === 'strip' ? 0.5 : 0.32) : 0.26,
+    rot: (Math.random() - 0.5) * 0.4, flip: false, ...obj,
   };
   state.stickers.push(st);
   select(st.uid);
@@ -879,6 +883,7 @@ async function loadFourFiles(files, startSlot = 0) {
   refreshFourSlots();
   refreshPresetThumbs(); refreshDoodleThumbs();
   refreshWorkspace();
+  queueDateClear();
   if (failed) toast(`有 ${failed} 張照片打不開，換成 JPG 或 PNG 試試看`);
 }
 function refreshFourSlots() {
@@ -903,7 +908,7 @@ function buildFourUI() {
   for (const [id, name] of FOUR_LAYOUTS) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
-    b.addEventListener('click', () => { state.four.layout = id; cellCache.clear(); resetPhotoCache(); syncFourUI(); refreshWorkspace(); savePrefs(); });
+    b.addEventListener('click', () => { state.four.layout = id; cellCache.clear(); resetPhotoCache(); syncFourUI(); refreshWorkspace(); queueDateClear(); savePrefs(); });
     $('#fourLayouts').append(b);
   }
   for (const pp of PAPERS) {
@@ -939,6 +944,7 @@ function setMode(m, initial = false) {
   resetPhotoCache();
   if (!initial) { refreshPresetThumbs(); refreshDoodleThumbs(); }
   refreshWorkspace();
+  if (!initial) queueDateClear();
   savePrefs();
 }
 $$('.mode-switch button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
@@ -970,6 +976,7 @@ $('#btnRotate').addEventListener('click', () => {
   state.rotation = (state.rotation + 90) % 360;
   buildSources();
   requestRender();
+  queueDateClear();
 });
 
 const cmp = $('#btnCompare');
@@ -1135,6 +1142,7 @@ function selectFrame(id) {
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
   updateFrameOpts();
   requestRender();
+  queueDateClear();
   savePrefs();
 }
 function updateFrameOpts() {
@@ -1152,6 +1160,7 @@ function updateFrameOpts() {
     });
   }
 }
+$('#cropPos').addEventListener('change', queueDateClear);
 $('#cropPos').addEventListener('input', (e) => {
   state.frame.cropPos = +e.target.value / 100;
   e.target.parentElement.querySelector('output').textContent = e.target.value;
@@ -1243,6 +1252,7 @@ function syncDoodleUI() {
   $('#doodleMore').disabled = d.count >= COUNT_MAX;
   $('#doodleScale').value = d.scale;
   $('#doodleScale').parentElement.querySelector('output').textContent = `${d.scale}%`;
+  $('#doodleGlow').closest('.slider').hidden = !!PACKS[d.pack]?.noGlow;
   const g = Math.round((d.glow ?? PACKS[d.pack]?.glow ?? 0) * 100);
   $('#doodleGlow').value = g;
   $('#doodleGlow').parentElement.querySelector('output').textContent = g;
@@ -1338,14 +1348,14 @@ function buildDateUI() {
   for (const [id, name] of DATE_SIZES) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
-    b.addEventListener('click', () => { const was = state.date.on; state.date.size = id; state.date.on = true; if (!was) clearDateArea(); syncDateUI(); requestRender(); savePrefs(); });
+    b.addEventListener('click', () => { state.date.size = id; state.date.on = true; syncDateUI(); queueDateClear(); savePrefs(); });
     $('#dateSizes').append(b);
   }
   const fm = $('#dateFormats');
   for (const [id] of DATE_FORMATS) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip date-chip'; b.dataset.id = id;
-    b.addEventListener('click', () => { const was = state.date.on; state.date.format = id; state.date.on = true; if (!was) clearDateArea(); syncDateUI(); requestRender(); savePrefs(); });
+    b.addEventListener('click', () => { state.date.format = id; state.date.on = true; syncDateUI(); queueDateClear(); savePrefs(); });
     fm.append(b);
   }
   const names = { orange: '橘', red: '紅', yellow: '黃', white: '白' };
@@ -1383,7 +1393,7 @@ function clearDateArea() {
   const left = (R.x0 + R.x1) / 2 < L.x + L.pw / 2;
   let moved = 0;
   for (const st of state.stickers) {
-    const g = stickerGeom(st, L), rad = (Math.max(g.w, g.h) / 2) * 0.8;
+    const g = stickerGeom(st, L), rad = Math.hypot(g.w, g.h) / 2; // 用完整對角線，轉過的貼圖角落也不會壓到
     const nx = Math.max(R.x0, Math.min(g.cx, R.x1)), ny = Math.max(R.y0, Math.min(g.cy, R.y1));
     if (Math.hypot(g.cx - nx, g.cy - ny) >= rad) continue;
     // 往上移或往旁邊移，選移動距離比較短的那個

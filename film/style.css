@@ -999,3 +999,7 @@ dialog.sheet::backdrop { background: rgba(72, 44, 112, .38); -webkit-backdrop-fi
   * { transition: none !important; }
   .spinner { animation-duration: 2.4s; }
 }
+
+/* QA：可點範圍至少 44px（滑桿整列、貼圖工具列的按鈕與「霓虹光暈」開關） */
+.slider { min-height: 44px; }
+.sticker-tools .chip, .sticker-tools .toggle { min-height: 44px; }

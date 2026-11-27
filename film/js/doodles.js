@@ -34,15 +34,6 @@ export const PACKS = {
     medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 0.4, cr_bow: 1, cr_butterfly: 1.5, cr_twinstar: 1.2 },
     large: { cr_bigstar: 1, cr_heart: 1, cr_flower5: 1 },
   },
-  kitty: {
-    name: '貓咪小魚', glow: 0, lw: 0.0034,
-    sizes: { small: [0.035, 0.05], medium: [0.08, 0.1], large: [0.14, 0.17] },
-    small: { kt_blossom: 3, kt_blossom2: 2 },
-    medium: { kt_cat: 2.5, kt_cat2: 1.5, kt_fish: 1.5, kt_yarn: 0.8, kt_paw: 0.8, kt_catsit: 1 },
-    large: { kt_cat: 1, kt_cat2: 1, kt_catsit: 1, kt_peek: 0.8 },
-    anchors: { kt_peek: 'bottom' }, // 探頭貓：不旋轉、貼齊照片底邊
-    max: { kt_peek: 1 }, // 每張最多一隻
-  },
   flora: {
     name: '花花世界', glow: 0, lw: 0.0034, largeExtra: 1, bleed: 0.3,
     sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
@@ -73,7 +64,7 @@ export const PACKS = {
   },
   // 蠟筆塗鴉：畫在照片上的療癒童趣塗鴉（蠟筆筆刷，線條粗細跟著圖案大小，像真的用粉彩筆畫）
   crayon: {
-    name: '蠟筆塗鴉', glow: 0,
+    name: '蠟筆塗鴉', glow: 0, noGlow: true, // 蠟筆筆刷不畫光暈，所以不顯示光暈滑桿
     sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.22, 0.3] },
     colors: ['#fff3df', '#ffe38a', '#ffb98a', '#ff9fc1', '#9fe3c0', '#8fe0e0'], recolor: 0.3,
     anchors: { cr2_grass: 'bottom' }, // 小草長在照片底邊，不會飄在天空
@@ -115,16 +106,6 @@ export const PACKS = {
     medium: { y2k_flip: 1, y2k_cd: 1.2, y2k_planet: 1.2, y2k_butterfly: 1.2, y2k_chromestar: 1.2, y2k_chromeheart: 1.2, y2k_checkheart: 1, y2k_cherry: 0.6 },
     large: { y2k_chromestar: 1, y2k_chromeheart: 1, y2k_checkheart: 0.8, y2k_butterfly: 1 },
     max: { y2k_flip: 1, y2k_cd: 2 },
-  },
-  // 表情臉：粉彩麻糬臉（只換淺色，深色會看不到五官）
-  emoji: {
-    name: '表情臉', glow: 0, lw: 0.0034,
-    colors: ['#ffd3b5', '#ffc4d6', '#fff1a8', '#d4f0c8', '#cfe3ff', '#e6d4ff'], recolor: 0.35,
-    small: { cr_dotheart: 1.5, pl_twinkle: 1.5, em_smile: 1, em_love: 1, em_sparkle: 1 },
-    medium: {
-      em_smile: 1, em_cry: 1, em_wow: 1, em_love: 1, em_sleepy: 1, em_angry: 1, em_wink: 1, em_sparkle: 1, em_sweat: 1, em_squint: 1,
-    },
-    large: { em_love: 1, em_smile: 1, em_sleepy: 1, em_sparkle: 1 },
   },
   // 顏文字：用字畫出來的表情（不是使用者輸入的文字）
   kao: {
@@ -195,6 +176,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
   const glow = o.glow ?? pack.glow;
   const placed = [], slots = [], used = new Map();
   let avoid = [];
+  // 避開日期用「半對角線」(0.7×大小)：寬的圖案（鯨魚、海浪）四個角也不會壓到
   const hitsAvoid = (X, Y, rad) => avoid.some((q) => Math.hypot(X - Math.max(q.X0, Math.min(X, q.X1)), Y - Math.max(q.Y0, Math.min(Y, q.Y1))) < rad);
 
   // 「最佳候選」取樣：找幾個合格位置，挑離其他塗鴉最遠的 → 平均、留白
@@ -209,7 +191,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
       const y = region ? region.y0 + rand() * (region.y1 - region.y0) : my + rand() * (1 - 2 * my);
       if (!region && rand() > fn(x, y, sx, sy)) continue;
       const X = x * sx, Y = y * sy;
-      if (hitsAvoid(X, Y, rad)) continue;
+      if (hitsAvoid(X, Y, size * 0.7)) continue;
       let gap = Infinity;
       for (const q of placed) gap = Math.min(gap, Math.hypot(q.X - X, q.Y - Y) - q.rad - rad);
       if (gap < -tol * rad) continue;
@@ -217,7 +199,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
       if (gap > bestGap) { bestGap = gap; best = { x, y, X, Y }; }
     }
     if (!best) return null;
-    const spot = { X: best.X, Y: best.Y, rad };
+    const spot = { X: best.X, Y: best.Y, rad, arad: size * 0.7 };
     placed.push(spot);
     return { x: best.x, y: best.y, spot };
   };
@@ -279,7 +261,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
     avoid = [{ X0: avoidBox.x0 * sx, X1: avoidBox.x1 * sx, Y0: avoidBox.y0 * sy, Y1: avoidBox.y1 * sy }];
     const r2 = rng((o.seed || 1) * 7907 + 17);
     for (const sl of slots) {
-      if (!hitsAvoid(sl.spot.X, sl.spot.Y, sl.spot.rad)) continue;
+      if (!hitsAvoid(sl.spot.X, sl.spot.Y, sl.spot.arad)) continue;
       placed.splice(placed.indexOf(sl.spot), 1);
       // 依序放寬：原尺寸 → 縮小 15% → 允許稍微重疊
       let pos = null, k = 1;

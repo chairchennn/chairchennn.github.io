@@ -679,7 +679,7 @@ export const HIDDEN_CATS = new Set(['kitty', 'emoji']);
 export const CATEGORIES = [
   ['all', '全部'], ['crayon', '蠟筆'], ['cream', '奶油'], ['flora', '花草'], ['pastel', '粉彩'],
   ['french', '法式'], ['japan', '日式'], ['y2k', 'Y2K'],
-  ['face', '螢光表情'], ['animal', '動物'], ['travel', '旅行'], ['deco', '裝飾'], ['line', '線條'],
+  ['face', '螢光'], ['animal', '動物'], ['travel', '旅行'], ['deco', '裝飾'], ['line', '線條'],
 ];
 
 export const isRecolorable = (def) => def.parts.some((p) => p.f === 'M' || p.s === 'M');
