@@ -6,6 +6,7 @@ import { ART_FR_JP } from './art/fr_jp.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
 import { ART_CRAYON } from './art/crayon.js';
 import { drawCrayonDef } from './crayon.js';
+import { drawPencilDef, drawPrintDef } from './print.js';
 
 export const PALETTE = [
   '#ff8fc0', // 粉紅
@@ -696,6 +697,9 @@ function hexToRgba(hex, a) {
 export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeScale = 1, seed = 1) {
   // 蠟筆風：手抖＋顆粒（不加霓虹光暈，保持粉彩筆的質感）
   if (def.style === 'crayon') { drawCrayonDef(ctx, def, color, strokeScale, seed); return; }
+  // 色鉛筆：斜向筆觸＋顆粒、外框描兩三次；版畫：單色實心＋印壓顆粒＋粗糙邊（第六版）
+  if (def.style === 'pencil') { drawPencilDef(ctx, def, color, strokeScale, seed); return; }
+  if (def.style === 'print') { drawPrintDef(ctx, def, color, strokeScale, seed); return; }
   if (!def._paths) def._paths = def.parts.map((p) => new Path2D(p.d));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';

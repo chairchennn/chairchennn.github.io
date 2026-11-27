@@ -55,6 +55,10 @@ const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1
 const TAPE_SPOTS = [[0.5, 0.02, 0, 0.42], [0.5, 0.98, 0, 0.42], [0.07, 0.05, -0.75, 0.3], [0.93, 0.05, 0.75, 0.3], [0.07, 0.95, 0.75, 0.3], [0.93, 0.95, -0.75, 0.3]];
 // 剪刀的比例（長邊／短邊；0 = 原比例），方向跟著照片
 const RATIOS = [[0, '原比例'], [1, '1:1'], [5 / 4, '4:5'], [3 / 2, '2:3'], [16 / 9, '9:16']];
+// 貼圖分類（第六版精簡）：新風格在前，舊的可愛系列收成一類；「我的」是這次上傳或剪下的圖
+const STICKER_GROUPS = [['all', '全部'], ['pencil', '色鉛筆'], ['print', '版畫'], ['crayon', '蠟筆'], ['cute', '可愛'], ['mine', '我的']];
+const groupOf = (def) => (['pencil', 'print', 'crayon'].includes(def.cat) ? def.cat : 'cute');
+const GROUP_ORDER = { pencil: 0, print: 1, crayon: 2, cute: 3 };
 const finePointer = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 const xfHowTo = () => (finePointer() ? '拖曳移動・滾輪縮放・Shift＋滾輪轉動' : '拖曳移動・兩指縮放和轉動');
 
@@ -91,7 +95,7 @@ const state = {
   glow: true,
   stickers: [], stash: { single: [], four: [] }, selected: null,
   compare: false, dragging: false,
-  tab: 'doodle', cat: 'all',
+  tab: 'doodle', cat: 'all', mine: [],
 };
 
 // ---------------------------------------------------------------- prefs
@@ -1625,7 +1629,7 @@ function refreshDoodleThumbs() {
 // ---------------------------------------------------------------- sticker panel
 function buildStickerPanel() {
   const cats = $('#stickerCats');
-  for (const [id, name] of CATEGORIES) {
+  for (const [id, name] of STICKER_GROUPS) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
     b.setAttribute('aria-pressed', String(id === state.cat));
@@ -1641,8 +1645,10 @@ function buildStickerPanel() {
 function renderStickerGrid() {
   const grid = $('#stickerGrid');
   grid.innerHTML = '';
-  for (const def of STICKERS) {
-    if (HIDDEN_CATS.has(def.cat) || HIDDEN_IDS.has(def.id) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
+  if (state.cat === 'mine') { renderMine(grid); return; }
+  const list = STICKERS.filter((def) => !HIDDEN_CATS.has(def.cat) && !HIDDEN_IDS.has(def.id) && (state.cat === 'all' || groupOf(def) === state.cat));
+  list.sort((a, b) => GROUP_ORDER[groupOf(a)] - GROUP_ORDER[groupOf(b)]);
+  for (const def of list) {
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('aria-label', def.name);
@@ -1656,6 +1662,31 @@ function renderStickerGrid() {
     b.addEventListener('click', () => addSticker({ kind: 'svg', id: def.id, color: def.color }));
     grid.append(b);
   }
+}
+// 「我的」：這次上傳或剪下的圖（只存在這次打開的頁面，不會存到任何地方）
+function renderMine(grid) {
+  if (!state.mine.length) {
+    const p = document.createElement('p');
+    p.className = 'note';
+    p.textContent = '還沒有。用文具列的「新增」上傳圖片，或用「裁切 → 剪下」剪下照片裡的主體，就會出現在這裡。';
+    grid.append(p);
+    return;
+  }
+  state.mine.forEach((m, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', `我的貼圖 ${i + 1}`);
+    const c = makeCanvas(112, 112), ctx = c.getContext('2d'), k = 100 / Math.max(m.img.width, m.img.height);
+    ctx.drawImage(m.img, 56 - (m.img.width * k) / 2, 56 - (m.img.height * k) / 2, m.img.width * k, m.img.height * k);
+    b.append(c);
+    b.addEventListener('click', () => addSticker({ kind: 'img', img: m.img, size: m.size || 0.32 }));
+    grid.append(b);
+  });
+}
+function addMine(img, size) {
+  state.mine.unshift({ img, size });
+  if (state.mine.length > 12) state.mine.length = 12;
+  if (state.cat === 'mine') renderStickerGrid();
 }
 $('#glow').addEventListener('change', (e) => { state.glow = e.target.checked; requestRender(); savePrefs(); });
 $('#btnClearStickers').addEventListener('click', () => {
@@ -1679,7 +1710,9 @@ stickerInput.addEventListener('change', async () => {
     await img.decode();
     const c = makeCanvas(img.naturalWidth, img.naturalHeight);
     c.getContext('2d').drawImage(img, 0, 0);
-    addSticker({ kind: 'img', img: downscale(c, 1200), size: 0.32 });
+    const up = downscale(c, 1200);
+    addMine(up, 0.32);
+    addSticker({ kind: 'img', img: up, size: 0.32 });
   } catch {
     toast('這個貼圖檔打不開，請用 PNG');
   } finally {
