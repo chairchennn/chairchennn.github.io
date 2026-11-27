@@ -594,3 +594,9 @@ dialog.sheet::backdrop { background: rgba(8, 6, 4, .7); -webkit-backdrop-filter:
   .sticker-grid button:hover { transform: scale(1.05); }
   .ghost-btn:hover { background: var(--panel3); }
 }
+
+/* doodle frames */
+.doodle-actions { margin-top: 4px; }
+.doodle-actions .chip { min-height: 34px; }
+.theme-dots { display: inline-flex; gap: 2px; margin-right: 2px; }
+.theme-dots i { display: block; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }

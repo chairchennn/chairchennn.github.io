@@ -1,7 +1,8 @@
 // FilmDoodle — 主程式（介面、手勢、匯出）
 import {
-  PRESETS, developPhoto, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, formatDate,
+  PRESETS, developBase, applyFx, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, formatDate,
 } from './film.js';
+import { DOODLE_PRESETS, LAYOUTS, THEMES, generateDoodles } from './doodles.js';
 import {
   FRAMES, FRAME_COLORS, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
@@ -46,19 +47,20 @@ const defaultAdj = (id) => ({
 
 const state = {
   orig: null, full: null, preview: null, thumb: null, srcVersion: 0, rotation: 0, photoDate: null,
-  preset: 'gr-pos',
-  adj: defaultAdj('gr-pos'),
+  preset: 'none',
+  adj: defaultAdj('none'),
+  doodle: { preset: 'none', layout: 'band', theme: 'neon', density: 60, scale: 100, seed: 1, label: '', labelStyle: 'bubble' },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, cropPos: 0.5, seed: 7 },
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br' },
   glow: true,
   stickers: [], selected: null,
   compare: false, dragging: false,
-  tab: 'film', cat: 'all',
+  tab: 'doodle', cat: 'all',
   text: { style: 'bubble', color: '#46d2f0', editing: null },
 };
 
 // ---------------------------------------------------------------- prefs
-const STORE_KEY = 'filmdoodle:v1';
+const STORE_KEY = 'filmdoodle:v2';
 function loadPrefs() {
   try {
     const p = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -73,7 +75,10 @@ function loadPrefs() {
     }
     if (p.date) for (const k of ['on', 'format', 'color', 'pos']) if (typeof p.date[k] === typeof state.date[k]) state.date[k] = p.date[k];
     if (typeof p.glow === 'boolean') state.glow = p.glow;
-    if (['film', 'adjust', 'frame', 'sticker', 'date'].includes(p.tab)) state.tab = p.tab;
+    if (p.doodle && DOODLE_PRESETS.some((d) => d.id === p.doodle.preset)) {
+      for (const k of ['preset', 'layout', 'theme', 'density', 'scale', 'labelStyle']) if (typeof p.doodle[k] === typeof state.doodle[k]) state.doodle[k] = p.doodle[k];
+    }
+    if (['film', 'doodle', 'adjust', 'frame', 'sticker', 'date'].includes(p.tab)) state.tab = p.tab;
   } catch { /* 無法讀取就用預設值 */ }
 }
 let saveTimer = 0;
@@ -87,6 +92,7 @@ function savePrefs() {
         frame: { id: f.id, color: f.color, slideColor: f.slideColor, filmNo: f.filmNo },
         date: { on: d.on, format: d.format, color: d.color, pos: d.pos },
         glow: state.glow, tab: state.tab,
+        doodle: { ...state.doodle, label: '', seed: 1 },
       }));
     } catch { /* 私密模式等情況寫不進去也沒關係 */ }
   }, 300);
@@ -251,9 +257,11 @@ function drawSticker(ctx, st, L) {
   if (g.flip) ctx.scale(-1, 1);
   if (st.kind === 'svg') {
     const def = defOf(st), [vw] = stickerBox(def), k = g.w / vw;
+    // 塗鴉框的線條粗細跟著照片大小，不跟著貼圖大小（跟參考圖一樣，大小塗鴉的線一樣細）
+    const ss = st.lw ? Math.min(2.5, Math.max(0.5, (st.lw * Math.min(L.pw, L.ph)) / (4.5 * k))) : 1;
     ctx.translate(-g.w / 2, -g.h / 2);
     ctx.scale(k, k);
-    drawStickerDef(ctx, def, st.color, k, state.glow ? 1 : 0);
+    drawStickerDef(ctx, def, st.color, k, state.glow ? 1 : 0, ss);
   } else if (st.kind === 'img') {
     ctx.drawImage(st.img, -g.w / 2, -g.h / 2, g.w, g.h);
   } else {
@@ -265,8 +273,35 @@ function drawSticker(ctx, st, L) {
 // ---------------------------------------------------------------- rendering
 const view = $('#view');
 const vctx = view.getContext('2d');
-let photoCache = { key: '', canvas: null };
+let baseCache = { key: '', canvas: null };
+let fxCache = { key: '', canvas: null };
+let doodleCache = { key: '', items: [] };
+let fontsVersion = 0;
 let lastL = null;
+const COLOR_ADJ = ['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade'];
+const resetPhotoCache = () => { baseCache.key = ''; fxCache.key = ''; };
+
+// 塗鴉框用「原圖比例」產生，預覽和匯出才會一模一樣
+function photoAspect() {
+  const f = state.full;
+  return cropAspect(state.frame.id, f.width, f.height) || f.width / f.height;
+}
+function doodleItems() {
+  const d = state.doodle;
+  if (d.preset === 'none' || !state.full) return [];
+  const aspect = photoAspect();
+  const key = JSON.stringify([d, aspect]);
+  if (doodleCache.key !== key) doodleCache = { key, items: generateDoodles(d, aspect) };
+  return doodleCache.items;
+}
+function doodleOverlay() {
+  const items = doodleItems();
+  if (!items.length) return null;
+  return (ctx, w, h) => {
+    const L = { x: 0, y: 0, pw: w, ph: h, W: w, H: h };
+    for (const it of items) drawSticker(ctx, it, L);
+  };
+}
 let raf = 0;
 const requestRender = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
 
@@ -282,16 +317,25 @@ function getPreviewPhoto() {
   const src = state.preview;
   const crop = computeCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height), state.frame.cropPos);
   const lutN = state.dragging ? 17 : 33;
-  const key = JSON.stringify([state.srcVersion, state.preset, state.adj, state.date, Math.round(crop.x), Math.round(crop.y),
-    Math.round(crop.w), Math.round(crop.h), state.compare, lutN]);
-  if (photoCache.key !== key) {
-    photoCache = {
-      key,
-      canvas: developPhoto(src, crop, Math.round(crop.w), Math.round(crop.h),
-        { preset: state.preset, adj: state.adj, date: state.date, original: state.compare, lutN }),
+  const baseKey = JSON.stringify([state.srcVersion, state.preset, COLOR_ADJ.map((k) => state.adj[k]),
+    Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), state.compare, lutN]);
+  if (baseCache.key !== baseKey) {
+    if (baseCache.canvas) baseCache.canvas.width = 0;
+    baseCache = {
+      key: baseKey,
+      canvas: developBase(src, crop, Math.round(crop.w), Math.round(crop.h),
+        { preset: state.preset, adj: state.adj, original: state.compare, lutN }),
     };
   }
-  return photoCache.canvas;
+  const fxKey = JSON.stringify([baseKey, state.adj, state.date, state.doodle, state.glow, fontsVersion]);
+  if (fxCache.key !== fxKey) {
+    if (fxCache.canvas) fxCache.canvas.width = 0;
+    fxCache = {
+      key: fxKey,
+      canvas: applyFx(baseCache.canvas, { adj: state.adj, date: state.date, original: state.compare }, doodleOverlay()),
+    };
+  }
+  return fxCache.canvas;
 }
 
 function compose(ctx, photo, L, o) {
@@ -651,9 +695,10 @@ function buildSources() {
   state.preview = downscale(full, PREVIEW_SIDE);
   state.thumb = downscale(state.preview, 240);
   state.srcVersion++;
-  photoCache.key = '';
+  resetPhotoCache();
   refreshPresetThumbs();
   refreshFrameThumbs();
+  refreshDoodleThumbs();
   updateFrameOpts();
 }
 
@@ -887,6 +932,117 @@ $('#filmNoMinus').addEventListener('click', () => setFilmNo(state.frame.filmNo -
 $('#filmNoPlus').addEventListener('click', () => setFilmNo(state.frame.filmNo + 1));
 $('#btnFrameSeed').addEventListener('click', () => { state.frame.seed = 1 + Math.floor(Math.random() * 9999); requestRender(); });
 
+
+// ---------------------------------------------------------------- doodle frames（塗鴉框）
+function buildDoodlePane() {
+  const box = $('#doodleList');
+  for (const p of DOODLE_PRESETS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'card';
+    b.dataset.id = p.id;
+    const c = makeCanvas(160, 160);
+    const n = document.createElement('span'); n.className = 'c-name'; n.textContent = p.name;
+    b.append(c, n);
+    b.addEventListener('click', () => selectDoodle(p.id));
+    box.append(b);
+  }
+  const chipRow = (el, list, key, extra) => {
+    for (const item of list) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.dataset.id = item[0];
+      if (extra) extra(b, item);
+      b.append(document.createTextNode(item[1]));
+      b.addEventListener('click', () => { state.doodle[key] = item[0]; syncDoodleUI(); requestRender(); savePrefs(); });
+      el.append(b);
+    }
+  };
+  chipRow($('#doodleLayouts'), LAYOUTS, 'layout');
+  chipRow($('#doodleThemes'), THEMES, 'theme', (b, t) => {
+    const dots = document.createElement('span');
+    dots.className = 'theme-dots';
+    for (const col of [...new Set(t[2])].slice(0, 3)) {
+      const d = document.createElement('i'); d.style.background = col; dots.append(d);
+    }
+    b.append(dots);
+  });
+  chipRow($('#doodleLabelStyles'), TEXT_STYLES, 'labelStyle');
+  const bindRange = (id, key) => {
+    const el = $(id), out = el.parentElement.querySelector('output');
+    el.addEventListener('input', () => { state.doodle[key] = +el.value; out.textContent = el.value; requestRender(); savePrefs(); });
+  };
+  bindRange('#doodleDensity', 'density');
+  bindRange('#doodleScale', 'scale');
+  $('#doodleLabel').addEventListener('input', async (e) => {
+    state.doodle.label = e.target.value;
+    requestRender();
+    await ensureFonts(e.target.value, textFamilies(state.doodle.labelStyle));
+    fontsVersion++;
+    requestRender();
+  });
+  $('#btnDoodleShuffle').addEventListener('click', () => {
+    state.doodle.seed = 1 + Math.floor(Math.random() * 99999);
+    requestRender();
+    refreshDoodleThumbs();
+  });
+  $('#btnDoodleEdit').addEventListener('click', () => {
+    if (!state.preview) { toast('先選一張照片'); return; }
+    const items = doodleItems();
+    if (!items.length) return;
+    const converted = items.map((it) => ({ ...it, uid: uid++ }));
+    state.stickers = converted.concat(state.stickers);
+    state.doodle.preset = 'none';
+    syncDoodleUI();
+    select(null);
+    toast('已轉成貼圖：點一下塗鴉就能移動、縮放或刪除');
+  });
+}
+
+function selectDoodle(id) {
+  const p = DOODLE_PRESETS.find((x) => x.id === id);
+  state.doodle.preset = id;
+  if (p.layout) Object.assign(state.doodle, { layout: p.layout, theme: p.theme, density: p.density, scale: 100 });
+  syncDoodleUI();
+  requestRender();
+  savePrefs();
+  if (id !== 'none' && !state.preview) toast('先選一張照片，就能看到塗鴉框');
+}
+
+function syncDoodleUI() {
+  const d = state.doodle;
+  $$('#doodleList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.preset)));
+  $('#doodleOpts').hidden = d.preset === 'none';
+  $$('#doodleLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.layout)));
+  $$('#doodleThemes .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.theme)));
+  $$('#doodleLabelStyles .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.labelStyle)));
+  for (const [id, key] of [['#doodleDensity', 'density'], ['#doodleScale', 'scale']]) {
+    $(id).value = d[key];
+    $(id).parentElement.querySelector('output').textContent = d[key];
+  }
+  if ($('#doodleLabel').value !== d.label) $('#doodleLabel').value = d.label;
+}
+
+let doodleThumbJob = 0;
+function refreshDoodleThumbs() {
+  const job = ++doodleThumbJob, src = state.thumb || SAMPLE;
+  const cards = $$('#doodleList .card');
+  let i = 0;
+  const step = () => {
+    if (job !== doodleThumbJob || i >= cards.length) return;
+    const b = cards[i++], p = DOODLE_PRESETS.find((x) => x.id === b.dataset.id);
+    const c = b.querySelector('canvas'), ctx = c.getContext('2d');
+    const S = Math.min(src.width, src.height);
+    ctx.drawImage(src, (src.width - S) / 2, (src.height - S) / 2, S, S, 0, 0, c.width, c.height);
+    if (p.layout) {
+      const items = generateDoodles({ ...p, preset: p.id, seed: state.doodle.seed, scale: 100 }, 1);
+      const L = { x: 0, y: 0, pw: c.width, ph: c.height, W: c.width, H: c.height };
+      for (const it of items) drawSticker(ctx, { ...it, lw: 0.011 }, L);
+    }
+    setTimeout(step, 0);
+  };
+  step();
+}
+
 // ---------------------------------------------------------------- sticker panel
 function buildStickerPanel() {
   const cats = $('#stickerCats');
@@ -1088,6 +1244,7 @@ async function exportImage() {
     const texts = state.stickers.filter((s) => s.kind === 'text');
     await Promise.all([
       ensureFonts(state.frame.caption, ['"Caveat"', '"LXGW WenKai TC"']),
+      ensureFonts(state.doodle.label, textFamilies(state.doodle.labelStyle)),
       ...texts.map((s) => ensureFonts(s.text, textFamilies(s.style))),
     ]);
     const src = state.full, id = state.frame.id, o = frameOpts();
@@ -1095,7 +1252,8 @@ async function exportImage() {
     let L = layoutFrame(id, crop.w, crop.h, o);
     const f = Math.min(1, Math.sqrt(MAX_OUT_AREA / (L.W * L.H)), MAX_OUT_SIDE / Math.max(L.W, L.H));
     const pw = Math.round(crop.w * f), ph = Math.round(crop.h * f);
-    photo = developPhoto(src, crop, pw, ph, { preset: state.preset, adj: state.adj, date: state.date, lutN: 33 });
+    photo = applyFx(developBase(src, crop, pw, ph, { preset: state.preset, adj: state.adj, lutN: 33 }),
+      { adj: state.adj, date: state.date }, doodleOverlay(), true);
     L = layoutFrame(id, pw, ph, o);
     out = makeCanvas(L.W, L.H);
     const ctx = out.getContext('2d');
@@ -1174,6 +1332,7 @@ function init() {
   buildPresetCards();
   buildSliders();
   buildFrameCards();
+  buildDoodlePane();
   buildStickerPanel();
   buildTextDialog();
   buildDateUI();
@@ -1181,13 +1340,15 @@ function init() {
   syncDateUI();
   updateFrameOpts();
   $('#glow').checked = state.glow;
+  syncDoodleUI();
   setTab(state.tab);
   refreshPresetThumbs();
   refreshFrameThumbs();
+  refreshDoodleThumbs();
   drawDeco();
   const ro = new ResizeObserver(() => { fitView(); drawDeco(); });
   ro.observe($('#stage'));
-  document.fonts?.addEventListener?.('loadingdone', () => requestRender());
+  document.fonts?.addEventListener?.('loadingdone', () => { fontsVersion++; requestRender(); });
   // 讓已選中的卡片捲到看得到的位置
   requestAnimationFrame(() => {
     $('#presetList .card[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });

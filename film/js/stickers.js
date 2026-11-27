@@ -163,7 +163,31 @@ export const STICKERS = [
     ]
   },
 
+  {
+    id: 'boxface', name: '方塊臉', cat: 'face', color: O, parts: [
+      s('M20 26H66Q72 26 72 32V70Q72 76 66 76H20Q14 76 14 70V32Q14 26 20 26Z'),
+      ...face(43, 47, 42),
+      s('M82 38L96 34', 'M', 4), s('M82 51H97', 'M', 4), s('M82 64L96 68', 'M', 4),
+    ]
+  },
+  {
+    id: 'heartbuddy', name: '愛心人', cat: 'face', color: R, parts: [
+      s('M50 78C28 64 16 52 18 38C20 24 36 18 50 34C64 18 80 24 82 38C84 52 72 64 50 78Z'),
+      ...face(50, 46, 40),
+      s('M20 50Q10 50 6 40', 'M', 4), s('M80 50Q90 50 94 40', 'M', 4),
+      s('M42 75L38 94', 'M', 4), s('M58 75L62 94', 'M', 4),
+    ]
+  },
+
   // 動物
+  {
+    id: 'puppy', name: '小狗', cat: 'animal', color: '#ffc27a', parts: [
+      s(circ(50, 56, 28)),
+      s('M27 40C14 30 6 46 10 62C12 70 21 68 24 60'), s('M73 40C86 30 94 46 90 62C88 70 79 68 76 60'),
+      f(circ(40, 52, 3.4)), f(circ(60, 52, 3.4)), f(ell(50, 60, 5, 3.8), K),
+      s('M44 66q3 4 6 0q3 4 6 0', 'M', 3), f(ell(32, 64, 4.5, 2.8), CH, 0.9), f(ell(68, 64, 4.5, 2.8), CH, 0.9),
+    ]
+  },
   {
     id: 'bear', name: '小熊', cat: 'animal', color: W, parts: [
       s(circ(50, 57, 30)),
@@ -292,6 +316,15 @@ export const STICKERS = [
       f('M4 84q0 -10 10 -9q4 -8 13 -3q9 -1 8 9q0 5 -6 5h-20q-5 0 -5 -2z', W), f('M65 84q0 -10 10 -9q4 -8 13 -3q9 -1 8 9q0 5 -6 5h-20q-5 0 -5 -2z', W),
     ]
   },
+  { id: 'fstar', name: '小星星', cat: 'deco', color: Y, parts: [f(starPts(50, 53, 5, 44, 21)), s(starPts(50, 53, 5, 44, 21), 'M', 5)] },
+  { id: 'hearto', name: '愛心', cat: 'deco', color: P, parts: [s(heartD(50, 52, 76), 'M', 5)] },
+  { id: 'pennant', name: '小旗子', cat: 'deco', color: C, parts: [f('M14 30L86 48L18 72Z', 'M', 0.9), s('M14 30L86 48L18 72Z', 'M', 5), s('M28 44L58 48', W, 3.5, 0.8)] },
+  {
+    id: 'stripes', name: '彩色膠帶', cat: 'deco', color: P, vb: [100, 40], parts: [
+      ...[['M', 6], [O, 20.7], [Y, 35.4], [G, 50.1], [C, 64.8], [L, 79.5]].map(([c, x]) => f(`M${x} 8h14.7v24h-14.7z`, c, 0.88)),
+      s('M6 8H94V32H6Z', W, 1.6, 0.6),
+    ]
+  },
   {
     id: 'tape', name: '紙膠帶', cat: 'deco', color: '#ffb3d1', vb: [100, 40], parts: [
       f('M3 6L9 10L3 14L9 18L3 22L9 26L3 30L9 34H97L91 30L97 26L91 22L97 18L91 14L97 10L91 6Z', 'M', 0.88),
@@ -314,6 +347,9 @@ export const STICKERS = [
   { id: 'exclaim', name: '驚嘆號', cat: 'line', color: Y, parts: [s('M34 12L39 62', 'M', 8), f(circ(40, 82, 6)), s('M66 12L61 62', 'M', 8), f(circ(60, 82, 6))] },
   { id: 'underline', name: '底線', cat: 'line', color: Y, vb: [100, 40], parts: [s('M6 16Q50 8 94 14', 'M', 5), s('M14 28Q52 22 86 27', 'M', 4)] },
   { id: 'dots', name: '點點', cat: 'line', color: C, vb: [100, 40], parts: [f(circ(16, 20, 7)), f(circ(40, 20, 7), P), f(circ(64, 20, 7), Y), f(circ(88, 20, 7), G)] },
+  { id: 'ring', name: '小圈圈', cat: 'line', color: P, parts: [s(circ(50, 50, 32), 'M', 7)] },
+  { id: 'cross', name: '叉叉', cat: 'line', color: P, parts: [s('M28 28L72 72M72 28L28 72', 'M', 7)] },
+  { id: 'lines', name: '速度線', cat: 'line', color: C, vb: [100, 60], parts: [s('M20 14H80', 'M', 6), s('M10 30H90', 'M', 6), s('M24 46H76', 'M', 6)] },
 ];
 
 export const CATEGORIES = [
@@ -329,7 +365,7 @@ function hexToRgba(hex, a) {
 }
 
 // 在 (0,0)-(vbW,vbH) 座標系畫貼圖；pxPerUnit 用來把光暈換算成像素（shadowBlur 不吃 transform）
-export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0) {
+export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeScale = 1) {
   if (!def._paths) def._paths = def.parts.map((p) => new Path2D(p.d));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -343,7 +379,7 @@ export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0) {
       ctx.shadowBlur = Math.max(0, glow * 6 * pxPerUnit);
     }
     if (fc) { ctx.fillStyle = fc; ctx.fill(path); }
-    if (sc) { ctx.strokeStyle = sc; ctx.lineWidth = p.w; ctx.stroke(path); }
+    if (sc) { ctx.strokeStyle = sc; ctx.lineWidth = p.w * strokeScale; ctx.stroke(path); }
   });
   ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;

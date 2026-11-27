@@ -542,27 +542,43 @@ export function drawDateStamp(ctx, w, h, text, colorId, pos = 'br') {
   ctx.restore();
 }
 
-// ---------- 一次跑完：裁切 + 調色 + 效果 ----------
-export function developPhoto(src, crop, outW, outH, s) {
+// ---------- 沖洗：裁切 + 調色（developBase），再加效果與塗鴉（applyFx） ----------
+export function developBase(src, crop, outW, outH, s) {
   const c = makeCanvas(outW, outH);
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src, crop.x, crop.y, crop.w, crop.h, 0, 0, c.width, c.height);
-  const w = c.width, h = c.height;
   if (s.original) return c;
   const preset = PRESETS.find((p) => p.id === s.preset) || PRESETS[0];
-  const id = ctx.getImageData(0, 0, w, h);
+  const id = ctx.getImageData(0, 0, c.width, c.height);
   applyLUT(id.data, getLUT(preset, s.adj, s.lutN || 33));
   ctx.putImageData(id, 0, 0);
-  const a = s.adj;
+  return c;
+}
+
+// overlay(ctx, w, h)：把塗鴉畫進底片裡（在顆粒之前，看起來像印在照片上）
+export function applyFx(base, s, overlay, inPlace = false) {
+  let c = base;
+  if (!inPlace) {
+    c = makeCanvas(base.width, base.height);
+    c.getContext('2d').drawImage(base, 0, 0);
+  }
+  if (s.original) return c;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const w = c.width, h = c.height, a = s.adj;
   applyHalation(ctx, w, h, (a.halation || 0) / 100);
   applyLightLeak(ctx, w, h, (a.leak || 0) / 100, a.leakStyle || 'warm', a.leakSeed || 1);
+  if (overlay) { ctx.save(); overlay(ctx, w, h); ctx.restore(); }
   if (s.date?.on) drawDateStamp(ctx, w, h, formatDate(s.date.value, s.date.format), s.date.color, s.date.pos);
   applyVignette(ctx, w, h, (a.vignette || 0) / 100);
   applyGrain(ctx, w, h, (a.grain || 0) / 100);
   applyDust(ctx, w, h, (a.dust || 0) / 100, a.dustSeed || 1);
   return c;
+}
+
+export function developPhoto(src, crop, outW, outH, s, overlay) {
+  return applyFx(developBase(src, crop, outW, outH, s), s, overlay, true);
 }
 
 export function previewThumb(src, preset, adj, size) {
