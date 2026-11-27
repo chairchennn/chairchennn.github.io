@@ -33,15 +33,13 @@ const ROUND_FONT = '"Fredoka", "Chiron GoRound TC", sans-serif';
 const HAND_FONT = '"Fredoka", "Chiron GoRound TC", cursive';
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const TABS = ['film', 'doodle', 'sticker', 'frame'];            // 主要編輯（左側／手機底部導覽）
-const TOOLS = ['add', 'stamp', 'crop', 'tape', 'glue', 'note'];  // 文具工具列（快速創作）
-const PANES = [...TABS, 'add', 'stamp', 'crop', 'tape', 'note'];
+const TOOLS = ['add', 'crop', 'tape', 'glue'];  // 文具工具列（快速創作）
+const PANES = [...TABS, 'add', 'crop', 'tape'];
 const TOOL_INFO = {
   add: { name: '新增', tip: '新增：換照片、上傳自己的貼圖', icon: 'add' },
-  stamp: { name: '印章', tip: '印章：像橡皮章蓋在照片上', icon: 'stamp' },
   crop: { name: '裁切', tip: '裁切：縮放、角度、取景、比例', icon: 'scissors' },
   tape: { name: '膠帶', tip: '紙膠帶：貼在照片邊上', icon: 'tape' },
   glue: { name: '膠水', tip: '膠水：把所有貼圖黏好，不會再被拖動', icon: 'glue' },
-  note: { name: '便條', tip: '便條：便條紙、方格紙片、迴紋針', icon: 'notebook' },
 };
 const PANE_INFO = {
   film: ['底片', '選一種底片色調，再調閃光燈與顆粒'],
@@ -49,18 +47,14 @@ const PANE_INFO = {
   sticker: ['貼圖', '點一下貼到照片上'],
   frame: ['相框', '相框樣式、相紙與相機日期'],
   add: ['新增', '換照片，或把自己的圖變成貼圖'],
-  stamp: ['印章', '選印泥顏色，點一下蓋到照片上'],
   crop: ['裁切', '縮放、角度、取景與比例'],
   tape: ['紙膠帶', '點一下貼上；連續貼會換到別的邊角'],
-  note: ['便條', '便條紙、方格紙片、迴紋針'],
 };
 const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1:1', polaroid: '1:1', square: '1:1', mini: '約 3:4', wide: '約 16:10' };
 // 紙膠帶連續貼時輪流換位置：上、下、四個角（斜貼）
 const TAPE_SPOTS = [[0.5, 0.02, 0, 0.42], [0.5, 0.98, 0, 0.42], [0.07, 0.05, -0.75, 0.3], [0.93, 0.05, 0.75, 0.3], [0.07, 0.95, 0.75, 0.3], [0.93, 0.95, -0.75, 0.3]];
 // 剪刀的比例（長邊／短邊；0 = 原比例），方向跟著照片
 const RATIOS = [[0, '原比例'], [1, '1:1'], [5 / 4, '4:5'], [3 / 2, '2:3'], [16 / 9, '9:16']];
-const STAMP_INKS = ['#e0574f', '#d9467e', '#f08a4b', '#4a6fb5', '#3e8a6e', '#7a5aa8', '#6b4a3f', '#2f2a33'];
-const STATION_CATS = new Set(['stamp', 'note']); // 只在文具工具列出現，不放進貼圖面板
 const finePointer = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 const xfHowTo = () => (finePointer() ? '拖曳移動・滾輪縮放・Shift＋滾輪轉動' : '拖曳移動・兩指縮放和轉動');
 
@@ -91,7 +85,7 @@ const state = {
   adj: defaultAdj('flash'),
   doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, glow: null },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
-  stampInk: STAMP_INKS[0], cropCell: 0,
+  cropCell: 0,
   tools: { order: [...TOOLS], hidden: [] },
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
   glow: true,
@@ -118,7 +112,6 @@ function loadPrefs() {
       if (RATIOS.some(([r]) => r === p.frame.ratio)) state.frame.ratio = p.frame.ratio;
       if (PAPERS.some((x) => x.id === p.frame.paper)) state.frame.paper = p.frame.paper;
     }
-    if (STAMP_INKS.includes(p.stampInk)) state.stampInk = p.stampInk;
     if (p.tools && Array.isArray(p.tools.order)) {
       const order = p.tools.order.filter((t) => TOOLS.includes(t));
       for (const t of TOOLS) if (!order.includes(t)) order.push(t);
@@ -154,7 +147,7 @@ function savePrefs() {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         preset: state.preset, adj: state.adj, mode: state.mode,
         frame: { id: f.id, color: f.color, slideColor: f.slideColor, ratio: f.ratio, paper: f.paper },
-        stampInk: state.stampInk, tools: state.tools,
+        tools: state.tools,
         date: { on: d.on, format: d.format, color: d.color, pos: d.pos, size: d.size },
         glow: state.glow, tab: TABS.includes(state.tab) ? state.tab : 'film',
         doodle: { ...state.doodle, seed: 1 },
@@ -700,7 +693,6 @@ function paletteFor(st) {
   if (st.kind === 'tape') return TAPE_COLORS;
   if (st.kind !== 'svg') return PALETTE;
   const def = defOf(st);
-  if (def.style === 'stamp') return STAMP_INKS;
   if (def.cat === 'emoji') return PALETTE.filter((c) => hexLum(c) > 0.55);
   if (def.id === 'y2k_checkheart') return PALETTE.filter((c) => hexLum(c) < 0.92);
   return PALETTE;
@@ -1650,7 +1642,7 @@ function renderStickerGrid() {
   const grid = $('#stickerGrid');
   grid.innerHTML = '';
   for (const def of STICKERS) {
-    if (HIDDEN_CATS.has(def.cat) || HIDDEN_IDS.has(def.id) || STATION_CATS.has(def.cat) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
+    if (HIDDEN_CATS.has(def.cat) || HIDDEN_IDS.has(def.id) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('aria-label', def.name);
@@ -1695,46 +1687,7 @@ stickerInput.addEventListener('change', async () => {
   }
 });
 
-// ---------------------------------------------------------------- 文具：印章、紙膠帶、便條紙
-function stickerButton(def, color, onClick) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.setAttribute('aria-label', def.name);
-  b.title = def.name;
-  const c = makeCanvas(112, 112), ctx = c.getContext('2d');
-  const [vw, vh] = stickerBox(def), k = 92 / Math.max(vw, vh);
-  ctx.translate(56 - (vw * k) / 2, 56 - (vh * k) / 2);
-  ctx.scale(k, k);
-  drawStickerDef(ctx, def, color, k, 0, 1, 3);
-  b.append(c);
-  b.addEventListener('click', onClick);
-  return b;
-}
-function buildStampUI() {
-  buildSwatches($('#stampInks'), STAMP_INKS, state.stampInk, (c) => {
-    state.stampInk = c;
-    buildStampUI();
-    const st = selectedSticker();
-    if (st && st.kind === 'svg' && defOf(st).style === 'stamp') { st.color = c; requestRender(); }
-    savePrefs();
-  });
-  const grid = $('#stampGrid');
-  grid.innerHTML = '';
-  for (const def of STICKERS) {
-    if (def.cat !== 'stamp' || HIDDEN_IDS.has(def.id)) continue;
-    grid.append(stickerButton(def, state.stampInk, () => addSticker({ kind: 'svg', id: def.id, color: state.stampInk, size: 0.22, rot: (Math.random() - 0.5) * 0.5 })));
-  }
-  if (!grid.children.length) grid.innerHTML = '<p class="note">印章準備中</p>';
-}
-function buildNoteUI() {
-  const grid = $('#noteGrid');
-  grid.innerHTML = '';
-  for (const def of STICKERS) {
-    if (def.cat !== 'note' || HIDDEN_IDS.has(def.id)) continue;
-    grid.append(stickerButton(def, def.color, () => addSticker({ kind: 'svg', id: def.id, color: def.color, size: 0.3 })));
-  }
-  if (!grid.children.length) grid.innerHTML = '<p class="note">便條紙準備中</p>';
-}
+// ---------------------------------------------------------------- 文具：紙膠帶
 function buildTapeUI() {
   const grid = $('#tapeGrid');
   for (const t of TAPES) {
@@ -1768,7 +1721,7 @@ function glueState() {
 }
 function useGlue() {
   const g = glueState();
-  if (!g.n) { toast('還沒有貼圖可以黏；先加一些貼圖、印章或紙膠帶'); return; }
+  if (!g.n) { toast('還沒有貼圖可以黏；先加一些貼圖或紙膠帶'); return; }
   if (g.all) {
     state.stickers.forEach((s) => { s.glued = false; });
     toast('撕開了，貼圖可以再移動');
@@ -2224,9 +2177,7 @@ function init() {
   buildFourUI();
   buildPaperUI();
   buildCropUI();
-  buildStampUI();
   buildTapeUI();
-  buildNoteUI();
   buildStationery();
   buildDateUI();
   syncSliders();
