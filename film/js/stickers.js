@@ -121,8 +121,9 @@ const rays = (cx, cy, r0, r1, k, c = 'M', w = 4.5, rot = 0) => {
 // 貼圖清單  cat: face 表情 / animal 動物 / travel 旅行 / deco 裝飾 / line 線條
 // ---------------------------------------------------------------------------
 export const STICKERS = [
-  { id: 'sunny', name: '星芒', cat: 'face', color: Y, parts: [s(starPts(50, 50, 10, 45, 33))] },
-  { id: 'burst', name: '刺刺球', cat: 'face', color: C, parts: [s(starPts(50, 50, 14, 44, 36, -Math.PI / 2))] },
+  // 星芒、刺刺球：中間放小閃點（不放臉），避免空心像價格標籤
+  { id: 'sunny', name: '星芒', cat: 'face', color: Y, parts: [s(starPts(50, 50, 10, 45, 33)), f(sparkleD(50, 50, 15, 0.2))] },
+  { id: 'burst', name: '刺刺球', cat: 'face', color: C, parts: [s(starPts(50, 50, 14, 44, 36, -Math.PI / 2)), f(sparkleD(46, 54, 14, 0.2)), f(sparkleD(63, 36, 6.5, 0.2))] },
   {
     id: 'heart', name: '笑臉愛心', cat: 'face', color: P, parts: [
       s('M50 88C24 70 10 54 12 38C14 22 34 14 50 32C66 14 88 20 88 38C88 56 74 72 50 88Z'),
@@ -403,6 +404,74 @@ const TULIP = 'M30 30Q28 56 50 60Q72 56 70 30Q62 32 58 40Q58 26 50 20Q42 26 42 4
 // 繖形花：細莖從一點放射，末端圓珠
 const UMBEL = [-2.5, -2.1, -1.8, -1.5, -1.2, -0.85].map((a, i) => [a, [52, 62, 68, 70, 64, 54][i]]);
 
+// ---- 第三版新增用的小工具 ----
+// 只含絕對座標（M/L/Q/C）的 path：縮放 k 後平移
+const fit = (d, k, dx, dy) => d.replace(/(-?\d*\.?\d+)\s+(-?\d*\.?\d+)/g, (_, x, y) => `${n(+x * k + dx)} ${n(+y * k + dy)}`);
+// 左右對稱：fn(X) 用 X(x) 產生一側的 path，回傳左右兩側
+const mirror = (fn) => fn((x) => n(x)) + fn((x) => n(100 - x));
+// 白臉小貓系列的臉：以 kt_cat 為準（頭中心 50,50），搬到 (cx,cy)、比例 k
+function ktFace(cx, cy, k, { whisk = true, blush = true } = {}) {
+  const X = (x) => n(cx + (x - 50) * k), Y = (y) => n(cy + (y - 50) * k), q = (v) => n(v * k);
+  const out = [
+    f(ell(X(39), Y(54), q(3.4), q(4.4)), KT_LINE), f(ell(X(61), Y(54), q(3.4), q(4.4)), KT_LINE),
+    f(circ(X(40), Y(52.5), q(1.2)), '#ffffff'), f(circ(X(62), Y(52.5), q(1.2)), '#ffffff'),
+    f(`M${X(47)} ${Y(60.5)}H${X(53)}L${X(50)} ${Y(63.5)}Z`, '#ff8fa3'),
+    s(`M${X(44)} ${Y(65.5)}q${q(3)} ${q(3.5)} ${q(6)} 0q${q(3)} ${q(3.5)} ${q(6)} 0`, KT_LINE, 2.6),
+  ];
+  if (blush) out.push(f(ell(X(30), Y(64), q(5), q(3)), CH, 0.9), f(ell(X(70), Y(64), q(5), q(3)), CH, 0.9));
+  if (whisk) out.push(s(`M${X(8)} ${Y(55)}L${X(22)} ${Y(58)}M${X(8)} ${Y(64)}L${X(22)} ${Y(63)}`, KT_LINE, 2.4),
+    s(`M${X(92)} ${Y(55)}L${X(78)} ${Y(58)}M${X(92)} ${Y(64)}L${X(78)} ${Y(63)}`, KT_LINE, 2.4));
+  return out;
+}
+// ✢ 圓頭十字：四片「中心尖、末端圓」的水滴
+function crossD(cx, cy, L, re, rot = 0) {
+  const d0 = L - re, th = Math.asin(re / d0), t = Math.sqrt(d0 * d0 - re * re);
+  let d = '';
+  for (let i = 0; i < 4; i++) {
+    const a = rot + (i * Math.PI) / 2;
+    const p1 = [cx + t * Math.cos(a - th), cy + t * Math.sin(a - th)], p2 = [cx + t * Math.cos(a + th), cy + t * Math.sin(a + th)];
+    d += `M${n(cx)} ${n(cy)}L${n(p1[0])} ${n(p1[1])}A${re} ${re} 0 1 1 ${n(p2[0])} ${n(p2[1])}Z`;
+  }
+  return d;
+}
+// 圓 (bx,by,br) 裡、以 (cx,cy) 為圓心半徑 R 的那段弧（兩端各縮 pad 弧度）
+function arcInside(cx, cy, R, bx, by, br, pad = 0.06) {
+  const dx = bx - cx, dy = by - cy, d = Math.hypot(dx, dy), base = Math.atan2(dy, dx);
+  const phi = Math.acos(Math.min(1, Math.max(-1, (d * d + R * R - br * br) / (2 * d * R))));
+  const a1 = base - phi + pad, a2 = base + phi - pad;
+  return `M${n(cx + R * Math.cos(a1))} ${n(cy + R * Math.sin(a1))}A${R} ${R} 0 0 1 ${n(cx + R * Math.cos(a2))} ${n(cy + R * Math.sin(a2))}`;
+}
+const BFLY_UP = mirror((X) => `M${X(48)} 48C${X(42)} 26 ${X(14)} 18 ${X(10)} 33C${X(7)} 46 ${X(24)} 56 ${X(48)} 54Z`);
+const BFLY_LO = mirror((X) => `M${X(48)} 58C${X(32)} 58 ${X(18)} 68 ${X(22)} 80C${X(26)} 91 ${X(44)} 84 ${X(48)} 62Z`);
+const BFLY_IN = mirror((X) => `M${X(34)} 33C${X(27)} 29 ${X(19)} 29 ${X(17.5)} 35C${X(16.5)} 40 ${X(20)} 44 ${X(25)} 46M${X(39)} 66C${X(33)} 67 ${X(29)} 71 ${X(30.5)} 76`);
+const TWIN_BIG = sparkleD(46, 54, 38, 0.24), TWIN_SM = sparkleD(70, 28, 18, 0.24);
+const BOW_TAIL = mirror((X) => `M${X(47)} 50L${X(31)} 82L${X(37.5)} 79L${X(41)} 86L${X(55)} 54Z`);
+const BOW_LOOP = mirror((X) => `M${X(50)} 48C${X(36)} 24 ${X(10)} 28 ${X(12)} 46C${X(14)} 64 ${X(36)} 62 ${X(50)} 48Z`);
+// 坐著的白臉小貓：頭沿用 kt_cat 輪廓（縮小），身體短胖
+const SIT_K = 0.66, SIT_DX = 46 - 50 * SIT_K, SIT_DY = 31 - 50 * SIT_K;
+const SIT_HEAD = fit(CAT_HEAD, SIT_K, SIT_DX, SIT_DY);
+const SIT_BODY = 'M31 46C24 58 21 74 24 85Q27 94 38 94H56Q68 94 69 85C71 72 67 58 61 46Z';
+const SIT_TAIL = 'M66 88C78 92 89 86 87 72C86 64 80 62 78 67';
+// 趴在照片下緣探頭的小貓：底邊是平的（不描邊），只露出頭和兩隻前爪
+const PEEK_HEAD = 'M16 64Q16 52 22 40Q18 24 23 8Q35 14 42 22Q50 19.5 58 22Q65 14 77 8Q82 24 78 40Q84 52 84 64';
+const PEEK_PAW = mirror((X) => `M${X(13)} 64Q${X(13)} 51 ${X(24)} 51Q${X(35)} 51 ${X(35)} 64`);
+// 趴著的線條貓（一筆外框）：頭在左、前爪收在下巴下、尾巴繞到前面
+const LOAF = 'M10 40Q8 30 12.5 23L11 10L21.5 17Q27 15 33 17L43 9.5L43.5 24C52 22 62 21 72 22C86 23 94 32 93 45' +
+  'C92.5 53 88 58 80 58H41Q41 61.5 36 61.5H22Q15.5 61.5 16 57Q10 51 10 40Z';
+// 線條貓頭（螢光貓咪包）：圓耳、麻糬臉，線條平順對稱
+const NC_HEAD = 'M15 56C13 43 16 31 20 22Q23 14 30 18L40 25.5Q50 22.5 60 25.5L70 18Q77 14 80 22C84 31 87 43 85 56C83 72 70 81 50 81C30 81 17 72 15 56Z';
+// 銀杏葉：扇形、上緣微波浪、中間一道缺口
+const GINKGO = (() => {
+  const cx = 50, cy = 72, R = 48, A = 1.02, pts = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = -A + (2 * A * i) / 40, wob = 1.6 * Math.sin(i * Math.PI / 5), notch = Math.max(0, 1 - Math.abs(t) / 0.12) * 11;
+    pts.push([cx + (R + wob - notch) * Math.sin(t), cy - (R + wob - notch) * Math.cos(t)]);
+  }
+  const L = pts[0], Rt = pts[pts.length - 1];
+  return `M${cx} ${cy}Q${n(cx - 16)} ${cy - 6} ${n(L[0])} ${n(L[1])}` + pts.slice(1).map((p) => `L${n(p[0])} ${n(p[1])}`).join('') +
+    `Q${n(cx + 16)} ${cy - 6} ${cx} ${cy}Z`;
+})();
+
 const CUTE = [
   // ---------- cream 奶油白 ----------
   { id: 'cr_heart', name: '奶油愛心', cat: 'cream', color: CR_PINK, parts: [f(heartD(50, 53, 84), CREAM), s(heartD(50, 53, 84), CR_LINE, 3.5), f(heartD(50, 53, 40)), f(ell(42, 44, 4, 2.6), '#ffffff', 0.9)] },
@@ -414,7 +483,22 @@ const CUTE = [
   { id: 'cr_bigstar', name: '大閃光', cat: 'cream', color: CR_PINK, parts: [f(STAR8, CREAM), s(STAR8, CR_LINE, 3.2)] },
   { id: 'cr_candy', name: '棉花糖', cat: 'cream', color: CR_PINK, parts: [f(CANDY, CREAM), s(CANDY, CR_LINE, 3.5), s(CANDY_IN, CR_LINE, 2.2, 0.55), s('M33 40Q33 35 38 34', 'M', 3.5)] },
   { id: 'cr_swirl', name: '奶油漩渦', cat: 'cream', color: CR_PINK, parts: [f(circ(50, 50, 40), CREAM), s(circ(50, 50, 40), CR_LINE, 3.5), s(spiralD(50, 50, 2.2, 2, 28), 'M', 4)] },
-  { id: 'cr_bow', name: '奶油蝴蝶結', cat: 'cream', color: CR_PINK, parts: [f('M50 48C36 24 10 28 12 46C14 64 36 62 50 48Z', CREAM), f('M50 48C64 24 90 28 88 46C86 64 64 62 50 48Z', CREAM), s('M50 48C36 24 10 28 12 46C14 64 36 62 50 48Z', CR_LINE, 3.5), s('M50 48C64 24 90 28 88 46C86 64 64 62 50 48Z', CR_LINE, 3.5), s('M45 52L36 80M55 52L64 80', CR_LINE, 3.5), f(circ(50, 48, 7))] },
+  // 尾巴改成有填色的緞帶（剪成燕尾），小尺寸也看得出來
+  { id: 'cr_bow', name: '奶油蝴蝶結', cat: 'cream', color: CR_PINK, parts: [f(BOW_TAIL), s(BOW_TAIL, CR_LINE, 3.2), f(BOW_LOOP, CREAM), s(BOW_LOOP, CR_LINE, 3.5), s(mirror((X) => `M${X(42)} 44C${X(34)} 36 ${X(24)} 36 ${X(22)} 44`), 'M', 3), f(ell(50, 48, 7.5, 8.5)), s(ell(50, 48, 7.5, 8.5), CR_LINE, 3)] },
+  {
+    id: 'cr_butterfly', name: '奶油蝴蝶', cat: 'cream', color: CR_PINK, parts: [
+      s('M48 44Q46 24 39 13M52 44Q54 24 61 13', CR_LINE, 3), f(circ(38.5, 12, 3.6)), f(circ(61.5, 12, 3.6)),
+      f(BFLY_LO, CREAM), s(BFLY_LO, CR_LINE, 3.5), f(BFLY_UP, CREAM), s(BFLY_UP, CR_LINE, 3.5),
+      s(BFLY_IN, 'M', 3),
+      f(ell(50, 58, 5, 15)), s(ell(50, 58, 5, 15), CR_LINE, 3),
+    ]
+  },
+  {
+    id: 'cr_twinstar', name: '奶油雙星', cat: 'cream', color: CR_PINK, parts: [
+      f(TWIN_BIG, CREAM), s(TWIN_BIG, CR_LINE, 3.5), s('M40 40Q42 35.5 45 33', 'M', 3),
+      s(TWIN_SM, CREAM, 9), f(TWIN_SM), s(TWIN_SM, CR_LINE, 2.6), f(ell(66, 24, 2.4, 1.5), '#ffffff', 0.9),
+    ]
+  },
 
   // ---------- kitty 貓咪小魚 ----------
   {
@@ -442,13 +526,34 @@ const CUTE = [
       f(circ(22, 28, 3.2), KT_LINE), s('M44 20Q39 30 44 40', '#ffffff', 3, 0.5), f(ell(28, 36, 3.5, 2), CH, 0.85),
     ]
   },
-  { id: 'kt_blossom', name: '小白花', cat: 'kitty', color: '#ffad55', parts: [f(scallop(50, 50, 5, 18, 54), '#ffffff'), s(scallop(50, 50, 5, 18, 54), KT_LINE, 2.4), f(circ(50, 50, 10))] },
+  { id: 'kt_blossom', name: '小白花', cat: 'kitty', color: '#ffad55', parts: [f(scallop(50, 50, 5, 18, 54), '#ffffff'), s(scallop(50, 50, 5, 18, 54), KT_LINE, 2.4), f(circ(50, 50, 7))] },
   { id: 'kt_blossom2', name: '橘色小花', cat: 'kitty', color: '#ff9e5e', parts: [f(scallop(50, 50, 5, 18, 54)), f(circ(50, 50, 10), '#fff1d6')] },
   {
     id: 'kt_yarn', name: '毛線球', cat: 'kitty', color: '#ffb3c7', parts: [
       f(circ(46, 52, 34)), s(circ(46, 52, 34), KT_LINE, 3.2),
-      s('M20 40Q44 34 66 52M18 58Q42 50 72 66M30 80Q46 60 52 20', KT_LINE, 2.4, 0.75),
+      // 毛線：同方向的平行弧線（不交叉，避免像籃球）
+      s([-22, -11, 0, 11, 22].map((o) => arcInside(-34, 112, 100 + o, 46, 52, 34, 0.04)).join(''), KT_LINE, 2.4, 0.75),
       s('M76 70Q90 78 86 92Q82 98 92 98', KT_LINE, 3),
+    ]
+  },
+  {
+    id: 'kt_catsit', name: '坐著的白臉貓', cat: 'kitty', color: '#ffffff', parts: [
+      s(SIT_TAIL, KT_LINE, 12.5), s(SIT_TAIL, 'M', 5.5),
+      f(SIT_BODY), s(SIT_BODY, KT_LINE, 3.5),
+      s('M41 80V92M53 80V92', KT_LINE, 2.6),
+      f(SIT_HEAD), s(SIT_HEAD, KT_LINE, 3.5),
+      f(fit('M25 25Q30 27 34 31L27 36Z', SIT_K, SIT_DX, SIT_DY), CH, 0.9), f(fit('M75 25Q70 27 66 31L73 36Z', SIT_K, SIT_DX, SIT_DY), CH, 0.9),
+      s('M42.5 15.5L43 19.5M46 15V19.5M49.5 15.5L49 19.5', KT_OR, 2.4),
+      ...ktFace(46, 31, 0.72, { whisk: false }),
+    ]
+  },
+  {
+    id: 'kt_peek', name: '探頭小貓', cat: 'kitty', color: '#ffffff', vb: [100, 64], parts: [
+      f(PEEK_HEAD), s(PEEK_HEAD, KT_LINE, 3.5),
+      f('M27 18Q32 20 36 24L29 29Z', CH, 0.9), f('M73 18Q68 20 64 24L71 29Z', CH, 0.9),
+      s('M45 25L46 30M50 24V30M55 25L54 30', KT_OR, 2.6),
+      ...ktFace(50, 32, 0.9, { whisk: false }),
+      f(PEEK_PAW), s(PEEK_PAW, KT_LINE, 3.2), s(mirror((X) => `M${X(21)} 52.5V57M${X(27)} 52.5V57`), KT_LINE, 2.4),
     ]
   },
   { id: 'kt_paw', name: '小肉球', cat: 'kitty', color: '#ffb3c7', parts: [f('M50 52C63 52 72 64 70 73C68 82 59 82 50 78C41 82 32 82 30 73C28 64 37 52 50 52Z', '#ffffff'), s('M50 52C63 52 72 64 70 73C68 82 59 82 50 78C41 82 32 82 30 73C28 64 37 52 50 52Z', KT_LINE, 3), f(ell(50, 68, 9, 6)), ...[[26, 44], [41, 31], [59, 31], [74, 44]].map(([x, y]) => f(ell(x, y, 7, 8.5), '#ffffff')), ...[[26, 44], [41, 31], [59, 31], [74, 44]].map(([x, y]) => s(ell(x, y, 7, 8.5), KT_LINE, 3)), ...[[26, 45], [41, 32], [59, 32], [74, 45]].map(([x, y]) => f(ell(x, y, 3.2, 3.6)))] },
@@ -475,11 +580,29 @@ const CUTE = [
     return { id: 'fl_sprig', name: '小枝葉', cat: 'flora', color: '#f2a55a', parts };
   })(),
   {
+    // 花改成較大的 5 瓣、莖改淡黃綠
     id: 'fl_bunch', name: '粉紅花束', cat: 'flora', color: '#f7a9bd', parts: [
-      s('M22 96Q24 60 30 30M22 96Q40 60 58 24M22 96Q52 74 80 44', '#f3b07a', 2.6),
-      ...[[30, 30], [58, 24], [80, 44]].flatMap(([x, y]) => [[x, y - 6], [x - 6, y + 1], [x + 6, y + 1], [x - 3, y + 7], [x + 4, y - 1]].map(([bx, by]) => f(ell(bx, by, 5, 4)))),
-      ...[[30, 30], [58, 24], [80, 44]].map(([x, y]) => f(circ(x, y, 2.2), '#ffffff', 0.9)),
-      f(ell(27, 56, 4, 3)), f(ell(46, 52, 4, 3)), f(ell(62, 66, 4, 3)),
+      s('M22 96Q24 62 28 32M22 96Q40 60 58 24M22 96Q52 76 80 48', '#e3d27a', 3),
+      f(petalD(24, 70, 0, 15, 5, -2.5) + petalD(41, 66, 0, 14, 5, -0.5) + petalD(56, 78, 0, 13, 4.5, -0.15), '#e3d27a'),
+      f([[28, 30, 0], [58, 22, 0.35], [80, 48, -0.3]].map(([x, y, r]) => [...Array(5)].map((_, i) => circ(x + 7.5 * Math.cos(r + i * 1.2566 - 1.5708), y + 7.5 * Math.sin(r + i * 1.2566 - 1.5708), 6.8)).join('')).join('')),
+      ...[[28, 30], [58, 22], [80, 48]].map(([x, y]) => f(circ(x, y, 3.6), '#fff3d6')),
+    ]
+  },
+  {
+    id: 'fl_starbranch', name: '星花小枝', cat: 'flora', color: '#f39552', parts: [
+      s('M34 96Q40 64 58 22M38 72Q30 58 22 46M42 60Q56 54 74 54', '#9cc47a', 3.2),
+      f(petalD(36, 82, 0, 15, 5.5, -2.7) + petalD(39, 70, 0, 13, 5, -0.3), '#9cc47a'),
+      ...[[58, 20, 15, -1.45], [21, 43, 12.5, -1.75], [76, 54, 11.5, -1.2]].flatMap(([x, y, r, rot]) => {
+        const d = softStar(x, y, [r, r, r, r, r], r * 0.5, rot);
+        return [f(d), s(d, 'M', 3), f(circ(x, y, r * 0.24), '#ffd8a3')];
+      }),
+    ]
+  },
+  {
+    id: 'fl_ginkgo', name: '銀杏葉', cat: 'flora', color: '#f2bd4f', parts: [
+      s('M50 70Q51 84 46 96', 'M', 4),
+      f(GINKGO), s(GINKGO, 'M', 2),
+      s(['M50 70L', 'M50 70L', 'M50 70L', 'M50 70L'].map((m, i) => { const t = [-0.62, -0.25, 0.25, 0.62][i]; return m + n(50 + 34 * Math.sin(t)) + ' ' + n(72 - 34 * Math.cos(t)); }).join(''), '#ffffff', 1.6, 0.35),
     ]
   },
   { id: 'fl_tulip', name: '鬱金香', cat: 'flora', color: '#f39552', parts: [s('M50 96Q47 76 50 58', '#9cc47a', 3.5), f(petalD(48, 86, 0, 24, 7, -2.4), '#9cc47a'), f(TULIP)] },
@@ -523,6 +646,36 @@ const CUTE = [
   { id: 'pl_dotarc', name: '點點弧線', cat: 'pastel', color: '#ffffff', vb: [100, 50], parts: [s([...Array(9)].map((_, i) => { const a = Math.PI * (1.12 + i * 0.095); return `M${n(50 + 46 * Math.cos(a))} ${n(52 + 46 * Math.sin(a))}L${n(50 + 46 * Math.cos(a + 0.03))} ${n(52 + 46 * Math.sin(a + 0.03))}`; }).join(''), 'M', 5)] },
   { id: 'pl_streak', name: '流星線', cat: 'pastel', color: '#ffe08a', parts: [s('M16 86L52 50M30 92L60 62M10 70L38 42', 'M', 3.5), f(sparkleD(70, 30, 14, 0.18))] },
   { id: 'pl_star', name: '黃色小星', cat: 'pastel', color: '#ffd86b', parts: [f(starPts(50, 53, 5, 44, 20)), s(starPts(50, 53, 5, 44, 20), 'M', 4)] },
+  {
+    // 趴著的條紋貓：和跳躍貓、坐姿貓不同姿勢
+    id: 'pl_stripecat', name: '趴趴條紋貓', cat: 'pastel', color: '#9fd8f5', vb: [100, 64], parts: [
+      s(LOAF, 'M', 3), s('M80 58C68 59 58 59 52 56C48 54 49 50 53 50', 'M', 3), s('M29 55.5V61.5', 'M', 2.4),
+      s('M58 22.5L55 30M66 22.2L63 29.8M74 22.6L71.5 30', '#ffc79e', 3),
+      f(circ(20.5, 35, 2)), f(circ(32.5, 35, 2)), s('M24.5 39.5q2 2 4 0', 'M', 2.2),
+      f(ell(16, 40, 2.8, 1.7), CH, 0.9), f(ell(37, 40, 2.8, 1.7), CH, 0.9),
+    ]
+  },
+  { id: 'pl_crosses', name: '圓頭小十字', cat: 'pastel', color: '#c8b6ff', parts: [f(crossD(36, 60, 28, 5.6)), f(crossD(74, 26, 16, 3.8, 0.3)), f(crossD(78, 76, 10.5, 2.8, -0.25)), f(circ(20, 24, 3.6))] },
+
+  // ---------- 螢光貓咪包用（線條風，主色可換螢光色） ----------
+  {
+    id: 'nc_cathead', name: '線條貓頭', cat: 'pastel', color: '#ffffff', parts: [
+      s(NC_HEAD, 'M', 4.5),
+      f(circ(37, 54, 3.8)), f(circ(63, 54, 3.8)), f(ell(50, 60.5, 2.6, 1.8)),
+      s('M43.5 64q3.25 3.5 6.5 0q3.25 3.5 6.5 0', 'M', 3),
+      f(ell(27, 64, 5.5, 3.2), CH, 0.9), f(ell(73, 64, 5.5, 3.2), CH, 0.9),
+      s('M2 55L11 57M3 64L11 63M98 55L89 57M97 64L89 63', 'M', 3),
+    ]
+  },
+  {
+    id: 'nc_scratch', name: '貓爪抓痕', cat: 'line', color: '#ff8fc0', parts: [
+      s([0, 1, 2, 3].map((i) => {
+        const o = (i - 1.5) * 17, L = [28, 37, 37, 29][i], ux = -0.36, uy = 0.93, px = 0.93, py = 0.36;
+        const cx = 50 + o * px, cy = 50 + o * py + [3, 0, -2, 1][i];
+        return `M${n(cx - ux * L)} ${n(cy - uy * L)}Q${n(cx - px * 6)} ${n(cy - py * 6)} ${n(cx + ux * L)} ${n(cy + uy * L)}`;
+      }).join(''), 'M', 4.5),
+    ]
+  },
 ];
 STICKERS.push(...CUTE);
 

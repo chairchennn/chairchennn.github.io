@@ -30,32 +30,33 @@ export const PACKS = {
   cream: {
     name: '奶油貼紙', glow: 0, lw: 0.0034, label: '#f7a8bb',
     colors: ['#f7a8bb', '#f49ab0', '#ffb5c5', '#f6b38f', '#f4b6a6'],
-    small: { cr_dotheart: 2, cr_sparkle: 1.5, cr_cross: 1.5, cr_flower4: 2, cr_candy: 1 },
-    medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 0.4, cr_bow: 1 },
+    small: { cr_dotheart: 2, cr_sparkle: 1.5, cr_cross: 1.5, cr_flower4: 2, cr_candy: 1, cr_twinstar: 1 },
+    medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 0.4, cr_bow: 1, cr_butterfly: 1.5, cr_twinstar: 1.2 },
     large: { cr_bigstar: 1, cr_heart: 1, cr_flower5: 1 },
   },
   kitty: {
     name: '貓咪小魚', glow: 0, lw: 0.0034, label: '#ff9b5e',
     sizes: { small: [0.035, 0.05], medium: [0.08, 0.1], large: [0.14, 0.17] },
     small: { kt_blossom: 3, kt_blossom2: 2 },
-    medium: { kt_cat: 2.5, kt_cat2: 1.5, kt_fish: 1.5, kt_yarn: 0.8, kt_paw: 0.8 },
-    large: { kt_cat: 1, kt_cat2: 1 },
+    medium: { kt_cat: 2.5, kt_cat2: 1.5, kt_fish: 1.5, kt_yarn: 0.8, kt_paw: 0.8, kt_catsit: 1 },
+    large: { kt_cat: 1, kt_cat2: 1, kt_catsit: 1, kt_peek: 0.8 },
+    anchors: { kt_peek: 'bottom' }, // 探頭貓：不旋轉、貼齊照片底邊
   },
   flora: {
     name: '花花世界', glow: 0, lw: 0.0034, label: '#f39552', largeExtra: 1, bleed: 0.3,
     sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
     colors: ['#f39552', '#f4a2b8', '#f8b48a', '#6f9ed9', '#94d3bd'], recolor: 0.3,
     small: { fl_star: 2, fl_blue: 2, kt_blossom2: 1, fl_round: 1 },
-    medium: { fl_daisy: 2, fl_cosmos: 2, fl_round: 1.5, fl_tulip: 1 },
-    large: { fl_sprig: 2, fl_bunch: 1.5, fl_fern: 1.2, fl_daisy: 1 },
+    medium: { fl_daisy: 2, fl_cosmos: 2, fl_round: 1.5, fl_tulip: 1, fl_ginkgo: 1.5 },
+    large: { fl_sprig: 2, fl_bunch: 1.5, fl_fern: 1.2, fl_daisy: 1, fl_starbranch: 1.5 },
   },
   pastel: {
     name: '夢幻粉彩', glow: 0.5, lw: 0.0032, label: '#ffb7d0',
     sizes: { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.22, 0.3] },
     colors: ['#ffffff', '#ffb7d0', '#9fd8f5', '#c8b6ff', '#ffe08a', '#9ff0d0'],
-    small: { pl_twinkle: 2.5, pl_star: 1.5, pl_daisy: 1, pl_dotarc: 1 },
+    small: { pl_twinkle: 2.5, pl_star: 1.5, pl_daisy: 1, pl_dotarc: 1, pl_crosses: 2 },
     medium: { pl_flower: 2, pl_daisy: 1.5, pl_streak: 1.5, pl_dotarc: 1 },
-    large: { pl_catjump: 2, pl_gradcat: 1.2, pl_catsit: 1.5, pl_flower: 1 },
+    large: { pl_catjump: 2, pl_gradcat: 1.2, pl_catsit: 1.5, pl_flower: 1, pl_stripecat: 1.2 },
   },
   neoncat: {
     name: '螢光貓咪', glow: 1, lw: 0.007, label: '#46d2f0',
@@ -63,7 +64,7 @@ export const PACKS = {
     sizes: { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.22, 0.3] },
     colors: ['#ff8fc0', '#46d2f0', '#ffd23c', '#ff9a3c', '#ffffff', '#b48cff'], recolor: 0.8,
     small: { sparkle: 2, pl_twinkle: 1.5, pl_streak: 1.2, kt_blossom2: 1.4, zigzag: 0.6 },
-    medium: { pl_catsit: 1.5, cat: 1.2, pl_flower: 1.5, pl_daisy: 1, kt_blossom2: 0.8, pl_streak: 0.8 },
+    medium: { pl_catsit: 1.5, cat: 1.2, pl_flower: 1.5, pl_daisy: 1, kt_blossom2: 0.8, pl_streak: 0.8, nc_cathead: 1.5, nc_scratch: 1 },
     large: { pl_catjump: 2, pl_catsit: 1 },
   },
   neon: {
@@ -169,14 +170,19 @@ export function generateDoodles(o, aspect, datePos = null) {
     const def = byId.get(id);
     const [lo, hi] = sizes[kind];
     const size = (lo + r() * (hi - lo)) * scale;
-    const pos = tryPlace(size);
+    const [vw, vh] = stickerBox(def);
+    const anchor = pack.anchors?.[id];
+    let pos;
+    if (anchor === 'bottom') {
+      const yb = 1 - (size * (vh / vw)) / 2 / sy, half = size / 2 / sx;
+      pos = tryPlace(size, { x0: half + 0.02, x1: 1 - half - 0.02, y0: yb, y1: yb });
+    } else pos = tryPlace(size);
     if (!pos) continue;
     used.set(id, (used.get(id) || 0) + 1);
-    const [vw, vh] = stickerBox(def);
     const loose = def.cat === 'flora' || vh / vw < 0.7;
     items.push({
       kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
-      rot: (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
+      rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
     });
   }
   // 畫的順序：大的在下、小的在上、文字最上面
