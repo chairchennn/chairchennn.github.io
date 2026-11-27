@@ -1403,3 +1403,6 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
 @media (max-width: 899px) {
   .panel-close { display: inline-flex; }
 }
+
+/* QA：貼圖面板的「霓虹光暈」開關也要 44px */
+.sticker-tools .chip, .sticker-tools .toggle { min-height: 44px; }

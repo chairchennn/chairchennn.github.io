@@ -11,7 +11,7 @@ import { TAPES, TAPE_RATIO, TAPE_COLORS, tapeOf, drawTape } from './tape.js';
 import { STICKERS, CATEGORIES, HIDDEN_CATS, HIDDEN_IDS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
-import { XF0, normXf, xfCrop, xfPan, ZOOM_MAX, ANGLE_MAX } from './photoxf.js';
+import { XF0, normXf, xfCrop, xfPan, drawXf, ZOOM_MAX, ANGLE_MAX } from './photoxf.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -122,7 +122,8 @@ function loadPrefs() {
     if (p.tools && Array.isArray(p.tools.order)) {
       const order = p.tools.order.filter((t) => TOOLS.includes(t));
       for (const t of TOOLS) if (!order.includes(t)) order.push(t);
-      state.tools = { order: [...new Set(order)], hidden: (Array.isArray(p.tools.hidden) ? p.tools.hidden : []).filter((t) => TOOLS.includes(t)) };
+      const hidden = [...new Set((Array.isArray(p.tools.hidden) ? p.tools.hidden : []).filter((t) => TOOLS.includes(t) && t !== 'add'))];
+      state.tools = { order: [...new Set(order)], hidden };
     }
     if (p.date) for (const k of ['on', 'format', 'color', 'pos', 'size']) if (typeof p.date[k] === typeof state.date[k]) state.date[k] = p.date[k];
     if (!DATE_SIZES.some(([id]) => id === state.date.size)) state.date.size = 'md';
@@ -370,7 +371,7 @@ let doodleCache = { key: '', items: [] };
 let fontsVersion = 0;
 let lastL = null;
 const COLOR_ADJ = ['intensity', 'exposure', 'contrast', 'saturation', 'temp', 'tint', 'fade', 'flash'];
-const resetPhotoCache = () => { baseCache.key = ''; fxCache.key = ''; fourCache.key = ''; };
+const resetPhotoCache = () => { baseCache.key = ''; fxCache.key = ''; fourCache.key = ''; devCache.key = ''; };
 const hasFour = () => state.four.photos.some(Boolean);
 const hasContent = () => (state.mode === 'four' ? hasFour() : !!state.preview);
 // 四格的日期印在最後一張有照片的格子
@@ -425,19 +426,36 @@ function frameOpts() {
   };
 }
 
+// 拖照片時：整張照片先沖洗一次存起來，之後每次移動只重新裁切（不用每一格都重算色調）
+let devCache = { key: '', canvas: null };
+function developedWhole(src) {
+  const key = JSON.stringify([state.srcVersion, state.preset, COLOR_ADJ.map((k) => state.adj[k]), state.compare]);
+  if (devCache.key !== key) {
+    if (devCache.canvas) devCache.canvas.width = 0;
+    devCache = { key, canvas: developBase(src, { x: 0, y: 0, w: src.width, h: src.height }, src.width, src.height, { preset: state.preset, adj: state.adj, original: state.compare, lutN: 17 }) };
+  }
+  return devCache.canvas;
+}
 function getPreviewPhoto() {
   const src = state.preview;
   const crop = xfCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height, state.frame.ratio), state.frame.crop);
-  const lutN = state.dragging ? 17 : 33;
+  const lutN = state.dragging ? 17 : 33, fast = state.dragging === 'photo';
   const baseKey = JSON.stringify([state.srcVersion, state.preset, COLOR_ADJ.map((k) => state.adj[k]),
-    Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), crop.xf || 0, state.compare, lutN]);
+    Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), crop.xf || 0, state.compare, lutN, fast]);
   if (baseCache.key !== baseKey) {
     if (baseCache.canvas) baseCache.canvas.width = 0;
-    baseCache = {
-      key: baseKey,
-      canvas: developBase(src, crop, Math.round(crop.w * (state.frame.crop.zoom || 1)), Math.round(crop.h * (state.frame.crop.zoom || 1)),
-        { preset: state.preset, adj: state.adj, original: state.compare, lutN }),
-    };
+    const z = state.frame.crop.zoom || 1, ow = Math.round(crop.w * z), oh = Math.round(crop.h * z);
+    let canvas;
+    if (fast) {
+      const dev = developedWhole(src);
+      canvas = makeCanvas(ow, oh);
+      const cx = canvas.getContext('2d');
+      cx.imageSmoothingQuality = 'high';
+      if (crop.xf) drawXf(cx, dev, ow, oh, crop.xf); else cx.drawImage(dev, crop.x, crop.y, crop.w, crop.h, 0, 0, ow, oh);
+    } else {
+      canvas = developBase(src, crop, ow, oh, { preset: state.preset, adj: state.adj, original: state.compare, lutN });
+    }
+    baseCache = { key: baseKey, canvas };
   }
   const fxKey = JSON.stringify([baseKey, state.adj, state.date, state.doodle, state.glow, fontsVersion]);
   if (fxCache.key !== fxKey) {
@@ -802,7 +820,7 @@ function photoTargetAt(p) {
 }
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(1, z));
 const clampAngle = (a) => Math.min(ANGLE_MAX, Math.max(-ANGLE_MAX, a));
-let xfHintShown = false;
+let xfHintShown = false, wheelTimer = 0;
 let longPress = null;
 const cancelLongPress = () => { if (longPress) { clearTimeout(longPress.timer); longPress = null; } };
 
@@ -822,7 +840,7 @@ view.addEventListener('pointermove', (e) => {
     const g = gesture, dx = p.x - g.p0.x, dy = p.y - g.p0.y;
     if (!g.moved && Math.hypot(dx, dy) < 4 * pxPerCss()) return;
     g.moved = true;
-    state.dragging = true;
+    state.dragging = 'photo';
     xfPan(g.tgt.t, g.t0, dx, dy, g.tgt.w, g.tgt.h, g.tgt.iw, g.tgt.ih);
     syncXfOutputs();
     requestRender();
@@ -834,7 +852,7 @@ view.addEventListener('pointermove', (e) => {
     t.angle = clampAngle(g.t0.angle + ((ang(a, b) - g.a0) * 180) / Math.PI);
     if (Math.abs(t.angle) < 1.5) t.angle = 0;
     xfPan(t, g.t0, m.x - g.m0.x, m.y - g.m0.y, g.tgt.w, g.tgt.h, g.tgt.iw, g.tgt.ih);
-    state.dragging = true;
+    state.dragging = 'photo';
     syncXfOutputs();
     requestRender();
     return;
@@ -890,6 +908,9 @@ view.addEventListener('wheel', (e) => {
     if (tgt.cell != null && tgt.cell !== state.cropCell) { state.cropCell = tgt.cell; syncCropUI(); }
     if (e.shiftKey) tgt.t.angle = clampAngle(tgt.t.angle + e.deltaY * 0.05);
     else tgt.t.zoom = clampZoom(tgt.t.zoom * Math.exp(-e.deltaY * 0.0015));
+    state.dragging = 'photo';
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { state.dragging = false; requestRender(); }, 250);
     syncXfOutputs();
     requestRender();
     return;
@@ -1370,13 +1391,13 @@ function buildCropUI() {
     const t = xfTarget();
     if (!t) return;
     t.zoom = +e.target.value / 100;
-    state.dragging = true; syncXfOutputs(); requestRender();
+    state.dragging = 'photo'; syncXfOutputs(); requestRender();
   });
   $('#xfAngle').addEventListener('input', (e) => {
     const t = xfTarget();
     if (!t) return;
     t.angle = +e.target.value;
-    state.dragging = true; syncXfOutputs(); requestRender();
+    state.dragging = 'photo'; syncXfOutputs(); requestRender();
   });
   ['#xfZoom', '#xfAngle'].forEach((id) => $(id).addEventListener('change', () => { state.dragging = false; requestRender(); }));
   $('#btnXfReset').addEventListener('click', () => {
@@ -1687,8 +1708,11 @@ function buildTapeUI() {
     b.append(c, n);
     // 第一條貼在照片上緣中間（像把照片貼在手帳上），之後輪流換到下緣、四個角
     b.addEventListener('click', () => {
-      const n = state.stickers.filter((x) => x.kind === 'tape').length;
-      const [x, y, rot, size] = TAPE_SPOTS[n % TAPE_SPOTS.length];
+      const n = state.stickers.filter((x) => x.kind === 'tape').length, db = dateBoxNorm();
+      const near = ([sx, sy]) => db && sx > db.x0 - 0.15 && sx < db.x1 + 0.15 && sy > db.y0 - 0.15 && sy < db.y1 + 0.15;
+      let k = n;
+      while (k < n + TAPE_SPOTS.length && near(TAPE_SPOTS[k % TAPE_SPOTS.length])) k++;
+      const [x, y, rot, size] = TAPE_SPOTS[k % TAPE_SPOTS.length];
       addSticker({ kind: 'tape', id: t.id, color: t.color, size: state.mode === 'four' ? size * 1.15 : size, x, y, rot: rot + (Math.random() - 0.5) * 0.16 });
     });
     grid.append(b);
@@ -1816,24 +1840,30 @@ const newHistory = () => ({ undo: [], redo: [], cur: null });
 const histories = { single: newHistory(), four: newHistory() };
 let history = histories.single, historyTimer = 0, restoring = false, sliderActive = false;
 const HISTORY_MAX = 60;
+// 每一步只記「這一步改了哪幾項」：復原時只退回那幾項，單張和四格互不影響。
+// 單張記：相框（含縮放角度）、方向、照片；四格記：排法、相紙、每一格的照片與縮放角度；兩邊都記：色調、塗鴉、日期、貼圖。
+const SHARED_KEYS = ['preset', 'adj', 'doodle', 'date', 'glow', 'stickers'];
+const MODE_KEYS = { single: ['frame', 'rotation', 'photoDate'], four: ['four'] };
 function snapshot() {
   const imgs = [];
   const ref = (img) => { if (!img) return -1; let i = imgs.indexOf(img); if (i < 0) { imgs.push(img); i = imgs.length - 1; } return i; };
-  const stickers = state.stickers.map((st) => (st.img ? { ...st, img: ref(st.img) } : st));
-  const f = state.frame;
-  const photo = state.mode === 'single' ? state.orig : null;
-  const photos = state.mode === 'single' ? [state.orig] : state.four.photos.slice();
-  return {
-    photo, photos,
-    json: JSON.stringify({
-      photo: ref(photo), photoDate: state.photoDate,
-      preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
-      frame: { id: f.id, color: f.color, slideColor: f.slideColor, crop: f.crop, ratio: f.ratio, paper: f.paper },
-      four: { layout: state.four.layout, paper: state.four.paper, xf: state.four.photos.map((x) => x?.t || null) },
-      rotation: state.rotation, stickers,
-    }),
-    imgs,
+  const f = state.frame, single = state.mode === 'single';
+  const all = {
+    preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
+    stickers: state.stickers.map((st) => (st.img ? { ...st, img: ref(st.img) } : st)),
+    frame: { id: f.id, color: f.color, slideColor: f.slideColor, crop: f.crop, ratio: f.ratio, paper: f.paper },
+    rotation: state.rotation, photoDate: state.photoDate,
+    four: { layout: state.four.layout, paper: state.four.paper, xf: state.four.photos.map((x) => x?.t || null) },
   };
+  const parts = {};
+  for (const k of [...SHARED_KEYS, ...MODE_KEYS[state.mode]]) parts[k] = JSON.stringify(all[k]);
+  return { mode: state.mode, parts, json: JSON.stringify(parts), photos: single ? [state.orig] : state.four.photos.slice(), imgs };
+}
+const samePhotos = (a, b) => a.photos.length === b.photos.length && a.photos.every((ph, i) => ph === b.photos[i]);
+function changedKeys(a, b) {
+  const keys = Object.keys(b.parts).filter((k) => a.parts[k] !== b.parts[k]);
+  if (!samePhotos(a, b)) keys.push('photos');
+  return keys;
 }
 function noteChange() {
   if (restoring) return;
@@ -1844,20 +1874,22 @@ function commitHistory() {
   if (restoring) return;
   if (pointers.size || state.dragging || sliderActive || longPress) { noteChange(); return; }
   const snap = snapshot();
-  if (!history.cur) { history.cur = snap; return; }
-  if (snap.json === history.cur.json && samePhotos(snap, history.cur)) return;
-  history.undo.push(history.cur);
+  if (!history.cur || history.cur.mode !== snap.mode) { history.cur = snap; return; }
+  const keys = changedKeys(history.cur, snap);
+  if (!keys.length) return;
+  history.undo.push({ before: history.cur, after: snap, keys });
   if (history.undo.length > HISTORY_MAX) history.undo.shift();
   history.redo = [];
   history.cur = snap;
   // 照片很佔記憶體：最多只留「上一次換照片之前」的照片可以復原
-  const prev = [...history.undo].reverse().find((h) => !samePhotos(h, snap));
+  const prev = [...history.undo].reverse().find((h) => h.keys.includes('photos'))?.before;
   const keep = new Set([...snap.photos, ...(prev?.photos || [])]);
   const gone = new Set();
+  const ok = (h) => [...h.before.photos, ...h.after.photos].every((ph) => !ph || keep.has(ph));
   history.undo = history.undo.filter((h) => {
-    const ok = h.photos.every((ph) => !ph || keep.has(ph));
-    if (!ok) h.photos.forEach((ph) => { if (ph && !keep.has(ph)) gone.add(ph); });
-    return ok;
+    if (ok(h)) return true;
+    [...h.before.photos, ...h.after.photos].forEach((ph) => { if (ph && !keep.has(ph)) gone.add(ph); });
+    return false;
   });
   gone.forEach(freePhoto);
   syncHistoryUI();
@@ -1868,13 +1900,13 @@ function freePhoto(ph) {
   if (ph.full) { ph.full.width = 0; return; }
   if (ph !== state.orig) ph.width = 0;
 }
-const samePhotos = (a, b) => a.photos.length === b.photos.length && a.photos.every((ph, i) => ph === b.photos[i]);
 function resetHistory() {
   clearTimeout(historyTimer);
   history.undo = []; history.redo = [];
   history.cur = snapshot();
   syncHistoryUI();
 }
+// 換模式：這個模式的紀錄還在，只把「現在」更新成眼前的狀態
 function rebaseHistory() {
   clearTimeout(historyTimer);
   history.cur = snapshot();
@@ -1884,29 +1916,36 @@ function syncHistoryUI() {
   $('#btnUndo').disabled = !history.undo.length;
   $('#btnRedo').disabled = !history.redo.length;
 }
-function restoreSnapshot(snap) {
-  const s = JSON.parse(snap.json);
+// 把 snap 裡的 keys 這幾項套回目前的狀態（其他項目不動）
+function applySnapshot(snap, keys) {
   restoring = true;
   clearTimeout(historyTimer);
-  state.preset = s.preset; state.adj = s.adj; state.doodle = s.doodle; state.date = s.date; state.glow = s.glow;
-  Object.assign(state.frame, s.frame);
-  state.four.layout = s.four.layout; state.four.paper = s.four.paper;
-  state.four.photos.forEach((ph, i) => { if (ph) ph.t = normXf(s.four.xf[i]); });
-  state.frame.crop = normXf(s.frame.crop);
-  state.stickers = s.stickers.map((st) => (typeof st.img === 'number' ? { ...st, img: snap.imgs[st.img] } : st));
+  const get = (k) => JSON.parse(snap.parts[k]);
+  const has = (k) => keys.includes(k) && k in snap.parts;
+  if (has('preset')) state.preset = get('preset');
+  if (has('adj')) state.adj = get('adj');
+  if (has('doodle')) state.doodle = get('doodle');
+  if (has('date')) state.date = get('date');
+  if (has('glow')) state.glow = get('glow');
+  if (has('stickers')) state.stickers = get('stickers').map((st) => (typeof st.img === 'number' ? { ...st, img: snap.imgs[st.img] } : st));
+  if (has('frame')) { Object.assign(state.frame, get('frame')); state.frame.crop = normXf(state.frame.crop); }
+  if (snap.mode === 'four') {
+    if (keys.includes('photos')) { state.four.photos = snap.photos.slice(); state.four.ver++; refreshFourSlots(); }
+    if (has('four') || keys.includes('photos')) {
+      const fo = get('four');
+      state.four.layout = fo.layout; state.four.paper = fo.paper;
+      state.four.photos.forEach((ph, i) => { if (ph) ph.t = normXf(fo.xf[i]); });
+    }
+  } else if (keys.includes('photos') || has('rotation')) {
+    const photo = snap.photos[0], rot = get('rotation');
+    if (photo && (photo !== state.orig || rot !== state.rotation)) {
+      if (state.full && state.full !== state.orig) state.full.width = 0;
+      state.orig = photo; state.full = null; state.rotation = rot;
+      if ('photoDate' in snap.parts) state.photoDate = get('photoDate');
+      buildSources();
+    }
+  }
   state.selected = null;
-  if (state.mode === 'four' && !samePhotos(snap, { photos: state.four.photos })) {
-    state.four.photos = snap.photos.slice();
-    state.four.photos.forEach((ph, i) => { if (ph) ph.t = normXf(s.four.xf[i]); });
-    state.four.ver++;
-    refreshFourSlots();
-  }
-  const photo = s.photo >= 0 ? snap.imgs[s.photo] : null;
-  if (state.mode === 'single' && photo && (photo !== state.orig || s.rotation !== state.rotation)) {
-    if (state.full && state.full !== state.orig) state.full.width = 0;
-    state.orig = photo; state.full = null; state.rotation = s.rotation; state.photoDate = s.photoDate;
-    buildSources();
-  }
   doodleCache.key = ''; cellCache.clear(); resetPhotoCache();
   $$('#presetList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.preset)));
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.frame.id)));
@@ -1915,20 +1954,22 @@ function restoreSnapshot(snap) {
   refreshFrameThumbs();
   refreshWorkspace();
   savePrefs();
-  history.cur = snap;
+  history.cur = snapshot();
   syncHistoryUI();
   requestAnimationFrame(() => requestAnimationFrame(() => { restoring = false; }));
 }
 function undo() {
   commitHistory();
-  if (!history.undo.length) return;
-  history.redo.push(history.cur);
-  restoreSnapshot(history.undo.pop());
+  const h = history.undo.pop();
+  if (!h) return;
+  history.redo.push(h);
+  applySnapshot(h.before, h.keys);
 }
 function redo() {
-  if (!history.redo.length) return;
-  history.undo.push(history.cur);
-  restoreSnapshot(history.redo.pop());
+  const h = history.redo.pop();
+  if (!h) return;
+  history.undo.push(h);
+  applySnapshot(h.after, h.keys);
 }
 // 拖滑桿的過程不算，放開才算一步
 document.addEventListener('pointerdown', (e) => { if (e.target.matches?.('input[type="range"]')) sliderActive = true; }, true);
