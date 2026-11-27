@@ -222,8 +222,8 @@
                 <div class="swatches" id="frameColors" role="radiogroup" aria-label="相框顏色"></div>
               </div>
               <div class="sub" id="optCropLink" hidden>
-                <span class="sub-label">取景</span>
-                <button class="chip" type="button" data-goto="crop">用「裁切」調整取景</button>
+                <span class="sub-label">照片</span>
+                <button class="chip" type="button" data-goto="crop">用「裁切」調整大小、角度、取景</button>
               </div>
             </div>
           </div>
@@ -300,30 +300,29 @@
 
         <!-- 文具：剪刀 -->
         <section class="pane" data-pane="crop" role="tabpanel" hidden>
+          <p class="note first" id="xfHint">直接在照片上<b>拖曳移動</b>、<b>兩指縮放和轉動</b>；也可以用下面的滑桿。</p>
           <div data-only="single">
-            <div class="sub first">
+            <div class="sub">
               <span class="sub-label">比例</span>
               <div class="chips" id="cropRatios"></div>
             </div>
             <p class="note" id="ratioNote" hidden></p>
-            <label class="slider" id="optCrop">
-              <span class="s-label" id="optCropLabel">取景</span>
-              <input type="range" min="0" max="100" value="50" id="cropPos">
-              <output>50</output>
-            </label>
-            <div class="sub">
-              <span class="sub-label">方向</span>
-              <button class="chip" id="btnRotate" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>旋轉 90°</button>
-            </div>
           </div>
-          <div data-only="four" hidden>
-            <p class="note first" id="cellHint">每一格會自動裁成相同比例。<b>點照片上的一格</b>，再拖滑桿調整那一格的取景。</p>
-            <label class="slider" id="optCellPos">
-              <span class="s-label" id="cellPosLabel">取景</span>
-              <input type="range" min="0" max="100" value="50" id="cellPos">
-              <output>50</output>
-            </label>
+          <p class="sub-label xf-target" id="xfTarget" data-only="four" hidden>第 1 格</p>
+          <label class="slider">
+            <span class="s-label">縮放</span>
+            <input type="range" min="100" max="400" step="1" value="100" id="xfZoom">
+            <output>100%</output>
+          </label>
+          <label class="slider">
+            <span class="s-label">角度</span>
+            <input type="range" min="-45" max="45" step="1" value="0" id="xfAngle">
+            <output>0°</output>
+          </label>
+          <div class="sub">
+            <button class="chip" id="btnRotate" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>轉 90°</button>
+            <button class="chip" id="btnXfReset" type="button">重設</button>
           </div>
         </section>
 

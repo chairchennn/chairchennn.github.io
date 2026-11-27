@@ -1,6 +1,7 @@
 // FilmDoodle — 底片色調引擎
 // 每個底片預設 = 一組色彩參數 → 烘焙成 3D LUT（33³）→ 每個像素用四面體內插查表。
 // 色調為一般底片風格的模擬，非任何廠商官方數值。
+import { drawXf } from './photoxf.js';
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const toLin = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
@@ -613,7 +614,9 @@ export function developBase(src, crop, outW, outH, s) {
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(src, crop.x, crop.y, crop.w, crop.h, 0, 0, c.width, c.height);
+  // 有角度或轉 90° 時，照片依 xf 畫滿整張（見 photoxf.js）
+  if (crop.xf) drawXf(ctx, src, c.width, c.height, crop.xf);
+  else ctx.drawImage(src, crop.x, crop.y, crop.w, crop.h, 0, 0, c.width, c.height);
   if (s.original) return c;
   const preset = PRESETS.find((p) => p.id === s.preset) || PRESETS[0];
   const id = ctx.getImageData(0, 0, c.width, c.height);

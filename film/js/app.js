@@ -11,6 +11,7 @@ import { TAPES, TAPE_RATIO, TAPE_COLORS, tapeOf, drawTape } from './tape.js';
 import { STICKERS, CATEGORIES, HIDDEN_CATS, HIDDEN_IDS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
+import { XF0, normXf, xfCrop, xfPan, ZOOM_MAX, ANGLE_MAX } from './photoxf.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -87,7 +88,7 @@ const state = {
   preset: 'flash',
   adj: defaultAdj('flash'),
   doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, glow: null },
-  frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, cropPos: 0.5, seed: 7, ratio: 0, paper: 'dots' },
+  frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   stampInk: STAMP_INKS[0], cropCell: 0,
   tools: { order: [...TOOLS], hidden: [] },
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
@@ -424,15 +425,15 @@ function frameOpts() {
 
 function getPreviewPhoto() {
   const src = state.preview;
-  const crop = computeCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height, state.frame.ratio), state.frame.cropPos);
+  const crop = xfCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height, state.frame.ratio), state.frame.crop);
   const lutN = state.dragging ? 17 : 33;
   const baseKey = JSON.stringify([state.srcVersion, state.preset, COLOR_ADJ.map((k) => state.adj[k]),
-    Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), state.compare, lutN]);
+    Math.round(crop.x), Math.round(crop.y), Math.round(crop.w), Math.round(crop.h), crop.xf || 0, state.compare, lutN]);
   if (baseCache.key !== baseKey) {
     if (baseCache.canvas) baseCache.canvas.width = 0;
     baseCache = {
       key: baseKey,
-      canvas: developBase(src, crop, Math.round(crop.w), Math.round(crop.h),
+      canvas: developBase(src, crop, Math.round(crop.w * (state.frame.crop.zoom || 1)), Math.round(crop.h * (state.frame.crop.zoom || 1)),
         { preset: state.preset, adj: state.adj, original: state.compare, lutN }),
     };
   }
@@ -454,10 +455,10 @@ function developCell(i, k, scaleKey, lutN) {
   const L = fourLayout(state.four.layout), c = L.cells[i];
   const w = Math.round(c.w * k), h = Math.round(c.h * k);
   const withDate = state.date.on && i === fourDateCell();
-  const key = JSON.stringify([ph.ver, ph.pos ?? 0.5, scaleKey, w, h, state.preset, state.adj, withDate ? state.date : 0, state.compare, lutN]);
+  const key = JSON.stringify([ph.ver, ph.t, scaleKey, w, h, state.preset, state.adj, withDate ? state.date : 0, state.compare, lutN]);
   if (scaleKey !== 'export') { const hit = cellCache.get(i); if (hit && hit.key === key) return hit.canvas; }
   const src = scaleKey === 'export' ? ph.full : ph.preview;
-  const base = developBase(src, cellCrop(src, L.aspect, ph.pos ?? 0.5), w, h, { preset: state.preset, adj: state.adj, original: state.compare, lutN });
+  const base = developBase(src, xfCrop(src.width, src.height, L.aspect, ph.t), w, h, { preset: state.preset, adj: state.adj, original: state.compare, lutN });
   const out = applyFx(base, { adj: state.adj, date: withDate ? state.date : null, original: state.compare }, null, true);
   if (scaleKey !== 'export') {
     const old = cellCache.get(i);
@@ -489,7 +490,7 @@ function buildFour(k, scaleKey) {
 }
 function getFourPreview() {
   const L = fourLayout(state.four.layout), k = FOUR_PREVIEW_H / L.H;
-  const key = JSON.stringify([state.four.ver, state.four.photos.map((x) => x?.pos ?? 0.5), state.four.layout, state.four.paper, state.preset, state.adj, state.date,
+  const key = JSON.stringify([state.four.ver, state.four.photos.map((x) => x?.t), state.four.layout, state.four.paper, state.preset, state.adj, state.date,
     state.doodle, state.glow, fontsVersion, state.compare, state.dragging]);
   if (fourCache.key !== key) {
     if (fourCache.canvas) fourCache.canvas.width = 0;
@@ -533,7 +534,7 @@ function render() {
   compose(vctx, photo, L, o);
   const sel = selectedSticker();
   if (sel) drawSelection(vctx, sel, L);
-  if (state.mode === 'four' && state.tab === 'crop') drawCellOutline(vctx);
+  if (state.mode === 'four' && (state.tab === 'crop' || gesture?.tgt)) drawCellOutline(vctx);
 }
 
 function fitView() {
@@ -727,9 +728,13 @@ view.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, p);
   const sel = selectedSticker();
   if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
     if (sel) {
-      const [a, b] = [...pointers.values()];
       gesture = { type: 'pinch', d0: dist(a, b) || 1, a0: ang(a, b), m0: mid(a, b), size0: sel.size, rot0: sel.rot, x0: sel.x, y0: sel.y };
+    } else {
+      cancelLongPress();
+      const tgt = gesture?.type === 'photo' ? gesture.tgt : photoTargetAt(mid(a, b));
+      if (tgt) gesture = { type: 'photoPinch', tgt, t0: { ...tgt.t }, d0: dist(a, b) || 1, a0: ang(a, b), m0: mid(a, b) };
     }
     return;
   }
@@ -769,12 +774,30 @@ view.addEventListener('pointerdown', (e) => {
           navigator.vibrate?.(15);
         }, 550),
       };
-    } else if (state.mode === 'four' && state.tab === 'crop') {
-      const i = fourCellAt(p);
-      if (i >= 0 && state.four.photos[i]) { state.cropCell = i; syncCropUI(); requestRender(); }
+    } else {
+      const tgt = photoTargetAt(p);
+      if (tgt) {
+        if (tgt.cell != null && tgt.cell !== state.cropCell) { state.cropCell = tgt.cell; syncCropUI(); }
+        gesture = { type: 'photo', tgt, t0: { ...tgt.t }, p0: p, moved: false };
+      }
     }
   }
 });
+// 照片（或四格的某一格）在畫面上的位置與大小
+function photoTargetAt(p) {
+  if (state.mode === 'four') {
+    const i = fourCellAt(p), ph = state.four.photos[i];
+    if (i < 0 || !ph) return null;
+    const L = fourLayout(state.four.layout), k = view.width / L.W, c = L.cells[i];
+    return { cell: i, t: ph.t, w: c.w * k, h: c.h * k, iw: ph.preview.width, ih: ph.preview.height };
+  }
+  const L = lastL;
+  if (!state.preview || !L || p.x < L.x || p.y < L.y || p.x > L.x + L.pw || p.y > L.y + L.ph) return null;
+  return { t: state.frame.crop, w: L.pw, h: L.ph, iw: state.preview.width, ih: state.preview.height };
+}
+const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(1, z));
+const clampAngle = (a) => Math.min(ANGLE_MAX, Math.max(-ANGLE_MAX, a));
+let xfHintShown = false;
 let longPress = null;
 const cancelLongPress = () => { if (longPress) { clearTimeout(longPress.timer); longPress = null; } };
 
@@ -790,6 +813,27 @@ view.addEventListener('pointermove', (e) => {
   }
   pointers.set(e.pointerId, p);
   if (longPress && Math.hypot(e.clientX - longPress.sx, e.clientY - longPress.sy) > 8) cancelLongPress();
+  if (gesture?.type === 'photo' && pointers.size === 1) {
+    const g = gesture, dx = p.x - g.p0.x, dy = p.y - g.p0.y;
+    if (!g.moved && Math.hypot(dx, dy) < 4 * pxPerCss()) return;
+    g.moved = true;
+    state.dragging = true;
+    xfPan(g.tgt.t, g.t0, dx, dy, g.tgt.w, g.tgt.h, g.tgt.iw, g.tgt.ih);
+    syncXfOutputs();
+    requestRender();
+    return;
+  }
+  if (gesture?.type === 'photoPinch' && pointers.size >= 2) {
+    const g = gesture, [a, b] = [...pointers.values()], m = mid(a, b), t = g.tgt.t;
+    t.zoom = clampZoom((g.t0.zoom * dist(a, b)) / g.d0);
+    t.angle = clampAngle(g.t0.angle + ((ang(a, b) - g.a0) * 180) / Math.PI);
+    if (Math.abs(t.angle) < 1.5) t.angle = 0;
+    xfPan(t, g.t0, m.x - g.m0.x, m.y - g.m0.y, g.tgt.w, g.tgt.h, g.tgt.iw, g.tgt.ih);
+    state.dragging = true;
+    syncXfOutputs();
+    requestRender();
+    return;
+  }
   const sel = selectedSticker();
   if (!sel || !gesture) return;
   if (gesture.type === 'move' && pointers.size === 1) {
@@ -813,6 +857,13 @@ view.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   pointers.delete(e.pointerId);
   cancelLongPress();
+  if (gesture?.type === 'photo' || gesture?.type === 'photoPinch') {
+    if (!pointers.size) { state.dragging = false; requestRender(); }
+    else if (gesture.type === 'photoPinch') {
+      const rest = [...pointers.values()][0];
+      gesture = { type: 'photo', tgt: gesture.tgt, t0: { ...gesture.tgt.t }, p0: rest, moved: true };
+    }
+  }
   if (gesture?.type === 'pinch' && pointers.size < 2) {
     // 放開一指後，剩下那隻手指可以繼續拖曳
     const sel = selectedSticker(), rest = [...pointers.values()][0];
@@ -827,7 +878,17 @@ view.addEventListener('pointerup', endPointer);
 view.addEventListener('pointercancel', endPointer);
 view.addEventListener('wheel', (e) => {
   const sel = selectedSticker();
-  if (!sel) return;
+  if (!sel) {
+    const tgt = lastL && photoTargetAt(toCanvas(e));
+    if (!tgt) return;
+    e.preventDefault();
+    if (tgt.cell != null && tgt.cell !== state.cropCell) { state.cropCell = tgt.cell; syncCropUI(); }
+    if (e.shiftKey) tgt.t.angle = clampAngle(tgt.t.angle + e.deltaY * 0.05);
+    else tgt.t.zoom = clampZoom(tgt.t.zoom * Math.exp(-e.deltaY * 0.0015));
+    syncXfOutputs();
+    requestRender();
+    return;
+  }
   e.preventDefault();
   if (e.shiftKey) sel.rot = snapRot(sel.rot + e.deltaY * 0.004);
   else sel.size = clampSize(sel.size * Math.exp(-e.deltaY * 0.0015));
@@ -869,8 +930,7 @@ async function loadFile(file) {
     state.orig = c;
     state.full = null;
     state.rotation = 0;
-    state.frame.cropPos = 0.5;
-    $('#cropPos').value = 50;
+    state.frame.crop = XF0();
     const d = (await readPhotoDate(file)) || (file.lastModified ? isoOf(new Date(file.lastModified)) : todayISO());
     state.photoDate = d;
     state.date.value = d;
@@ -918,7 +978,6 @@ function refreshWorkspace() {
   $('#app').dataset.hasPhoto = String(has);
   $('#empty').hidden = has;
   view.hidden = !has;
-  $('#btnRotate').hidden = state.mode === 'four';
   $('#btnSave').disabled = !has;
   updateStickerBar();
   if (has) { fitView(); requestRender(); } else { lastL = null; drawDeco(); }
@@ -958,7 +1017,7 @@ async function loadFourFiles(files, startSlot = 0) {
       const full = await decodeToCanvas(file, FOUR_SRC_SIDE);
       const old = state.four.photos[slot];
       if (old) old.full.width = 0;
-      state.four.photos[slot] = { full, preview: downscale(full, 900), thumb: downscale(full, 240), ver: ++fourVer };
+      state.four.photos[slot] = { full, preview: downscale(full, 900), thumb: downscale(full, 240), ver: ++fourVer, t: XF0() };
       if (slot === startSlot) {
         const d = (await readPhotoDate(file)) || (file.lastModified ? isoOf(new Date(file.lastModified)) : todayISO());
         state.photoDate = d; state.date.value = d;
@@ -974,6 +1033,7 @@ async function loadFourFiles(files, startSlot = 0) {
   refreshWorkspace();
   queueDateClear();
   syncCropUI();
+  if (!xfHintShown && !failed) { xfHintShown = true; setTimeout(() => toast('每一格的照片都可以直接拖曳移動、兩指縮放轉動'), 300); }
   if (failed) toast(`有 ${failed} 張照片打不開，換成 JPG 或 PNG 試試看`);
 }
 function refreshFourSlots() {
@@ -1057,7 +1117,12 @@ window.addEventListener('paste', (e) => {
 });
 
 $('#btnRotate').addEventListener('click', () => {
-  if (state.mode === 'four' || !state.orig) return;
+  if (state.mode === 'four') {
+    const t = xfTarget();
+    if (t) { t.r90 = (t.r90 + 1) % 4; t.x = 0.5; t.y = 0.5; requestRender(); }
+    return;
+  }
+  if (!state.orig) return;
   state.rotation = (state.rotation + 90) % 360;
   buildSources();
   requestRender();
@@ -1237,7 +1302,7 @@ function refreshFrameThumbs() {
 }
 function selectFrame(id) {
   state.frame.id = id;
-  state.frame.cropPos = 0.5;
+  state.frame.crop.x = 0.5; state.frame.crop.y = 0.5;
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
   updateFrameOpts();
   syncPaperUI();
@@ -1249,7 +1314,7 @@ function updateFrameOpts() {
   const f = FRAMES.find((x) => x.id === state.frame.id) || FRAMES[0];
   const src = state.preview;
   const axis = src ? computeCrop(src.width, src.height, cropAspect(f.id, src.width, src.height, state.frame.ratio), 0.5).axis : null;
-  $('#optCropLink').hidden = !axis;
+  $('#optCropLink').hidden = !src;
   syncPaperUI();
   syncCropUI();
   $('#optColor').hidden = !f.colors;
@@ -1261,12 +1326,6 @@ function updateFrameOpts() {
     });
   }
 }
-$('#cropPos').addEventListener('change', queueDateClear);
-$('#cropPos').addEventListener('input', (e) => {
-  state.frame.cropPos = +e.target.value / 100;
-  e.target.parentElement.querySelector('output').textContent = e.target.value;
-  requestRender();
-});
 
 // ---------------------------------------------------------------- 剪刀：比例、取景、旋轉；四格每一格的取景
 function buildCropUI() {
@@ -1275,18 +1334,42 @@ function buildCropUI() {
     b.type = 'button'; b.className = 'chip'; b.dataset.r = String(r); b.textContent = name;
     b.addEventListener('click', () => {
       if (!FREE_RATIO_FRAMES.has(state.frame.id)) return;
-      state.frame.ratio = r; state.frame.cropPos = 0.5;
+      state.frame.ratio = r; state.frame.crop.x = 0.5; state.frame.crop.y = 0.5;
       updateFrameOpts(); refreshFrameThumbs(); requestRender(); queueDateClear(); savePrefs();
     });
     $('#cropRatios').append(b);
   }
-  $('#cellPos').addEventListener('input', (e) => {
-    const ph = state.four.photos[state.cropCell];
-    if (!ph) return;
-    ph.pos = +e.target.value / 100;
-    e.target.parentElement.querySelector('output').textContent = e.target.value;
-    requestRender();
+  $('#xfZoom').addEventListener('input', (e) => {
+    const t = xfTarget();
+    if (!t) return;
+    t.zoom = +e.target.value / 100;
+    state.dragging = true; syncXfOutputs(); requestRender();
   });
+  $('#xfAngle').addEventListener('input', (e) => {
+    const t = xfTarget();
+    if (!t) return;
+    t.angle = +e.target.value;
+    state.dragging = true; syncXfOutputs(); requestRender();
+  });
+  ['#xfZoom', '#xfAngle'].forEach((id) => $(id).addEventListener('change', () => { state.dragging = false; requestRender(); }));
+  $('#btnXfReset').addEventListener('click', () => {
+    const t = xfTarget();
+    if (!t) return;
+    Object.assign(t, XF0(), state.mode === 'four' ? {} : { r90: 0 });
+    syncCropUI(); requestRender();
+  });
+}
+// 目前裁切的對象：單張＝整張照片，四格＝選中的那一格
+function xfTarget() {
+  if (state.mode === 'four') return state.four.photos[state.cropCell]?.t || null;
+  return state.preview ? state.frame.crop : null;
+}
+function syncXfOutputs() {
+  const t = xfTarget() || XF0();
+  $('#xfZoom').value = Math.round(t.zoom * 100);
+  $('#xfZoom').parentElement.querySelector('output').textContent = `${Math.round(t.zoom * 100)}%`;
+  $('#xfAngle').value = Math.round(t.angle);
+  $('#xfAngle').parentElement.querySelector('output').textContent = `${Math.round(t.angle)}°`;
 }
 function syncCropUI() {
   // 單張
@@ -1298,20 +1381,13 @@ function syncCropUI() {
   const note = $('#ratioNote');
   note.hidden = free;
   if (!free) note.textContent = `「${(FRAMES.find((x) => x.id === f.id) || FRAMES[0]).name}」固定 ${FIXED_RATIO[f.id] || '比例'}；想自由裁切，先到「相框」選無邊框、白邊相紙、粗糙黑邊或手帳紙。`;
-  const axis = src ? computeCrop(src.width, src.height, cropAspect(f.id, src.width, src.height, f.ratio), 0.5).axis : null;
-  $('#optCrop').hidden = !axis;
-  $('#optCropLabel').textContent = axis === 'x' ? '左右取景' : '上下取景';
-  $('#cropPos').value = Math.round(f.cropPos * 100);
-  $('#cropPos').parentElement.querySelector('output').textContent = String(Math.round(f.cropPos * 100));
-  // 四格：在照片上直接點一格（選中的格子有外框）
+  // 四格：在照片上直接點／拖一格（選中的格子有外框）
   if (!state.four.photos[state.cropCell]) state.cropCell = Math.max(0, state.four.photos.findIndex(Boolean));
-  const ph = state.four.photos[state.cropCell];
-  const L = fourLayout(state.four.layout);
-  const cellAxis = ph ? cellCrop(ph.preview, L.aspect, 0.5).axis : null;
-  $('#optCellPos').hidden = !ph;
-  $('#cellPosLabel').textContent = `第 ${state.cropCell + 1} 格・${cellAxis === 'x' ? '左右' : '上下'}`;
-  $('#cellPos').value = Math.round((ph?.pos ?? 0.5) * 100);
-  $('#cellPos').parentElement.querySelector('output').textContent = $('#cellPos').value;
+  $('#xfTarget').textContent = state.four.photos[state.cropCell] ? `正在調整：第 ${state.cropCell + 1} 格` : '先放照片';
+  const has = !!xfTarget();
+  ['#xfZoom', '#xfAngle', '#btnXfReset'].forEach((id) => { $(id).disabled = !has; });
+  $('#btnRotate').disabled = !has;
+  syncXfOutputs();
 }
 // 四格＋裁切：點到的是哪一格
 function fourCellAt(p) {
@@ -1724,8 +1800,8 @@ function snapshot() {
     json: JSON.stringify({
       photo: ref(photo), photoDate: state.photoDate,
       preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
-      frame: { id: f.id, color: f.color, slideColor: f.slideColor, cropPos: f.cropPos, ratio: f.ratio, paper: f.paper },
-      four: { layout: state.four.layout, paper: state.four.paper, pos: state.four.photos.map((x) => x?.pos ?? 0.5) },
+      frame: { id: f.id, color: f.color, slideColor: f.slideColor, crop: f.crop, ratio: f.ratio, paper: f.paper },
+      four: { layout: state.four.layout, paper: state.four.paper, xf: state.four.photos.map((x) => x?.t || null) },
       rotation: state.rotation, stickers,
     }),
     imgs,
@@ -1775,7 +1851,8 @@ function restoreSnapshot(snap) {
   state.preset = s.preset; state.adj = s.adj; state.doodle = s.doodle; state.date = s.date; state.glow = s.glow;
   Object.assign(state.frame, s.frame);
   state.four.layout = s.four.layout; state.four.paper = s.four.paper;
-  state.four.photos.forEach((ph, i) => { if (ph) ph.pos = s.four.pos[i] ?? 0.5; });
+  state.four.photos.forEach((ph, i) => { if (ph) ph.t = normXf(s.four.xf[i]); });
+  state.frame.crop = normXf(s.frame.crop);
   state.stickers = s.stickers.map((st) => (typeof st.img === 'number' ? { ...st, img: snap.imgs[st.img] } : st));
   state.selected = null;
   const photo = s.photo >= 0 ? snap.imgs[s.photo] : null;
@@ -1922,10 +1999,12 @@ async function exportImage() {
       return;
     }
     const src = state.full, id = state.frame.id, o = frameOpts();
-    const crop = computeCrop(src.width, src.height, cropAspect(id, src.width, src.height, state.frame.ratio), state.frame.cropPos);
-    let L = layoutFrame(id, crop.w, crop.h, o);
+    const crop = xfCrop(src.width, src.height, cropAspect(id, src.width, src.height, state.frame.ratio), state.frame.crop);
+    // 放大取景時，輸出尺寸維持和沒放大一樣（不會因為放大而變小張）
+    const z = state.frame.crop.zoom || 1;
+    let L = layoutFrame(id, crop.w * z, crop.h * z, o);
     const f = Math.min(1, Math.sqrt(MAX_OUT_AREA / (L.W * L.H)), MAX_OUT_SIDE / Math.max(L.W, L.H));
-    const pw = Math.round(crop.w * f), ph = Math.round(crop.h * f);
+    const pw = Math.round(crop.w * z * f), ph = Math.round(crop.h * z * f);
     photo = applyFx(developBase(src, crop, pw, ph, { preset: state.preset, adj: state.adj, lutN: 33 }),
       { adj: state.adj, date: state.date }, doodleOverlay(), true);
     L = layoutFrame(id, pw, ph, o);
