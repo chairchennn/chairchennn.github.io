@@ -1496,9 +1496,9 @@ function drawDeco() {
   const W = r.width, H = r.height, S = Math.min(W, H);
   // 只放在上下兩條（手機上中間是小視窗，放中間會被擋住）
   const items = [
-    ['y2k_chromeheart', 0.1, 0.07, 0.13, -0.2], ['jp_sakura', 0.37, 0.06, 0.1, 0.05], ['pl_catsit', 0.63, 0.07, 0.12, 0.1],
-    ['y2k_chromestar', 0.9, 0.07, 0.12, 0.25], ['y2k_glitter', 0.1, 0.93, 0.12, 0.1], ['y2k_cd', 0.37, 0.94, 0.11, -0.1],
-    ['fl_cosmos', 0.63, 0.93, 0.12, -0.15], ['pl_twinkle', 0.9, 0.93, 0.11, 0],
+    ['cr2_balloon', 0.1, 0.07, 0.14, -0.1], ['cr2_stars', 0.37, 0.06, 0.11, 0.05], ['cr2_whale', 0.63, 0.07, 0.14, 0.05],
+    ['cr2_hearts', 0.9, 0.07, 0.12, 0.2], ['cr2_flower', 0.1, 0.93, 0.12, 0.1], ['cr2_starfish', 0.37, 0.94, 0.11, -0.1],
+    ['cr2_shoot', 0.63, 0.93, 0.12, -0.1], ['cr2_firework', 0.9, 0.93, 0.12, 0],
   ];
   for (const [id, x, y, s, rot] of items) {
     const def = STICKERS.find((d) => d.id === id);

@@ -71,6 +71,25 @@ export const PACKS = {
     large: { bear: 1, bunny: 1, puppy: 1, heartbuddy: 1, cloudface: 1, pl_catjump: 0.8 },
     fixed: { pl_catjump: ['#ffffff', '#ffd23c'] },
   },
+  // 蠟筆塗鴉：畫在照片上的療癒童趣塗鴉（蠟筆筆刷，線條粗細跟著圖案大小，像真的用粉彩筆畫）
+  crayon: {
+    name: '蠟筆塗鴉', glow: 0,
+    sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
+    colors: ['#fff3df', '#ffe38a', '#ffb98a', '#ff9fc1', '#9fe3c0', '#8fe0e0'], recolor: 0.3,
+    small: { cr2_stars: 2.5, cr2_birds: 1.5, cr2_hearts: 1.2, cr2_starfish: 0.8, cr2_shell: 0.8, cr2_grass: 0.8 },
+    medium: {
+      cr2_sleepcat: 1, cr2_teacup: 1, cr2_jelly: 1, cr2_firework: 1.2, cr2_teru: 1, cr2_planet: 1,
+      cr2_shoot: 1.4, cr2_flower: 1.2, cr2_cloud: 1.5,
+    },
+    large: {
+      cr2_mooncat: 1.3, cr2_whale: 1.2, cr2_fuji: 1, cr2_cloudbunny: 1.2, cr2_twocats: 1.2, cr2_balloon: 1.2,
+      cr2_castle: 0.8, cr2_camp: 0.8, cr2_wave: 0.8,
+    },
+    max: {
+      cr2_mooncat: 1, cr2_whale: 1, cr2_fuji: 1, cr2_cloudbunny: 1, cr2_twocats: 1, cr2_balloon: 1, cr2_castle: 1, cr2_camp: 1, cr2_wave: 1,
+      cr2_sleepcat: 1, cr2_teacup: 1, cr2_teru: 1,
+    },
+  },
   // 法式手繪：細墨線、少量淡色（'M' 是墨線色）
   french: {
     name: '法式手繪', glow: 0, lw: 0.003,
@@ -123,6 +142,8 @@ export const PACKS = {
 // 一鍵套用（卡片）
 export const DOODLE_PRESETS = [
   { id: 'none', name: '無' },
+  { id: 'crayon', name: '蠟筆夢幻', pack: 'crayon', layout: 'top', count: 10 },
+  { id: 'crayon2', name: '蠟筆滿天', pack: 'crayon', layout: 'edge', count: 14 },
   { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 20 },
   { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16 },
   { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14 },
