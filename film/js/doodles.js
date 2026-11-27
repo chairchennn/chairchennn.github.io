@@ -170,31 +170,38 @@ export function generateDoodles(o, aspect, datePos = null) {
   const nMedium = Math.round((count - nLarge) * 0.35);
   const plan = [...Array(nLarge).fill('large'), ...Array(nMedium).fill('medium'), ...Array(count - nLarge - nMedium).fill('small')];
   for (const kind of plan) {
-    // 達到每張上限的不再選；「天空」排列不放貼齊底邊的探頭貓
-    const skip = (cid) => (pack.max?.[cid] && (used.get(cid) || 0) >= pack.max[cid]) || (o.layout === 'top' && pack.anchors?.[cid] === 'bottom');
-    const id = pick(r, pack[kind], used, skip);
-    if (!id) continue;
-    const def = byId.get(id);
-    const [lo, hi] = sizes[kind];
-    const size = (lo + r() * (hi - lo)) * scale;
-    const [vw, vh] = stickerBox(def);
-    const anchor = pack.anchors?.[id];
-    let pos;
-    if (anchor === 'bottom') {
-      const yb = 1 - (size * (vh / vw)) / 2 / sy, half = size / 2 / sx;
-      // 只放左右兩側（0.02–0.32 或 0.68–0.98），不擋住底部中間的主角
-      const left = r() < 0.5;
-      const x0 = left ? Math.max(0.02 + half, 0.02 + half) : Math.max(0.68 + half, 0.02 + half);
-      const x1 = left ? Math.min(0.32 - half, 0.98 - half) : 0.98 - half;
-      pos = x1 >= x0 ? tryPlace(size, { x0, x1, y0: yb, y1: yb }) : null;
-    } else pos = tryPlace(size);
-    if (!pos) continue;
-    used.set(id, (used.get(id) || 0) + 1);
-    const loose = def.cat === 'flora' || vh / vw < 0.7;
-    items.push({
-      kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
-      rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
-    });
+    // 放不下就換一個圖案再試（最多 3 次），不讓整格空掉
+    const tried = new Set();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // 試過的、達到每張上限的不再選；「天空」排列不放貼齊底邊的探頭貓
+      const skip = (cid) => tried.has(cid) || (pack.max?.[cid] && (used.get(cid) || 0) >= pack.max[cid]) ||
+        (o.layout === 'top' && pack.anchors?.[cid] === 'bottom');
+      const id = pick(r, pack[kind], used, skip);
+      if (!id) break;
+      const def = byId.get(id);
+      const [lo, hi] = sizes[kind];
+      const size = (lo + r() * (hi - lo)) * scale;
+      const [vw, vh] = stickerBox(def);
+      const anchor = pack.anchors?.[id];
+      let pos = null;
+      if (anchor === 'bottom') {
+        // 只放左右兩側（0.02–0.32 或 0.68–0.98），不擋住底部中間的主角；一側放不下就試另一側
+        const yb = 1 - (size * (vh / vw)) / 2 / sy, half = size / 2 / sx;
+        for (const left of r() < 0.5 ? [true, false] : [false, true]) {
+          const x0 = left ? 0.02 + half : 0.68 + half, x1 = left ? 0.32 - half : 0.98 - half;
+          if (x1 >= x0) pos = tryPlace(size, { x0, x1, y0: yb, y1: yb });
+          if (pos) break;
+        }
+      } else pos = tryPlace(size);
+      if (!pos) { tried.add(id); continue; }
+      used.set(id, (used.get(id) || 0) + 1);
+      const loose = def.cat === 'flora' || vh / vw < 0.7;
+      items.push({
+        kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
+        rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
+      });
+      break;
+    }
   }
   // 畫的順序：大的在下、小的在上、文字最上面
   return items.sort((p, q) => (p.kind === 'text') - (q.kind === 'text') || q.size - p.size);
