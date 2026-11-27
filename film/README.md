@@ -47,7 +47,7 @@ film/
 ├── js/doodles.js         塗鴉框產生器（風格包、排列、數量）
 ├── js/fourcut.js         四格拍貼（版面、相紙）
 ├── js/crayon.js          蠟筆筆刷（SVG path 打散成點、手抖、顆粒質感）
-├── js/art/               新風格貼圖（法式、日式、Y2K、表情臉）與共用形狀工具
+├── js/art/               新風格貼圖（法式、日式、Y2K、蠟筆）與共用形狀工具
 ├── js/exif.js            讀取拍攝日期
 ├── sw.js                 離線快取
 ├── manifest.webmanifest  PWA 設定

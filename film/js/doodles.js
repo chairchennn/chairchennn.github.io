@@ -94,10 +94,11 @@ export const PACKS = {
   // 日式手繪：和紙色系
   japan: {
     name: '日式手繪', glow: 0, lw: 0.0034,
+    // 招財貓、鯉魚、飯糰臉不放（使用者不要貓咪小魚、表情臉那種風格）
     small: { jp_sakura: 2.5, jp_wave: 1, jp_bamboo: 1 },
-    medium: { jp_onigiri: 1, jp_cloud: 1.2, jp_fan: 1, jp_koi: 1, jp_dango: 1 },
-    large: { jp_fuji: 1, jp_maneki: 1, jp_koi: 0.6 },
-    max: { jp_fuji: 1, jp_maneki: 1 },
+    medium: { jp_cloud: 1.2, jp_fan: 1, jp_dango: 1, jp_sakura: 0.6, jp_bamboo: 0.6 },
+    large: { jp_fuji: 1, jp_cloud: 0.8, jp_fan: 0.7 },
+    max: { jp_fuji: 1 },
   },
   // Y2K：鉻銀、彩虹光碟、掀蓋手機（自帶漸層色，不換色）
   y2k: {

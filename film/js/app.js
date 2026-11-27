@@ -7,7 +7,7 @@ import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, generateDoodles }
 import {
   FRAMES, FRAME_COLORS, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
-import { STICKERS, CATEGORIES, HIDDEN_CATS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
+import { STICKERS, CATEGORIES, HIDDEN_CATS, HIDDEN_IDS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
 
@@ -791,6 +791,7 @@ async function loadFile(file) {
     syncDateUI();
     buildSources();
     refreshWorkspace();
+    queueDateClear();
   } catch (err) {
     console.error(err);
     toast('這張照片打不開，換成 JPG 或 PNG 試試看');
@@ -1299,7 +1300,7 @@ function renderStickerGrid() {
   const grid = $('#stickerGrid');
   grid.innerHTML = '';
   for (const def of STICKERS) {
-    if (HIDDEN_CATS.has(def.cat) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
+    if (HIDDEN_CATS.has(def.cat) || HIDDEN_IDS.has(def.id) || (state.cat !== 'all' && def.cat !== state.cat)) continue;
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('aria-label', def.name);

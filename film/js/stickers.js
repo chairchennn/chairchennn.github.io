@@ -676,6 +676,8 @@ STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON);
 
 // 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框
 export const HIDDEN_CATS = new Set(['kitty', 'emoji']);
+// 個別不再出現的貼圖（和貓咪小魚、表情臉同一種畫風）
+export const HIDDEN_IDS = new Set(['jp_maneki', 'jp_koi', 'jp_onigiri']);
 export const CATEGORIES = [
   ['all', '全部'], ['crayon', '蠟筆'], ['cream', '奶油'], ['flora', '花草'], ['pastel', '粉彩'],
   ['french', '法式'], ['japan', '日式'], ['y2k', 'Y2K'],
