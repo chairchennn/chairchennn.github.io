@@ -562,15 +562,29 @@ export function formatDate(iso, fmt) {
   }
 }
 
-export function drawDateStamp(ctx, w, h, text, colorId, pos = 'br') {
+export const DATE_SIZES = [['md', '標準'], ['sm', '小']];
+
+// 日期戳記的位置與大小（像素）。間距比較緊，像真的拋棄式相機
+function dateGeom(w, h, text, pos = 'br', size = 'md') {
+  const S = Math.min(w, h), dh = S * (size === 'sm' ? 0.032 : 0.042), dw = dh * 0.56, gap = dh * 0.17;
+  const adv = (ch) => (ch === ' ' ? dh * 0.34 : ch === "'" ? dh * 0.22 : dw + gap);
+  const total = [...text].reduce((a, ch) => a + adv(ch), 0) - gap;
+  const margin = S * 0.05;
+  const x = pos === 'bl' ? margin : w - margin - total;
+  return { S, dh, dw, gap, adv, total, x, y: h - margin - dh };
+}
+
+// 日期戳記實際佔的範圍（含一點光暈），給塗鴉／貼圖避開用
+export function dateStampBox(w, h, text, pos = 'br', size = 'md') {
+  if (!text) return null;
+  const g = dateGeom(w, h, text, pos, size), pad = g.dh * 0.3;
+  return { x0: g.x - g.dh * 0.1 - pad, x1: g.x + g.total + pad, y0: g.y - pad, y1: g.y + g.dh + pad };
+}
+
+export function drawDateStamp(ctx, w, h, text, colorId, pos = 'br', size = 'md') {
   if (!text) return;
   const col = DATE_COLORS.find((c) => c[0] === colorId) || DATE_COLORS[0];
-  const S = Math.min(w, h), dh = S * 0.042, dw = dh * 0.56, t = dh * 0.15, gap = dh * 0.24;
-  const adv = (ch) => (ch === ' ' ? dh * 0.42 : ch === "'" ? dh * 0.26 : dw + gap);
-  const total = [...text].reduce((a, ch) => a + adv(ch), 0) - gap;
-  const margin = S * 0.055;
-  let x = pos === 'bl' ? margin : w - margin - total;
-  const y = h - margin - dh;
+  const { dh, dw, gap, adv, x, y } = dateGeom(w, h, text, pos, size), t = dh * 0.15;
   ctx.save();
   ctx.translate(x, y + dh);
   ctx.transform(1, 0, -0.1, 1, 0, 0);
@@ -623,7 +637,7 @@ export function applyFx(base, s, overlay, inPlace = false) {
   applyHalation(ctx, w, h, (a.halation || 0) / 100);
   applyLightLeak(ctx, w, h, (a.leak || 0) / 100, a.leakStyle || 'warm', a.leakSeed || 1);
   if (overlay) { ctx.save(); overlay(ctx, w, h); ctx.restore(); }
-  if (s.date?.on) drawDateStamp(ctx, w, h, formatDate(s.date.value, s.date.format), s.date.color, s.date.pos);
+  if (s.date?.on) drawDateStamp(ctx, w, h, formatDate(s.date.value, s.date.format), s.date.color, s.date.pos, s.date.size);
   applyVignette(ctx, w, h, (a.vignette || 0) / 100);
   applyGrain(ctx, w, h, (a.grain || 0) / 100);
   applyDust(ctx, w, h, (a.dust || 0) / 100, a.dustSeed || 1);

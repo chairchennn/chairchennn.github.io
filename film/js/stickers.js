@@ -2,6 +2,9 @@
 // 每個貼圖都是一組 SVG path（座標 0–100），用 Path2D 直接畫在 canvas 上，
 // 放多大都不會糊。顏色 'M' 代表「主色」，使用者可以替換。
 
+import { ART_FR_JP } from './art/fr_jp.js';
+import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
+
 export const PALETTE = [
   '#ff8fc0', // 粉紅
   '#ff5f6d', // 珊瑚紅
@@ -387,7 +390,8 @@ function ringOf(cx, cy, k, dist, r) {
   for (let i = 0; i < k; i++) { const a = -Math.PI / 2 + (i * Math.PI * 2) / k; d += circ(cx + dist * Math.cos(a), cy + dist * Math.sin(a), r); }
   return d;
 }
-const CAT_HEAD = 'M20 46Q16 30 21 15Q33 21 40 30Q50 27 60 30Q67 21 79 15Q84 30 80 46Q86 63 74 75Q62 85 50 85Q38 85 26 75Q14 63 20 46Z';
+// 白臉小貓（第五版去寫實）：下寬上窄的麻糬臉＋短耳，臉的中心約在 (50,62)
+const CAT_HEAD = 'M50 30C56.44 30 61.96 31 66.56 33Q70.24 23 73.92 19Q77.6 16 78.98 21Q80.36 29 79.44 38C84.04 47 85.88 58 84.04 67C81.28 80 68.4 86 50 86C31.6 86 18.72 80 15.96 67C14.12 58 15.96 47 20.56 38Q19.64 29 21.02 21Q22.4 16 26.08 19Q29.76 23 33.44 33C38.04 31 43.56 30 50 30Z';
 // 跳躍的小貓（閉合身體，可填色）：大頭（約佔身長 1/3）＋兩個三角耳，臉朝正面
 const CAT_JUMP = 'M30 22C42 17 54 17 62 20L65 7Q70 9 74 14Q80 12 86 14L87 6Q93 12 93 22C94 30 90 36 84 39' +
   'C88 42 94 44 96 47C98 51 94 53 90 52C84 51 76 48 70 45C58 48 44 49 34 45C26 48 18 52 12 54C6 56 4 51 8 49C14 46 20 42 22 38C18 32 22 25 30 22Z';
@@ -409,18 +413,17 @@ const UMBEL = [-2.5, -2.1, -1.8, -1.5, -1.2, -0.85].map((a, i) => [a, [52, 62, 6
 const fit = (d, k, dx, dy) => d.replace(/(-?\d*\.?\d+)\s+(-?\d*\.?\d+)/g, (_, x, y) => `${n(+x * k + dx)} ${n(+y * k + dy)}`);
 // 左右對稱：fn(X) 用 X(x) 產生一側的 path，回傳左右兩側
 const mirror = (fn) => fn((x) => n(x)) + fn((x) => n(100 - x));
-// 白臉小貓系列的臉：以 kt_cat 為準（頭中心 50,50），搬到 (cx,cy)、比例 k
-function ktFace(cx, cy, k, { whisk = true, blush = true } = {}) {
-  const X = (x) => n(cx + (x - 50) * k), Y = (y) => n(cy + (y - 50) * k), q = (v) => n(v * k);
-  const out = [
-    f(ell(X(39), Y(54), q(3.4), q(4.4)), KT_LINE), f(ell(X(61), Y(54), q(3.4), q(4.4)), KT_LINE),
-    f(circ(X(40), Y(52.5), q(1.2)), '#ffffff'), f(circ(X(62), Y(52.5), q(1.2)), '#ffffff'),
-    f(`M${X(47)} ${Y(60.5)}H${X(53)}L${X(50)} ${Y(63.5)}Z`, '#ff8fa3'),
-    s(`M${X(44)} ${Y(65.5)}q${q(3)} ${q(3.5)} ${q(6)} 0q${q(3)} ${q(3.5)} ${q(6)} 0`, KT_LINE, 2.6),
-  ];
-  if (blush) out.push(f(ell(X(30), Y(64), q(5), q(3)), CH, 0.9), f(ell(X(70), Y(64), q(5), q(3)), CH, 0.9));
-  if (whisk) out.push(s(`M${X(8)} ${Y(55)}L${X(22)} ${Y(58)}M${X(8)} ${Y(64)}L${X(22)} ${Y(63)}`, KT_LINE, 2.4),
-    s(`M${X(92)} ${Y(55)}L${X(78)} ${Y(58)}M${X(92)} ${Y(64)}L${X(78)} ${Y(63)}`, KT_LINE, 2.4));
+// 白臉小貓系列的臉（第五版）：點點眼＋小 ω 嘴＋腮紅，不畫鼻子、內耳、條紋。
+// 以 kt_cat 為準（臉中心 50,60），搬到 (cx,cy)、比例 k；eyes: 'dot' 點點眼 / 'shut' 瞇眼
+function ktFace(cx, cy, k, { eyes = 'dot', whisk = false, blush = true } = {}) {
+  const X = (x) => n(cx + (x - 50) * k), Y = (y) => n(cy + (y - 60) * k), q = (v) => n(v * k);
+  const out = [];
+  if (blush) out.push(f(ell(X(27), Y(67), q(6), q(3.6)), CH, 0.9), f(ell(X(73), Y(67), q(6), q(3.6)), CH, 0.9));
+  if (eyes === 'dot') out.push(f(circ(X(37), Y(59), q(3.6)), KT_LINE), f(circ(X(63), Y(59), q(3.6)), KT_LINE));
+  else out.push(s(`M${X(32)} ${Y(60)}q${q(5)} ${q(-5.5)} ${q(10)} 0M${X(58)} ${Y(60)}q${q(5)} ${q(-5.5)} ${q(10)} 0`, KT_LINE, 2.8));
+  out.push(s(`M${X(45)} ${Y(64)}q${q(2.5)} ${q(3.2)} ${q(5)} 0q${q(2.5)} ${q(3.2)} ${q(5)} 0`, KT_LINE, 2.5));
+  // 鬍鬚：左右各一條短線
+  if (whisk) out.push(s(`M${X(4)} ${Y(61)}L${X(17)} ${Y(63)}M${X(96)} ${Y(61)}L${X(83)} ${Y(63)}`, KT_LINE, 2.4));
   return out;
 }
 // ✢ 圓頭十字：四片「中心尖、末端圓」的水滴
@@ -447,14 +450,14 @@ const BFLY_IN = mirror((X) => `M${X(34)} 33C${X(27)} 29 ${X(19)} 29 ${X(17.5)} 3
 const TWIN_BIG = sparkleD(46, 54, 38, 0.24), TWIN_SM = sparkleD(70, 28, 18, 0.24);
 const BOW_TAIL = mirror((X) => `M${X(47)} 50L${X(31)} 82L${X(37.5)} 79L${X(41)} 86L${X(55)} 54Z`);
 const BOW_LOOP = mirror((X) => `M${X(50)} 48C${X(36)} 24 ${X(10)} 28 ${X(12)} 46C${X(14)} 64 ${X(36)} 62 ${X(50)} 48Z`);
-// 坐著的白臉小貓：頭沿用 kt_cat 輪廓（縮小），身體短胖
-const SIT_K = 0.66, SIT_DX = 46 - 50 * SIT_K, SIT_DY = 31 - 50 * SIT_K;
+// 坐著的白臉小貓：大頭（沿用 kt_cat 輪廓縮小）＋短短的豆子身體
+const SIT_K = 0.7, SIT_DX = 47 - 50 * SIT_K, SIT_DY = 9 - 16 * SIT_K;
 const SIT_HEAD = fit(CAT_HEAD, SIT_K, SIT_DX, SIT_DY);
-const SIT_BODY = 'M31 46C24 58 21 74 24 85Q27 94 38 94H56Q68 94 69 85C71 72 67 58 61 46Z';
-const SIT_TAIL = 'M66 88C78 92 89 86 87 72C86 64 80 62 78 67';
+const SIT_BODY = 'M31 53C22 64 20 79 25 86Q29 91 40 91H54Q65 91 69 86C74 79 72 64 63 53Z';
+const SIT_TAIL = 'M67 84C80 88 89 79 85 68';
 // 趴在照片下緣探頭的小貓：底邊是平的（不描邊），只露出頭和兩隻前爪
-const PEEK_HEAD = 'M16 64Q16 52 22 40Q18 24 23 8Q35 14 42 22Q50 19.5 58 22Q65 14 77 8Q82 24 78 40Q84 52 84 64';
-const PEEK_PAW = mirror((X) => `M${X(13)} 64Q${X(13)} 51 ${X(24)} 51Q${X(35)} 51 ${X(35)} 64`);
+const PEEK_HEAD = 'M16.8 64Q16.2 61 15.96 58C14.12 49 15.96 38 20.56 29Q19.64 20 21.02 12Q22.4 7 26.08 10Q29.76 14 33.44 24C38.04 22 43.56 21 50 21C56.44 21 61.96 22 66.56 24Q70.24 14 73.92 10Q77.6 7 78.98 12Q80.36 20 79.44 29C84.04 38 85.88 49 84.04 58Q83.8 61 83.2 64';
+const PEEK_PAW = mirror((X) => `M${X(13)} 64Q${X(13)} 56.5 ${X(21.5)} 56.5Q${X(30)} 56.5 ${X(30)} 64`);
 // 趴著的線條貓（一筆外框）：頭在左、前爪收在下巴下、尾巴繞到前面
 const LOAF = 'M10 40Q8 30 12.5 23L11 10L21.5 17Q27 15 33 17L43 9.5L43.5 24C52 22 62 21 72 22C86 23 94 32 93 45' +
   'C92.5 53 88 58 80 58H41Q41 61.5 36 61.5H22Q15.5 61.5 16 57Q10 51 10 40Z';
@@ -501,23 +504,17 @@ const CUTE = [
   },
 
   // ---------- kitty 貓咪小魚 ----------
+  // 第五版去寫實：扁圓麻糬臉、點點眼、小 ω 嘴、腮紅；拿掉內耳、條紋、鼻子；一定有嘴、不放蝴蝶結
   {
     id: 'kt_cat', name: '白臉小貓', cat: 'kitty', color: '#ffffff', parts: [
-      f(CAT_HEAD), s(CAT_HEAD, KT_LINE, 3.5),
-      f('M25 25Q30 27 34 31L27 36Z', CH, 0.9), f('M75 25Q70 27 66 31L73 36Z', CH, 0.9),
-      f(ell(39, 54, 3.4, 4.4), KT_LINE), f(ell(61, 54, 3.4, 4.4), KT_LINE), f(circ(40, 52.5, 1.2), '#ffffff'), f(circ(62, 52.5, 1.2), '#ffffff'),
-      f('M47 60.5H53L50 63.5Z', '#ff8fa3'), s('M44 65.5q3 3.5 6 0q3 3.5 6 0', KT_LINE, 2.6),
-      f(ell(30, 64, 5, 3), CH, 0.9), f(ell(70, 64, 5, 3), CH, 0.9),
-      s('M8 55L22 58M8 64L22 63', KT_LINE, 2.4), s('M92 55L78 58M92 64L78 63', KT_LINE, 2.4),
+      f(CAT_HEAD), s(CAT_HEAD, KT_LINE, 3.4),
+      ...ktFace(50, 62, 1, { whisk: true }),
     ]
   },
   {
     id: 'kt_cat2', name: '瞇眼小貓', cat: 'kitty', color: '#ffe2bf', parts: [
-      f(CAT_HEAD), s(CAT_HEAD, KT_LINE, 3.5),
-      s('M45 33L46 39M50 32V39M55 33L54 39', KT_OR, 3),
-      s('M34 55q5 -6 10 0M56 55q5 -6 10 0', KT_LINE, 3),
-      f('M47 60.5H53L50 63.5Z', '#ff8fa3'), s('M44 65.5q3 3.5 6 0q3 3.5 6 0', KT_LINE, 2.6),
-      f(ell(30, 63, 5, 3), CH, 0.95), f(ell(70, 63, 5, 3), CH, 0.95),
+      f(CAT_HEAD), s(CAT_HEAD, KT_LINE, 3.4),
+      ...ktFace(50, 62, 1, { eyes: 'shut' }),
     ]
   },
   {
@@ -538,22 +535,18 @@ const CUTE = [
   },
   {
     id: 'kt_catsit', name: '坐著的白臉貓', cat: 'kitty', color: '#ffffff', parts: [
-      s(SIT_TAIL, KT_LINE, 12.5), s(SIT_TAIL, 'M', 5.5),
-      f(SIT_BODY), s(SIT_BODY, KT_LINE, 3.5),
-      s('M41 80V92M53 80V92', KT_LINE, 2.6),
-      f(SIT_HEAD), s(SIT_HEAD, KT_LINE, 3.5),
-      f(fit('M25 25Q30 27 34 31L27 36Z', SIT_K, SIT_DX, SIT_DY), CH, 0.9), f(fit('M75 25Q70 27 66 31L73 36Z', SIT_K, SIT_DX, SIT_DY), CH, 0.9),
-      s('M42.5 15.5L43 19.5M46 15V19.5M49.5 15.5L49 19.5', KT_OR, 2.4),
-      ...ktFace(46, 31, 0.72, { whisk: false }),
+      s(SIT_TAIL, KT_LINE, 12), s(SIT_TAIL, 'M', 5.4),
+      f(SIT_BODY), s(SIT_BODY, KT_LINE, 3.4),
+      s('M47 84V90', KT_LINE, 2.6),
+      f(SIT_HEAD), s(SIT_HEAD, KT_LINE, 3.4),
+      ...ktFace(47, 9 + 46 * SIT_K, SIT_K * 1.08),
     ]
   },
   {
     id: 'kt_peek', name: '探頭小貓', cat: 'kitty', color: '#ffffff', vb: [100, 64], parts: [
-      f(PEEK_HEAD), s(PEEK_HEAD, KT_LINE, 3.5),
-      f('M27 18Q32 20 36 24L29 29Z', CH, 0.9), f('M73 18Q68 20 64 24L71 29Z', CH, 0.9),
-      s('M45 25L46 30M50 24V30M55 25L54 30', KT_OR, 2.6),
-      ...ktFace(50, 32, 0.9, { whisk: false }),
-      f(PEEK_PAW), s(PEEK_PAW, KT_LINE, 3.2), s(mirror((X) => `M${X(21)} 52.5V57M${X(27)} 52.5V57`), KT_LINE, 2.4),
+      f(PEEK_HEAD), s(PEEK_HEAD, KT_LINE, 3.4),
+      ...ktFace(50, 46.5, 0.95),
+      f(PEEK_PAW), s(PEEK_PAW, KT_LINE, 3.2),
     ]
   },
   { id: 'kt_paw', name: '小肉球', cat: 'kitty', color: '#ffb3c7', parts: [f('M50 52C63 52 72 64 70 73C68 82 59 82 50 78C41 82 32 82 30 73C28 64 37 52 50 52Z', '#ffffff'), s('M50 52C63 52 72 64 70 73C68 82 59 82 50 78C41 82 32 82 30 73C28 64 37 52 50 52Z', KT_LINE, 3), f(ell(50, 68, 9, 6)), ...[[26, 44], [41, 31], [59, 31], [74, 44]].map(([x, y]) => f(ell(x, y, 7, 8.5), '#ffffff')), ...[[26, 44], [41, 31], [59, 31], [74, 44]].map(([x, y]) => s(ell(x, y, 7, 8.5), KT_LINE, 3)), ...[[26, 45], [41, 32], [59, 32], [74, 45]].map(([x, y]) => f(ell(x, y, 3.2, 3.6)))] },
@@ -677,10 +670,11 @@ const CUTE = [
     ]
   },
 ];
-STICKERS.push(...CUTE);
+STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI);
 
 export const CATEGORIES = [
   ['all', '全部'], ['cream', '奶油'], ['kitty', '貓咪'], ['flora', '花草'], ['pastel', '粉彩'],
+  ['french', '法式'], ['japan', '日式'], ['y2k', 'Y2K'], ['emoji', '表情'],
   ['face', '螢光表情'], ['animal', '動物'], ['travel', '旅行'], ['deco', '裝飾'], ['line', '線條'],
 ];
 

@@ -618,3 +618,21 @@ dialog.sheet::backdrop { background: rgba(8, 6, 4, .7); -webkit-backdrop-filter:
 .advanced summary::before { content: "▸ "; color: var(--accent); }
 .advanced[open] summary::before { content: "▾ "; }
 @media (min-width: 900px) { .count-row .s-label, .slider .s-label { width: 80px; } }
+
+/* ---------- 第五版：模式切換、四格、更多 ---------- */
+.mode-switch { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line); gap: 2px; }
+.mode-switch button { border: 0; background: transparent; color: var(--muted); font-weight: 700; font-size: 13px; min-height: 36px; padding: 0 14px; border-radius: 999px; }
+.mode-switch button[aria-selected="true"] { background: var(--fg); color: var(--bg); }
+.app[data-mode="four"] .empty-single, .app[data-mode="single"] .empty-four { display: none; }
+details.more { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 4px; }
+details.more summary { cursor: pointer; padding: 10px 0; font-size: 13px; font-weight: 700; color: var(--muted); list-style: none; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "▸ "; color: var(--accent); }
+details.more[open] summary::before { content: "▾ "; }
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 4px; }
+.slot { position: relative; aspect-ratio: 4 / 3; border-radius: 12px; border: 2px dashed var(--line); background: var(--panel2); padding: 0; overflow: hidden; display: grid; place-items: center; }
+.slot canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slot-plus { font-size: 22px; color: var(--muted); }
+.slot-no { position: absolute; left: 4px; top: 4px; min-width: 18px; height: 18px; border-radius: 9px; background: rgba(0,0,0,.55); color: #fff; font: 700 11px/18px var(--round); text-align: center; }
+.swatches.papers .swatch { width: 34px; height: 34px; border-radius: 10px; }
+.date-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }

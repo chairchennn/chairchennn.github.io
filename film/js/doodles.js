@@ -28,14 +28,14 @@ const SIZES = { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.18, 0.26] 
 // 風格包：每一包參考一種使用者提供的範例「風格」，圖案全部是原創
 export const PACKS = {
   cream: {
-    name: '奶油貼紙', glow: 0, lw: 0.0034, label: '#f7a8bb',
+    name: '奶油貼紙', glow: 0, lw: 0.0034,
     colors: ['#f7a8bb', '#f49ab0', '#ffb5c5', '#f6b38f', '#f4b6a6'],
     small: { cr_dotheart: 2, cr_sparkle: 1.5, cr_cross: 1.5, cr_flower4: 2, cr_candy: 1, cr_twinstar: 1 },
     medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 0.4, cr_bow: 1, cr_butterfly: 1.5, cr_twinstar: 1.2 },
     large: { cr_bigstar: 1, cr_heart: 1, cr_flower5: 1 },
   },
   kitty: {
-    name: '貓咪小魚', glow: 0, lw: 0.0034, label: '#ff9b5e',
+    name: '貓咪小魚', glow: 0, lw: 0.0034,
     sizes: { small: [0.035, 0.05], medium: [0.08, 0.1], large: [0.14, 0.17] },
     small: { kt_blossom: 3, kt_blossom2: 2 },
     medium: { kt_cat: 2.5, kt_cat2: 1.5, kt_fish: 1.5, kt_yarn: 0.8, kt_paw: 0.8, kt_catsit: 1 },
@@ -44,7 +44,7 @@ export const PACKS = {
     max: { kt_peek: 1 }, // 每張最多一隻
   },
   flora: {
-    name: '花花世界', glow: 0, lw: 0.0034, label: '#f39552', largeExtra: 1, bleed: 0.3,
+    name: '花花世界', glow: 0, lw: 0.0034, largeExtra: 1, bleed: 0.3,
     sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
     colors: ['#f39552', '#f4a2b8', '#f8b48a', '#6f9ed9', '#94d3bd'], recolor: 0.3, keepColor: ['fl_ginkgo'],
     small: { fl_star: 2, fl_blue: 2, kt_blossom2: 1, fl_round: 1 },
@@ -52,31 +52,54 @@ export const PACKS = {
     large: { fl_sprig: 2, fl_bunch: 1.5, fl_fern: 1.2, fl_daisy: 1, fl_starbranch: 1.5 },
   },
   pastel: {
-    name: '夢幻粉彩', glow: 0.5, lw: 0.0032, label: '#ffb7d0',
+    name: '夢幻粉彩', glow: 0.5, lw: 0.0032,
     sizes: { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.22, 0.3] },
     colors: ['#ffffff', '#ffb7d0', '#9fd8f5', '#c8b6ff', '#ffe08a', '#9ff0d0'],
     small: { pl_twinkle: 2.5, pl_star: 1.5, pl_daisy: 1, pl_dotarc: 1, pl_crosses: 2 },
     medium: { pl_flower: 2, pl_daisy: 1.5, pl_streak: 1.5, pl_dotarc: 1 },
     large: { pl_catjump: 2, pl_gradcat: 1.2, pl_catsit: 1.5, pl_flower: 1, pl_stripecat: 1.2 },
   },
-  neoncat: {
-    name: '螢光貓咪', glow: 1, lw: 0.007, label: '#46d2f0',
-    fixed: { pl_catjump: ['#ffffff', '#ffd23c'] }, // 實心跳躍貓只用白／黃，配橘色條紋
-    sizes: { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.22, 0.3] },
-    colors: ['#ff8fc0', '#46d2f0', '#ffd23c', '#ff9a3c', '#ffffff', '#b48cff'], recolor: 0.8,
-    small: { sparkle: 2, pl_twinkle: 1.5, pl_streak: 1.2, kt_blossom2: 1.4, zigzag: 0.6 },
-    medium: { pl_catsit: 1.5, cat: 1.2, pl_flower: 1.5, pl_daisy: 1, kt_blossom2: 0.8, pl_streak: 0.8, nc_cathead: 1.5, nc_scratch: 1 },
-    large: { pl_catjump: 2, pl_catsit: 1 },
-  },
   neon: {
-    name: '螢光塗鴉', glow: 1, lw: 0.0045, label: '#46d2f0',
+    name: '螢光塗鴉', glow: 1, lw: 0.0045,
     colors: ['#ff8fc0', '#ff5f6d', '#ff9a3c', '#ffd23c', '#6fdc7f', '#46d2f0', '#3f7bff', '#b48cff', '#ffffff'], recolor: 0.55,
     small: { sparkle: 3, sparkles: 1.5, fstar: 2, ring: 1.5, wave: 2, zigzag: 2, cross: 1.4, lines: 0.4, hearto: 1.6 },
     medium: {
       sunny: 1.5, burst: 1.5, heart: 2, smiley: 1.4, star5: 1.5, flower: 2, cloudface: 1.5, heartbuddy: 1.5,
       camera: 1.5, film: 1.2, crown: 0.5, rainbow: 0.8, pennant: 0.4, stripes: 0.4, cat: 1, sun: 1,
+      nc_cathead: 1.2, nc_scratch: 0.8, pl_catsit: 0.8,
     },
-    large: { bear: 1, bunny: 1, puppy: 1, heartbuddy: 1, cloudface: 1 },
+    large: { bear: 1, bunny: 1, puppy: 1, heartbuddy: 1, cloudface: 1, pl_catjump: 0.8 },
+    fixed: { pl_catjump: ['#ffffff', '#ffd23c'] },
+  },
+  // Y2K：鉻銀、彩虹光碟、掀蓋手機（自帶漸層色，不換色）
+  y2k: {
+    name: 'Y2K', glow: 0.3, lw: 0.0034,
+    small: { y2k_glitter: 2, y2k_bolt: 1.2, y2k_cherry: 1, pl_twinkle: 0.8 },
+    medium: { y2k_flip: 1, y2k_cd: 1.2, y2k_planet: 1.2, y2k_butterfly: 1.2, y2k_chromestar: 1.2, y2k_chromeheart: 1.2, y2k_checkheart: 1, y2k_cherry: 0.6 },
+    large: { y2k_chromestar: 1, y2k_chromeheart: 1, y2k_checkheart: 0.8, y2k_butterfly: 1 },
+    max: { y2k_flip: 1, y2k_cd: 2 },
+  },
+  // 表情臉：粉彩麻糬臉（只換淺色，深色會看不到五官）
+  emoji: {
+    name: '表情臉', glow: 0, lw: 0.0034,
+    colors: ['#ffd3b5', '#ffc4d6', '#fff1a8', '#d4f0c8', '#cfe3ff', '#e6d4ff'], recolor: 0.35,
+    small: { cr_dotheart: 1.5, pl_twinkle: 1.5, em_smile: 1, em_love: 1, em_sparkle: 1 },
+    medium: {
+      em_smile: 1, em_cry: 1, em_wow: 1, em_love: 1, em_sleepy: 1, em_angry: 1, em_wink: 1, em_sparkle: 1, em_sweat: 1, em_squint: 1,
+    },
+    large: { em_love: 1, em_smile: 1, em_sleepy: 1, em_sparkle: 1 },
+  },
+  // 顏文字：用字畫出來的表情（不是使用者輸入的文字）
+  kao: {
+    name: '顏文字', glow: 0, kao: true,
+    colors: ['#ff6fae', '#ff8a3d', '#7a5cff', '#2fb6e8', '#3fbf7f', '#ffffff'],
+    sizes: { small: [0.045, 0.06], medium: [0.06, 0.075], large: [0.08, 0.1] },
+    small: { '♡': 2, '☆': 1.5, '✧': 1.5, '♪': 1, '✿': 1.2 },
+    medium: {
+      '(｡•ᴗ•｡)': 1, '(*^▽^*)': 1, '(◍•ᴗ•◍)': 1, 'ʕ•ᴥ•ʔ': 1, '(≧▽≦)': 1, '(｡>﹏<｡)': 1, '( ˘ω˘ )': 1,
+      '(⁎˃ᴗ˂⁎)': 1, '(＾▽＾)': 1, '(=^･ω･^=)': 1, '(•ө•)♡': 1,
+    },
+    large: { '♡(ˊᵕˋ)♡': 1, '(つ✧ω✧)つ': 1, 'ヾ(≧▽≦*)o': 1, '(ﾉ◕ヮ◕)ﾉ': 1, '(´｡•ᵕ•｡`)': 1, '☆(ゝω・)v': 1, '(｡♥‿♥｡)': 1 },
   },
 };
 
@@ -87,17 +110,19 @@ export const DOODLE_PRESETS = [
   { id: 'kitty', name: '貓咪小魚', pack: 'kitty', layout: 'band', count: 22 },
   { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16 },
   { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22 },
-  { id: 'neoncat', name: '螢光貓咪', pack: 'neoncat', layout: 'edge', count: 16 },
   { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24 },
+  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16 },
+  { id: 'emoji', name: '表情臉', pack: 'emoji', layout: 'band', count: 14 },
+  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14 },
 ];
 export const COUNT_MIN = 4, COUNT_MAX = 30;
 
 const byId = new Map(STICKERS.map((d) => [d.id, d]));
 
 // skip(id) = true 的圖案不選（例如已達每張上限、或這個排列不適合）
-function pick(r, weights, used, skip = () => false) {
+function pick(r, weights, used, skip = () => false, any = false) {
   let total = 0;
-  const entries = Object.entries(weights).filter(([id]) => byId.has(id) && !skip(id)).map(([id, w]) => {
+  const entries = Object.entries(weights).filter(([id]) => (any || byId.has(id)) && !skip(id)).map(([id, w]) => {
     const ww = w / (1 + (used.get(id) || 0) * 1.6);
     total += ww;
     return [id, ww];
@@ -116,10 +141,10 @@ function colorFor(r, def, pack) {
   return r() < (pack.recolor ?? 0.4) ? pack.colors[Math.floor(r() * pack.colors.length)] : def.color;
 }
 
-// aspect = 照片寬 / 高；datePos = 日期戳記的位置（'br' 右下 / 'bl' 左下 / null）
+// aspect = 照片寬 / 高；avoidBox = 日期戳記實際範圍（照片座標 0~1：{x0,x1,y0,y1}）或 null
 // 分兩步：①先當作沒有日期排好（所以開關日期時，大部分塗鴉位置不變）；
-//         ②再把壓到日期那一角的塗鴉移到別處。
-export function generateDoodles(o, aspect, datePos = null) {
+//         ②再把壓到日期的塗鴉移到別處。
+export function generateDoodles(o, aspect, avoidBox = null) {
   if (!o || o.preset === 'none') return [];
   const pack = PACKS[o.pack] || PACKS.cream;
   const fn = LAYOUT_FN[o.layout] || LAYOUT_FN.edge;
@@ -128,13 +153,14 @@ export function generateDoodles(o, aspect, datePos = null) {
   const scale = (o.scale || 100) / 100;
   const sizes = pack.sizes || SIZES;
   const count = Math.max(1, Math.round(o.count ?? 16));
+  const glow = o.glow ?? pack.glow;
   const placed = [], slots = [], used = new Map();
   let avoid = [];
   const hitsAvoid = (X, Y, rad) => avoid.some((q) => Math.hypot(X - Math.max(q.X0, Math.min(X, q.X1)), Y - Math.max(q.Y0, Math.min(Y, q.Y1))) < rad);
 
   // 「最佳候選」取樣：找幾個合格位置，挑離其他塗鴉最遠的 → 平均、留白
-  const bleed = pack.bleed ?? 0.45;
   // tol：允許和別的塗鴉稍微重疊的比例（只在重新安置時用）
+  const bleed = pack.bleed ?? 0.45;
   const tryPlace = (size, region, rand = r, tol = 0, tries = 160) => {
     const rad = (size / 2) * 0.82;
     const mx = Math.min(0.45, (size * bleed) / sx), my = Math.min(0.45, (size * bleed) / sy);
@@ -167,20 +193,6 @@ export function generateDoodles(o, aspect, datePos = null) {
     return null;
   };
 
-  // 文字（例如地名）
-  const label = (o.label || '').trim();
-  const LABEL_TOP = { x0: 0.3, x1: 0.7, y0: 0.08, y1: 0.16 };
-  const LABEL_R = { x0: 0.55, x1: 0.78, y0: 0.8, y1: 0.88 }, LABEL_L = { x0: 0.22, x1: 0.45, y0: 0.8, y1: 0.88 };
-  if (label) {
-    const h = 0.075 * scale;
-    const region = o.layout === 'top' ? LABEL_TOP : LABEL_R;
-    const pos = tryPlace(h * 3, region);
-    if (pos) {
-      slots.push({ spot: pos.spot, size: h * 3, label: true,
-        item: { kind: 'text', text: label, style: o.labelStyle || 'bubble', color: pack.label, x: pos.x, y: pos.y, size: h / 0.42, rot: (r() - 0.5) * 0.12, flip: false, glow: pack.glow } });
-    }
-  }
-
   // 大：1~5 個；中：約 35%；小：其餘
   const nLarge = Math.min(count, Math.max(1, Math.min(5, Math.round(count * 0.18))) + (pack.largeExtra || 0));
   const nMedium = Math.round((count - nLarge) * 0.35);
@@ -189,13 +201,24 @@ export function generateDoodles(o, aspect, datePos = null) {
     // 放不下就換一個圖案再試（最多 3 次），不讓整格空掉
     const tried = new Set();
     for (let attempt = 0; attempt < 3; attempt++) {
-      // 試過的、達到每張上限的不再選；「天空」排列不放貼齊底邊的探頭貓
       const skip = (cid) => tried.has(cid) || (pack.max?.[cid] && (used.get(cid) || 0) >= pack.max[cid]) ||
         (o.layout === 'top' && pack.anchors?.[cid] === 'bottom');
-      const id = pick(r, pack[kind], used, skip);
+      const id = pick(r, pack[kind], used, skip, !!pack.kao);
       if (!id) break;
-      const def = byId.get(id);
       const [lo, hi] = sizes[kind];
+      if (pack.kao) {
+        // 顏文字：高度 h，寬度大約是字數 × 0.62h
+        const h = (lo + r() * (hi - lo)) * scale, len = [...id].length, size = Math.max(h, h * 0.62 * len);
+        const pos = tryPlace(size);
+        if (!pos) { tried.add(id); continue; }
+        used.set(id, (used.get(id) || 0) + 1);
+        slots.push({ spot: pos.spot, size, text: true, item: {
+          kind: 'text', text: id, style: 'kao', color: pack.colors[Math.floor(r() * pack.colors.length)],
+          x: pos.x, y: pos.y, size: h / 0.42, rot: (r() - 0.5) * 0.4, flip: false, glow,
+        } });
+        break;
+      }
+      const def = byId.get(id);
       const size = (lo + r() * (hi - lo)) * scale;
       const [vw, vh] = stickerBox(def);
       const anchor = pack.anchors?.[id];
@@ -206,25 +229,24 @@ export function generateDoodles(o, aspect, datePos = null) {
       slots.push({ spot: pos.spot, size, anchor, vh, vw,
         item: {
           kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
-          rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
+          rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow,
         } });
       break;
     }
   }
 
-  // ② 日期那一角（以短邊為單位：約 0.42 寬、0.15 高）：壓到的塗鴉移到別處，其他不動
-  if (datePos) {
-    avoid = [{ X0: datePos === 'bl' ? 0 : sx - 0.42, X1: datePos === 'bl' ? 0.42 : sx, Y0: sy - 0.15, Y1: sy }];
-    const r2 = rng((o.seed || 1) * 7907 + (datePos === 'bl' ? 29 : 17));
+  // ② 只避開日期「實際的範圍」：壓到的塗鴉移到別處，其他不動
+  if (avoidBox) {
+    avoid = [{ X0: avoidBox.x0 * sx, X1: avoidBox.x1 * sx, Y0: avoidBox.y0 * sy, Y1: avoidBox.y1 * sy }];
+    const r2 = rng((o.seed || 1) * 7907 + 17);
     for (const sl of slots) {
       if (!hitsAvoid(sl.spot.X, sl.spot.Y, sl.spot.rad)) continue;
       placed.splice(placed.indexOf(sl.spot), 1);
-      // 依序放寬：原尺寸 → 縮小 15% → 允許稍微重疊（25%）
+      // 依序放寬：原尺寸 → 縮小 15% → 允許稍微重疊
       let pos = null, k = 1;
       for (const [shrink, tol] of [[1, 0], [0.85, 0], [0.85, 0.25], [0.75, 0.4], [0.7, 0.6]]) {
         const size = sl.size * shrink;
-        pos = sl.label ? tryPlace(size, o.layout === 'top' ? LABEL_TOP : datePos === 'br' ? LABEL_L : LABEL_R, r2, tol, 400)
-          : sl.anchor === 'bottom' ? placeBottom(size, sl.vh, sl.vw, r2, tol) : tryPlace(size, undefined, r2, tol, 400);
+        pos = sl.anchor === 'bottom' ? placeBottom(size, sl.vh, sl.vw, r2, tol) : tryPlace(size, undefined, r2, tol, 400);
         if (pos) { k = shrink; break; }
       }
       if (pos) {
