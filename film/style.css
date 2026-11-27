@@ -1119,11 +1119,12 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
 @media (max-width: 899px) {
   /* 選項收起來：只留底部導覽，照片變大 */
   .app[data-panel="closed"] .panel { display: none; }
-  .app[data-panel="closed"] .rail { border-radius: 20px 20px 0 0; margin-top: -12px; box-shadow: 0 -1px 0 var(--line), 0 -8px 20px rgba(110, 72, 46, .07); }
-  .panel { border-radius: 20px 20px 0 0; margin-top: -12px; box-shadow: 0 -1px 0 var(--line), 0 -8px 20px rgba(110, 72, 46, .07); }
-  .app[data-has-photo="true"] .stage { padding-bottom: calc(var(--dock-h) + 22px); }
-  .stationery-dock, .sticker-bar { bottom: 17px; }
-  .empty { bottom: 12px; }
+  /* 面板圓角露出底下同一張點點紙（不重疊，照片不會少高度） */
+  .workspace { background: var(--dots), var(--stage); background-size: 18px 18px, auto; background-position: 9px 9px, 0 0; }
+  .stage { box-shadow: inset 0 1px 0 var(--line); }
+  .app[data-panel="closed"] .rail { border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--line), 0 -8px 20px rgba(110, 72, 46, .07); }
+  .panel { border-radius: 20px 20px 0 0; box-shadow: 0 -1px 0 var(--line), 0 -8px 20px rgba(110, 72, 46, .07); }
+  .toast { font-size: 13.5px; padding: 9px 14px; }
 }
 @media (min-height: 740px) and (max-width: 899px) {
   :root { --pane-h: 196px; }
@@ -1253,7 +1254,7 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
   .tool:last-child:hover::after, .tool:last-child:focus-visible::after { transform: none; }
 
   /* 貼圖動作列：畫布上方，不擋文具列 */
-  .sticker-bar { top: 10px; bottom: auto; left: 50%; right: auto; width: min(440px, calc(100% - 200px)); transform: translateX(-50%); flex-direction: column; }
+  .sticker-bar { top: 10px; bottom: auto; left: 50%; right: auto; width: min(440px, calc(100% - 24px)); transform: translateX(-50%); flex-direction: column; }
   .sticker-bar .swatches.small { border-bottom: 0; border-top: 1.5px dashed var(--line-2); margin: 4px 0 0; padding: 8px 4px 4px; justify-content: center; }
   .app[data-selected="true"] .stationery-dock { display: flex; }
 
@@ -1294,12 +1295,18 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
   .slider { grid-template-columns: 72px 1fr 46px; }
   .count-row .s-label { width: 72px; }
 
+  /* 提示：畫布上緣中間（不和文具列的提示泡泡打架）；選中貼圖時上緣是動作列，改到文具列上方 */
   .toast {
     left: calc(var(--rail-w) + 14px + (100% - var(--rail-w) - var(--panel-w) - 44px) / 2);
-    top: auto;
-    bottom: calc(var(--dock-h) + 52px);
-    max-width: min(520px, calc(100% - var(--rail-w) - var(--panel-w) - 60px));
+    top: calc(var(--top-h) + 14px);
+    max-width: min(520px, calc(100% - var(--rail-w) - var(--panel-w) - 164px));
   }
+  .app[data-selected="true"] ~ .toast { top: auto; bottom: calc(var(--dock-h) + 52px); }
+}
+@media (min-width: 900px) and (max-width: 1099px) {
+  /* 畫布比較窄：「按住看原圖」只留圖示，讓出上緣給提示 */
+  .chip-btn { padding: 0 9px; }
+  .chip-btn span { display: none; }
 }
 @media (min-width: 900px) and (max-width: 1023px) {
   :root { --rail-w: 84px; --panel-w: 320px; }
@@ -1310,6 +1317,8 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
 }
 @media (min-width: 1100px) {
   :root { --rail-w: 96px; --panel-w: 376px; }
+}
+@media (min-width: 1000px) {
   /* 手寫標語＋粉紅手畫底線 */
   .tagline {
     position: relative;
@@ -1340,7 +1349,7 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
     height: 7px;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'%3E%3Cpath d='M2 5.5C22 2.5 44 6.5 66 4.2S104 2 118 4.6' fill='none' stroke='%23ee8ba7' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
   }
-  .tagline span { position: absolute; right: 0; bottom: 4px; color: var(--pink-2); font-size: 20px; }
+  .tagline span { position: absolute; right: 0; bottom: 4px; color: var(--pink-ink); font-size: 20px; } /* 粉紅 5.2:1 */
 }
 @media (min-width: 1300px) {
   .tagline { max-width: 214px; font-size: 19px; }
@@ -1358,14 +1367,15 @@ dialog.sheet::backdrop { background: rgba(74, 49, 40, .32); -webkit-backdrop-fil
   .primary-btn:not(:disabled):hover { filter: brightness(1.03) saturate(1.06); box-shadow: 0 1px 0 rgba(255, 255, 255, .55) inset, 0 5px 12px rgba(232, 106, 78, .36); }
   .rail button:not([aria-selected="true"]):hover { background: var(--paper-2); color: var(--ink); }
   .mode-switch button:not([aria-selected="true"]):hover { color: var(--ink); }
-  .tool:hover { transform: translateY(-5px) rotate(-5deg); }
-  .tool:nth-child(even):hover { transform: translateY(-5px) rotate(5deg); }
-  .tool:hover img { filter: drop-shadow(0 5px 4px rgba(110, 72, 46, .2)); }
+  /* 只讓圖示上浮＋輕輕轉，提示泡泡保持水平 */
+  .tool img { transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), filter .2s; }
+  .tool:hover img { transform: translateY(-5px) rotate(-6deg); filter: drop-shadow(0 6px 4px rgba(110, 72, 46, .2)); }
+  .tool:nth-child(even):hover img { transform: translateY(-5px) rotate(6deg); }
   .tool-edit:hover { background: var(--paper-2); }
   .round-btn:not(:disabled):hover::before { background: var(--paper-2); }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
-  .tool:hover, .tool:nth-child(even):hover, .sticker-grid button:hover, .tape-grid button:hover, .card:hover canvas { transform: none !important; }
+  .tool:hover img, .tool:nth-child(even):hover img, .sticker-grid button:hover, .tape-grid button:hover, .card:hover canvas { transform: none !important; }
   .spinner { animation-duration: 2.4s; }
 }
