@@ -116,7 +116,9 @@ function colorFor(r, def, pack) {
   return r() < (pack.recolor ?? 0.4) ? pack.colors[Math.floor(r() * pack.colors.length)] : def.color;
 }
 
-// aspect = 照片寬 / 高；datePos = 日期戳記的位置（'br' 右下 / 'bl' 左下 / null），塗鴉會避開它
+// aspect = 照片寬 / 高；datePos = 日期戳記的位置（'br' 右下 / 'bl' 左下 / null）
+// 分兩步：①先當作沒有日期排好（所以開關日期時，大部分塗鴉位置不變）；
+//         ②再把壓到日期那一角的塗鴉移到別處。
 export function generateDoodles(o, aspect, datePos = null) {
   if (!o || o.preset === 'none') return [];
   const pack = PACKS[o.pack] || PACKS.cream;
@@ -126,46 +128,60 @@ export function generateDoodles(o, aspect, datePos = null) {
   const scale = (o.scale || 100) / 100;
   const sizes = pack.sizes || SIZES;
   const count = Math.max(1, Math.round(o.count ?? 16));
-  const placed = [], items = [], used = new Map();
-  // 日期戳記那一角留空（以短邊為單位：約 0.42 寬、0.15 高）
-  const avoid = datePos ? [{ X0: datePos === 'bl' ? 0 : sx - 0.42, X1: datePos === 'bl' ? 0.42 : sx, Y0: sy - 0.15, Y1: sy }] : [];
-  const hitsAvoid = (X, Y, rad) => avoid.some((a) => Math.hypot(X - Math.max(a.X0, Math.min(X, a.X1)), Y - Math.max(a.Y0, Math.min(Y, a.Y1))) < rad);
+  const placed = [], slots = [], used = new Map();
+  let avoid = [];
+  const hitsAvoid = (X, Y, rad) => avoid.some((q) => Math.hypot(X - Math.max(q.X0, Math.min(X, q.X1)), Y - Math.max(q.Y0, Math.min(Y, q.Y1))) < rad);
 
   // 「最佳候選」取樣：找幾個合格位置，挑離其他塗鴉最遠的 → 平均、留白
   const bleed = pack.bleed ?? 0.45;
-  const tryPlace = (size, region) => {
+  // tol：允許和別的塗鴉稍微重疊的比例（只在重新安置時用）
+  const tryPlace = (size, region, rand = r, tol = 0, tries = 160) => {
     const rad = (size / 2) * 0.82;
     const mx = Math.min(0.45, (size * bleed) / sx), my = Math.min(0.45, (size * bleed) / sy);
     let best = null, bestGap = -Infinity, found = 0;
-    for (let k = 0; k < 160 && found < 12; k++) {
-      const x = region ? region.x0 + r() * (region.x1 - region.x0) : mx + r() * (1 - 2 * mx);
-      const y = region ? region.y0 + r() * (region.y1 - region.y0) : my + r() * (1 - 2 * my);
-      if (!region && r() > fn(x, y, sx, sy)) continue;
+    for (let k = 0; k < tries && found < 12; k++) {
+      const x = region ? region.x0 + rand() * (region.x1 - region.x0) : mx + rand() * (1 - 2 * mx);
+      const y = region ? region.y0 + rand() * (region.y1 - region.y0) : my + rand() * (1 - 2 * my);
+      if (!region && rand() > fn(x, y, sx, sy)) continue;
       const X = x * sx, Y = y * sy;
       if (hitsAvoid(X, Y, rad)) continue;
       let gap = Infinity;
-      for (const p of placed) gap = Math.min(gap, Math.hypot(p.X - X, p.Y - Y) - p.rad - rad);
-      if (gap < 0) continue;
+      for (const q of placed) gap = Math.min(gap, Math.hypot(q.X - X, q.Y - Y) - q.rad - rad);
+      if (gap < -tol * rad) continue;
       found++;
       if (gap > bestGap) { bestGap = gap; best = { x, y, X, Y }; }
     }
     if (!best) return null;
-    placed.push({ X: best.X, Y: best.Y, rad });
-    return { x: best.x, y: best.y };
+    const spot = { X: best.X, Y: best.Y, rad };
+    placed.push(spot);
+    return { x: best.x, y: best.y, spot };
+  };
+  // 探頭貓：只放左右兩側（0.02–0.32 或 0.68–0.98），一側放不下就試另一側
+  const placeBottom = (size, vh, vw, rand = r, tol = 0) => {
+    const yb = 1 - (size * (vh / vw)) / 2 / sy, half = size / 2 / sx;
+    for (const left of rand() < 0.5 ? [true, false] : [false, true]) {
+      const x0 = left ? 0.02 + half : 0.68 + half, x1 = left ? 0.32 - half : 0.98 - half;
+      const pos = x1 >= x0 ? tryPlace(size, { x0, x1, y0: yb, y1: yb }, rand, tol) : null;
+      if (pos) return pos;
+    }
+    return null;
   };
 
   // 文字（例如地名）
   const label = (o.label || '').trim();
+  const LABEL_TOP = { x0: 0.3, x1: 0.7, y0: 0.08, y1: 0.16 };
+  const LABEL_R = { x0: 0.55, x1: 0.78, y0: 0.8, y1: 0.88 }, LABEL_L = { x0: 0.22, x1: 0.45, y0: 0.8, y1: 0.88 };
   if (label) {
     const h = 0.075 * scale;
-    // 文字放下方；日期在右下時改放左下，不要擠在一起
-    const region = o.layout === 'top' ? { x0: 0.3, x1: 0.7, y0: 0.08, y1: 0.16 }
-      : datePos === 'br' ? { x0: 0.22, x1: 0.45, y0: 0.8, y1: 0.88 } : { x0: 0.55, x1: 0.78, y0: 0.8, y1: 0.88 };
+    const region = o.layout === 'top' ? LABEL_TOP : LABEL_R;
     const pos = tryPlace(h * 3, region);
-    if (pos) items.push({ kind: 'text', text: label, style: o.labelStyle || 'bubble', color: pack.label, x: pos.x, y: pos.y, size: h / 0.42, rot: (r() - 0.5) * 0.12, flip: false, glow: pack.glow });
+    if (pos) {
+      slots.push({ spot: pos.spot, size: h * 3, label: true,
+        item: { kind: 'text', text: label, style: o.labelStyle || 'bubble', color: pack.label, x: pos.x, y: pos.y, size: h / 0.42, rot: (r() - 0.5) * 0.12, flip: false, glow: pack.glow } });
+    }
   }
 
-  // 大：1~3 個；中：約 40%；小：其餘
+  // 大：1~5 個；中：約 35%；小：其餘
   const nLarge = Math.min(count, Math.max(1, Math.min(5, Math.round(count * 0.18))) + (pack.largeExtra || 0));
   const nMedium = Math.round((count - nLarge) * 0.35);
   const plan = [...Array(nLarge).fill('large'), ...Array(nMedium).fill('medium'), ...Array(count - nLarge - nMedium).fill('small')];
@@ -183,26 +199,41 @@ export function generateDoodles(o, aspect, datePos = null) {
       const size = (lo + r() * (hi - lo)) * scale;
       const [vw, vh] = stickerBox(def);
       const anchor = pack.anchors?.[id];
-      let pos = null;
-      if (anchor === 'bottom') {
-        // 只放左右兩側（0.02–0.32 或 0.68–0.98），不擋住底部中間的主角；一側放不下就試另一側
-        const yb = 1 - (size * (vh / vw)) / 2 / sy, half = size / 2 / sx;
-        for (const left of r() < 0.5 ? [true, false] : [false, true]) {
-          const x0 = left ? 0.02 + half : 0.68 + half, x1 = left ? 0.32 - half : 0.98 - half;
-          if (x1 >= x0) pos = tryPlace(size, { x0, x1, y0: yb, y1: yb });
-          if (pos) break;
-        }
-      } else pos = tryPlace(size);
+      const pos = anchor === 'bottom' ? placeBottom(size, vh, vw) : tryPlace(size);
       if (!pos) { tried.add(id); continue; }
       used.set(id, (used.get(id) || 0) + 1);
       const loose = def.cat === 'flora' || vh / vw < 0.7;
-      items.push({
-        kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
-        rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
-      });
+      slots.push({ spot: pos.spot, size, anchor, vh, vw,
+        item: {
+          kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size,
+          rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow: pack.glow,
+        } });
       break;
     }
   }
+
+  // ② 日期那一角（以短邊為單位：約 0.42 寬、0.15 高）：壓到的塗鴉移到別處，其他不動
+  if (datePos) {
+    avoid = [{ X0: datePos === 'bl' ? 0 : sx - 0.42, X1: datePos === 'bl' ? 0.42 : sx, Y0: sy - 0.15, Y1: sy }];
+    const r2 = rng((o.seed || 1) * 7907 + (datePos === 'bl' ? 29 : 17));
+    for (const sl of slots) {
+      if (!hitsAvoid(sl.spot.X, sl.spot.Y, sl.spot.rad)) continue;
+      placed.splice(placed.indexOf(sl.spot), 1);
+      // 依序放寬：原尺寸 → 縮小 15% → 允許稍微重疊（25%）
+      let pos = null, k = 1;
+      for (const [shrink, tol] of [[1, 0], [0.85, 0], [0.85, 0.25], [0.75, 0.4], [0.7, 0.6]]) {
+        const size = sl.size * shrink;
+        pos = sl.label ? tryPlace(size, o.layout === 'top' ? LABEL_TOP : datePos === 'br' ? LABEL_L : LABEL_R, r2, tol, 400)
+          : sl.anchor === 'bottom' ? placeBottom(size, sl.vh, sl.vw, r2, tol) : tryPlace(size, undefined, r2, tol, 400);
+        if (pos) { k = shrink; break; }
+      }
+      if (pos) {
+        sl.spot = pos.spot; sl.item.x = pos.x; sl.item.y = pos.y;
+        if (k !== 1) sl.item.size *= k;
+      } else sl.drop = true;
+    }
+  }
+  const items = slots.filter((sl) => !sl.drop).map((sl) => sl.item);
   // 畫的順序：大的在下、小的在上、文字最上面
   return items.sort((p, q) => (p.kind === 'text') - (q.kind === 'text') || q.size - p.size);
 }

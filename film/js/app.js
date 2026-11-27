@@ -1215,7 +1215,7 @@ function buildDateUI() {
     b.addEventListener('click', () => { state.date.pos = id; state.date.on = true; syncDateUI(); requestRender(); savePrefs(); });
     ps.append(b);
   }
-  $('#dateOn').addEventListener('change', (e) => { state.date.on = e.target.checked; requestRender(); savePrefs(); });
+  $('#dateOn').addEventListener('change', (e) => { state.date.on = e.target.checked; clearDateArea(); requestRender(); savePrefs(); });
   $('#dateValue').addEventListener('change', (e) => {
     if (!e.target.value) return;
     state.date.value = e.target.value; state.date.on = true; syncDateUI(); requestRender();
@@ -1224,7 +1224,28 @@ function buildDateUI() {
     state.date.value = state.photoDate || todayISO(); state.date.on = true; syncDateUI(); requestRender();
   });
 }
+// 日期戳記那一角（跟 doodles.js 一樣：以照片短邊為單位約 0.42 寬、0.15 高）有貼圖蓋住時，把貼圖移開
+function clearDateArea() {
+  if (!state.date.on || !lastL || !state.stickers.length) return;
+  const L = lastL, S = Math.min(L.pw, L.ph), pad = S * 0.015;
+  const bl = state.date.pos === 'bl';
+  const R = { x0: bl ? L.x : L.x + L.pw - 0.42 * S, x1: bl ? L.x + 0.42 * S : L.x + L.pw, y0: L.y + L.ph - 0.15 * S, y1: L.y + L.ph };
+  let moved = 0;
+  for (const st of state.stickers) {
+    const g = stickerGeom(st, L), rad = (Math.max(g.w, g.h) / 2) * 0.8;
+    const nx = Math.max(R.x0, Math.min(g.cx, R.x1)), ny = Math.max(R.y0, Math.min(g.cy, R.y1));
+    if (Math.hypot(g.cx - nx, g.cy - ny) >= rad) continue;
+    // 往上移或往旁邊移，選移動距離比較短的那個
+    const upY = R.y0 - rad - pad, sideX = bl ? R.x1 + rad + pad : R.x0 - rad - pad;
+    if (Math.abs(g.cy - upY) <= Math.abs(g.cx - sideX)) st.y = (upY - L.y) / L.ph;
+    else st.x = (sideX - L.x) / L.pw;
+    moved++;
+  }
+  if (moved) toast(`已把 ${moved} 個蓋住日期的貼圖移開`);
+}
+
 function syncDateUI() {
+  clearDateArea();
   $('#dateOn').checked = state.date.on;
   $('#dateValue').value = state.date.value;
   $$('#dateFormats .chip').forEach((b) => {
