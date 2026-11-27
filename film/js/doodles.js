@@ -74,8 +74,9 @@ export const PACKS = {
   // 蠟筆塗鴉：畫在照片上的療癒童趣塗鴉（蠟筆筆刷，線條粗細跟著圖案大小，像真的用粉彩筆畫）
   crayon: {
     name: '蠟筆塗鴉', glow: 0,
-    sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
+    sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.22, 0.3] },
     colors: ['#fff3df', '#ffe38a', '#ffb98a', '#ff9fc1', '#9fe3c0', '#8fe0e0'], recolor: 0.3,
+    anchors: { cr2_grass: 'bottom' }, // 小草長在照片底邊，不會飄在天空
     small: { cr2_stars: 2.5, cr2_birds: 1.5, cr2_hearts: 1.2, cr2_starfish: 0.8, cr2_shell: 0.8, cr2_grass: 0.8 },
     medium: {
       cr2_sleepcat: 1, cr2_teacup: 1, cr2_jelly: 1, cr2_firework: 1.2, cr2_teru: 1, cr2_planet: 1,

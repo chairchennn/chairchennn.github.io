@@ -820,7 +820,7 @@ dialog.sheet::backdrop { background: rgba(72, 44, 112, .38); -webkit-backdrop-fi
 .toast {
   position: fixed;
   left: 50%;
-  top: calc(118px + env(safe-area-inset-top, 0px)); /* 預覽上方：不蓋到照片底部和日期戳記 */
+  top: calc(132px + env(safe-area-inset-top, 0px)); /* 預覽上方：不蓋到照片底部、日期戳記和貼圖工具列 */
   transform: translateX(-50%);
   width: max-content;
   z-index: 60;
@@ -985,7 +985,7 @@ dialog.sheet::backdrop { background: rgba(72, 44, 112, .38); -webkit-backdrop-fi
   #stickerCats { flex-wrap: wrap; overflow: visible; }
   .sticker-grid { grid-template-columns: repeat(5, 1fr); }
   .slider { grid-template-columns: 80px 1fr 42px; }
-  .toast { left: calc((100% - 394px) / 2); bottom: 30px; }
+  .toast { left: calc((100% - 394px) / 2); top: auto; bottom: 16px; }
   .count-row .s-label, .slider .s-label { width: 80px; }
 }
 @media (hover: hover) {

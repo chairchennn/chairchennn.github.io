@@ -1494,19 +1494,22 @@ function drawDeco() {
   const ctx = c.getContext('2d');
   ctx.scale(dpr, dpr);
   const W = r.width, H = r.height, S = Math.min(W, H);
-  // 只放在上下兩條（手機上中間是小視窗，放中間會被擋住）
+  // 只放在小視窗上下兩條帶子的正中間（手機上中間是小視窗，放中間會被擋住）
+  const card = $('.empty-card').getBoundingClientRect();
+  const topBand = Math.max(0, card.top - r.top), botBand = Math.max(0, r.bottom - card.bottom - 7);
+  const bands = { t: { y: topBand / 2, h: topBand }, b: { y: H - botBand / 2, h: botBand } };
   const items = [
-    ['cr2_balloon', 0.1, 0.07, 0.14, -0.1], ['cr2_stars', 0.37, 0.06, 0.11, 0.05], ['cr2_whale', 0.63, 0.07, 0.14, 0.05],
-    ['cr2_hearts', 0.9, 0.07, 0.12, 0.2], ['cr2_flower', 0.1, 0.93, 0.12, 0.1], ['cr2_starfish', 0.37, 0.94, 0.11, -0.1],
-    ['cr2_shoot', 0.63, 0.93, 0.12, -0.1], ['cr2_firework', 0.9, 0.93, 0.12, 0],
+    ['cr2_balloon', 0.1, 't', 0.14, -0.1], ['cr2_stars', 0.37, 't', 0.11, 0.05], ['cr2_whale', 0.63, 't', 0.14, 0.05],
+    ['cr2_hearts', 0.9, 't', 0.12, 0.2], ['cr2_flower', 0.1, 'b', 0.12, 0.1], ['cr2_starfish', 0.37, 'b', 0.11, -0.1],
+    ['cr2_shoot', 0.63, 'b', 0.12, -0.1], ['cr2_firework', 0.9, 'b', 0.12, 0],
   ];
-  for (const [id, x, y, s, rot] of items) {
-    const def = STICKERS.find((d) => d.id === id);
-    if (!def) continue;
-    const [vw, vh] = stickerBox(def), size = Math.max(54, S * s), k = size / Math.max(vw, vh);
+  for (const [id, x, band, s, rot] of items) {
+    const def = STICKERS.find((d) => d.id === id), bd = bands[band];
+    if (!def || bd.h < 30) continue;
+    const [vw, vh] = stickerBox(def), size = Math.min(Math.max(44, S * s), bd.h - 12), k = size / Math.max(vw, vh);
     ctx.save();
     ctx.globalAlpha = 0.85;
-    ctx.translate(x * W, y * H);
+    ctx.translate(x * W, bd.y);
     ctx.rotate(rot);
     ctx.translate((-vw * k) / 2, (-vh * k) / 2);
     ctx.scale(k, k);
