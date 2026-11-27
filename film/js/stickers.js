@@ -121,13 +121,12 @@ const rays = (cx, cy, r0, r1, k, c = 'M', w = 4.5, rot = 0) => {
 // 貼圖清單  cat: face 表情 / animal 動物 / travel 旅行 / deco 裝飾 / line 線條
 // ---------------------------------------------------------------------------
 export const STICKERS = [
-  { id: 'sunny', name: '笑臉星芒', cat: 'face', color: Y, parts: [s(starPts(50, 50, 10, 45, 33)), ...face(50, 50, 48)] },
-  { id: 'burst', name: '刺刺球', cat: 'face', color: C, parts: [s(starPts(50, 50, 14, 44, 36, -Math.PI / 2)), ...face(50, 48, 50, 'M', { mouth: 'open' })] },
+  { id: 'sunny', name: '星芒', cat: 'face', color: Y, parts: [s(starPts(50, 50, 10, 45, 33))] },
+  { id: 'burst', name: '刺刺球', cat: 'face', color: C, parts: [s(starPts(50, 50, 14, 44, 36, -Math.PI / 2))] },
   {
     id: 'heart', name: '笑臉愛心', cat: 'face', color: P, parts: [
-      s('M46 88C20 70 6 54 8 38C10 22 30 14 46 32C62 14 84 20 84 38C84 56 70 72 46 88Z'),
-      ...face(46, 48, 48),
-      s('M82 14L88 6'), s('M90 24L98 21'), s('M72 10L72 2'),
+      s('M50 88C24 70 10 54 12 38C14 22 34 14 50 32C66 14 88 20 88 38C88 56 74 72 50 88Z'),
+      ...face(50, 48, 48),
     ]
   },
   { id: 'smiley', name: '笑臉', cat: 'face', color: '#ffb020', parts: [s(circ(50, 50, 40)), ...face(50, 45, 64, 'M', { cheeks: true })] },
@@ -163,13 +162,6 @@ export const STICKERS = [
     ]
   },
 
-  {
-    id: 'boxface', name: '方塊臉', cat: 'face', color: O, parts: [
-      s('M20 26H66Q72 26 72 32V70Q72 76 66 76H20Q14 76 14 70V32Q14 26 20 26Z'),
-      ...face(43, 47, 42),
-      s('M82 38L96 34', 'M', 4), s('M82 51H97', 'M', 4), s('M82 64L96 68', 'M', 4),
-    ]
-  },
   {
     id: 'heartbuddy', name: '愛心人', cat: 'face', color: R, parts: [
       s('M50 78C28 64 16 52 18 38C20 24 36 18 50 34C64 18 80 24 82 38C84 52 72 64 50 78Z'),
@@ -250,12 +242,15 @@ export const STICKERS = [
     ]
   },
   {
-    id: 'film', name: '底片', cat: 'travel', color: C, parts: [
-      s('M14 20H86Q92 20 92 26V74Q92 80 86 80H14Q8 80 8 74V26Q8 20 14 20Z'),
-      s('M22 33H78V67H22Z', 'M', 3.5),
-      ...[16, 28, 40, 52, 64, 76].map((x) => f(`M${x} 24h6v5h-6z`)),
-      ...[16, 28, 40, 52, 64, 76].map((x) => f(`M${x} 71h6v5h-6z`)),
-      ...face(50, 47, 26, P),
+    // 底片罐＋拉出來的片頭（無臉）
+    id: 'film', name: '底片罐', cat: 'travel', color: O, parts: [
+      s('M36 22V13H48V22', 'M', 4),
+      s('M22 22H62V30H22Z', 'M', 4),
+      s('M24 30H60V80Q60 86 54 86H30Q24 86 24 80Z'),
+      s('M24 46H60M24 70H60', 'M', 3),
+      s('M60 40H86L94 48V72H60', 'M', 4),
+      ...[66, 77].map((x) => f(`M${x} 44h6v5h-6z`)),
+      ...[66, 77].map((x) => f(`M${x} 63h6v5h-6z`)),
     ]
   },
   {
@@ -360,7 +355,7 @@ export const STICKERS = [
 //   flora  扁平花草：無描邊的扁平花朵、枝葉
 //   pastel 粉彩線條：細線條小貓、長莖小花、閃光、點點弧線
 // ===========================================================================
-const CREAM = '#fffaf2', CR_LINE = '#e59ba9', CR_PINK = '#f7a8bb';
+const CREAM = '#fffaf2', CR_LINE = '#e6abb4', CR_PINK = '#f7a8bb';
 const KT_LINE = '#3d3332', KT_OR = '#ff9b5e';
 
 function petalD(cx, cy, r0, L, w, ang) {
@@ -375,9 +370,16 @@ function notchPetalD(cx, cy, r0, L, w, ang) {
   return `M${P(r0, 0)}C${P(r0 + (L - r0) * 0.35, -w)} ${P(L * 0.97, -w)} ${P(L, -w * 0.38)}L${P(L * 0.9, 0)}L${P(L, w * 0.38)}` +
     `C${P(L * 0.97, w)} ${P(r0 + (L - r0) * 0.35, w)} ${P(r0, 0)}Z`;
 }
-function radialStar(cx, cy, radii, rot = -Math.PI / 2) {
-  const k = radii.length;
-  return poly(radii.map((r, i) => [cx + r * Math.cos(rot + (i * Math.PI * 2) / k), cy + r * Math.sin(rot + (i * Math.PI * 2) / k)]));
+// 軟角星：每隻角兩側用往外鼓的 Q 曲線，角長可不一（手撕閃光感）
+function softStar(cx, cy, radii, ri, rot = -Math.PI / 2) {
+  const k = radii.length, h = Math.PI / k, at = (r, a) => `${n(cx + r * Math.cos(a))} ${n(cy + r * Math.sin(a))}`;
+  let d = '';
+  radii.forEach((r, i) => {
+    const a = rot + i * 2 * h;
+    if (!i) d += `M${at(ri, a - h)}`;
+    d += `Q${at(ri * 1.35, a - h * 0.45)} ${at(r, a)}Q${at(ri * 1.35, a + h * 0.45)} ${at(ri, a + h)}`;
+  });
+  return d + 'Z';
 }
 function ringOf(cx, cy, k, dist, r) {
   let d = '';
@@ -385,9 +387,21 @@ function ringOf(cx, cy, k, dist, r) {
   return d;
 }
 const CAT_HEAD = 'M20 46Q16 30 21 15Q33 21 40 30Q50 27 60 30Q67 21 79 15Q84 30 80 46Q86 63 74 75Q62 85 50 85Q38 85 26 75Q14 63 20 46Z';
-// 跳躍的小貓（閉合身體，可填色）
-const CAT_JUMP = 'M26 26C40 16 58 16 70 22L71 12L78 18L86 12C92 18 95 26 93 33C91 40 86 43 80 43C86 45 92 47 96 49' +
-  'C99 52 96 56 92 55C86 54 80 52 74 50C62 54 44 54 34 48C26 50 16 54 10 57C5 59 3 54 7 52C14 48 20 44 22 40C16 36 18 30 26 26Z';
+// 跳躍的小貓（閉合身體，可填色）：大頭（約佔身長 1/3）＋兩個三角耳，臉朝正面
+const CAT_JUMP = 'M30 22C42 17 54 17 62 20L65 7Q70 9 74 14Q80 12 86 14L87 6Q93 12 93 22C94 30 90 36 84 39' +
+  'C88 42 94 44 96 47C98 51 94 53 90 52C84 51 76 48 70 45C58 48 44 49 34 45C26 48 18 52 12 54C6 56 4 51 8 49C14 46 20 42 22 38C18 32 22 25 30 22Z';
+const CAT_JUMP_FACE = (eye, blush) => [
+  f(circ(76, 27, 2.1), eye), f(circ(86, 27, 2.1), eye), s('M79.5 31.5q1.5 2 3 0', eye, 1.6),
+  f(ell(72.5, 32, 2.6, 1.6), blush, 0.9), f(ell(89, 32, 2.2, 1.5), blush, 0.9),
+];
+const X4 = [45, 135, 225, 315].map((a) => petalD(50, 50, 2, 44, 24, (a * Math.PI) / 180)).join('');
+const STAR8 = softStar(50, 50, [46, 30, 42, 28, 46, 32, 40, 28], 17, -Math.PI / 2 + 0.12);
+const CANDY = 'M36 22H64Q80 22 80 38V62Q80 78 64 78H36Q20 78 20 62V38Q20 22 36 22Z';
+const CANDY_IN = 'M38 31H62Q71 31 71 40V60Q71 69 62 69H38Q29 69 29 60V40Q29 31 38 31Z';
+const FISH = 'M8 30C8 18 22 12 36 12C50 12 60 20 64 28L80 16Q88 14 88 22L84 30L88 38Q88 46 80 44L64 32C60 40 50 48 36 48C22 48 8 42 8 30Z';
+const TULIP = 'M30 30Q28 56 50 60Q72 56 70 30Q62 32 58 40Q58 26 50 20Q42 26 42 40Q38 32 30 30Z';
+// 繖形花：細莖從一點放射，末端圓珠
+const UMBEL = [-2.5, -2.1, -1.8, -1.5, -1.2, -0.85].map((a, i) => [a, [52, 62, 68, 70, 64, 54][i]]);
 
 const CUTE = [
   // ---------- cream 奶油白 ----------
@@ -395,10 +409,10 @@ const CUTE = [
   { id: 'cr_dotheart', name: '粉紅小心', cat: 'cream', color: CR_PINK, parts: [s(heartD(50, 53, 70), CREAM, 9), f(heartD(50, 53, 70)), f(ell(38, 42, 5, 3.2), '#ffffff', 0.85)] },
   { id: 'cr_flower4', name: '奶油四瓣', cat: 'cream', color: CR_PINK, parts: [f(scallop(50, 50, 4, 12, 58, -Math.PI / 2, 0.02), CREAM), s(scallop(50, 50, 4, 12, 58, -Math.PI / 2, 0.02), CR_LINE, 3.5), f(circ(50, 50, 6))] },
   { id: 'cr_flower5', name: '奶油小花', cat: 'cream', color: CR_PINK, parts: [f(scallop(50, 50, 5, 17, 52), CREAM), s(scallop(50, 50, 5, 17, 52), CR_LINE, 3.5), f(circ(50, 50, 9)), f(circ(47, 47, 2.5), '#ffffff', 0.9)] },
-  { id: 'cr_cross', name: '奶油十字', cat: 'cream', color: CR_PINK, parts: [f('M40 12Q50 6 60 12L60 40L88 40Q94 50 88 60L60 60L60 88Q50 94 40 88L40 60L12 60Q6 50 12 40L40 40Z', CREAM), s('M40 12Q50 6 60 12L60 40L88 40Q94 50 88 60L60 60L60 88Q50 94 40 88L40 60L12 60Q6 50 12 40L40 40Z', CR_LINE, 3.5), f(circ(50, 50, 5))] },
+  { id: 'cr_cross', name: '奶油叉叉花', cat: 'cream', color: CR_PINK, parts: [f(X4, CREAM), s(X4, CR_LINE, 3.5), f(circ(50, 50, 5))] },
   { id: 'cr_sparkle', name: '奶油閃閃', cat: 'cream', color: CR_PINK, parts: [f(sparkleD(50, 50, 44, 0.24), CREAM), s(sparkleD(50, 50, 44, 0.24), CR_LINE, 3.5), s('M44 34Q46 30 49 28', 'M', 3)] },
-  { id: 'cr_bigstar', name: '大閃光', cat: 'cream', color: CR_PINK, parts: [f(radialStar(50, 50, [47, 13, 34, 12, 44, 13, 30, 12, 46, 13, 33, 12]), CREAM), s(radialStar(50, 50, [47, 13, 34, 12, 44, 13, 30, 12, 46, 13, 33, 12]), CR_LINE, 3)] },
-  { id: 'cr_candy', name: '棉花糖', cat: 'cream', color: CR_PINK, parts: [f('M32 16H68Q84 16 84 32V68Q84 84 68 84H32Q16 84 16 68V32Q16 16 32 16Z', CREAM), s('M32 16H68Q84 16 84 32V68Q84 84 68 84H32Q16 84 16 68V32Q16 16 32 16Z', CR_LINE, 3.5), s('M28 36Q28 28 36 27', 'M', 4)] },
+  { id: 'cr_bigstar', name: '大閃光', cat: 'cream', color: CR_PINK, parts: [f(STAR8, CREAM), s(STAR8, CR_LINE, 3.2)] },
+  { id: 'cr_candy', name: '棉花糖', cat: 'cream', color: CR_PINK, parts: [f(CANDY, CREAM), s(CANDY, CR_LINE, 3.5), s(CANDY_IN, CR_LINE, 2.2, 0.55), s('M33 40Q33 35 38 34', 'M', 3.5)] },
   { id: 'cr_swirl', name: '奶油漩渦', cat: 'cream', color: CR_PINK, parts: [f(circ(50, 50, 40), CREAM), s(circ(50, 50, 40), CR_LINE, 3.5), s(spiralD(50, 50, 2.2, 2, 28), 'M', 4)] },
   { id: 'cr_bow', name: '奶油蝴蝶結', cat: 'cream', color: CR_PINK, parts: [f('M50 48C36 24 10 28 12 46C14 64 36 62 50 48Z', CREAM), f('M50 48C64 24 90 28 88 46C86 64 64 62 50 48Z', CREAM), s('M50 48C36 24 10 28 12 46C14 64 36 62 50 48Z', CR_LINE, 3.5), s('M50 48C64 24 90 28 88 46C86 64 64 62 50 48Z', CR_LINE, 3.5), s('M45 52L36 80M55 52L64 80', CR_LINE, 3.5), f(circ(50, 48, 7))] },
 
@@ -424,11 +438,11 @@ const CUTE = [
   },
   {
     id: 'kt_fish', name: '小魚', cat: 'kitty', color: KT_OR, vb: [100, 60], parts: [
-      f('M10 30Q32 6 62 20L84 8Q78 30 84 52L62 40Q32 54 10 30Z'), s('M10 30Q32 6 62 20L84 8Q78 30 84 52L62 40Q32 54 10 30Z', '#ffffff', 3.5),
-      f(circ(25, 27, 3.2), KT_LINE), s('M38 18Q33 30 38 42', '#ffffff', 3), s('M48 22L52 26M48 34L52 30', '#ffffff', 2.4, 0.8),
+      f(FISH), s(FISH, KT_LINE, 2.6),
+      f(circ(22, 28, 3.2), KT_LINE), s('M44 20Q39 30 44 40', '#ffffff', 3, 0.5), f(ell(28, 36, 3.5, 2), CH, 0.85),
     ]
   },
-  { id: 'kt_blossom', name: '小白花', cat: 'kitty', color: '#ffad55', parts: [f(scallop(50, 50, 5, 18, 54), '#ffffff'), s(scallop(50, 50, 5, 18, 54), '#f3d2b5', 2.5), f(circ(50, 50, 10))] },
+  { id: 'kt_blossom', name: '小白花', cat: 'kitty', color: '#ffad55', parts: [f(scallop(50, 50, 5, 18, 54), '#ffffff'), s(scallop(50, 50, 5, 18, 54), KT_LINE, 2.4), f(circ(50, 50, 10))] },
   { id: 'kt_blossom2', name: '橘色小花', cat: 'kitty', color: '#ff9e5e', parts: [f(scallop(50, 50, 5, 18, 54)), f(circ(50, 50, 10), '#fff1d6')] },
   {
     id: 'kt_yarn', name: '毛線球', cat: 'kitty', color: '#ffb3c7', parts: [
@@ -468,27 +482,33 @@ const CUTE = [
       f(ell(27, 56, 4, 3)), f(ell(46, 52, 4, 3)), f(ell(62, 66, 4, 3)),
     ]
   },
-  { id: 'fl_tulip', name: '鬱金香', cat: 'flora', color: '#f39552', parts: [s('M50 96Q47 74 50 52', '#9cc47a', 3.5), f(petalD(48, 86, 0, 24, 7, -2.4), '#9cc47a'), f('M32 30Q34 52 50 56Q66 52 68 30L59 38L50 24L41 38Z')] },
-  { id: 'fl_fern', name: '扇形葉', cat: 'flora', color: '#94d3bd', parts: [f([-2.6, -2.1, -1.57, -1.04, -0.54].map((a, i) => petalD(50, 92, 3, [62, 74, 80, 74, 62][i], 8, a)).join('')), s([-2.6, -2.1, -1.57, -1.04, -0.54].map((a, i) => `M50 92L${n(50 + Math.cos(a) * [52, 64, 70, 64, 52][i])} ${n(92 + Math.sin(a) * [52, 64, 70, 64, 52][i])}`).join(''), '#ffffff', 1.6, 0.6)] },
+  { id: 'fl_tulip', name: '鬱金香', cat: 'flora', color: '#f39552', parts: [s('M50 96Q47 76 50 58', '#9cc47a', 3.5), f(petalD(48, 86, 0, 24, 7, -2.4), '#9cc47a'), f(TULIP)] },
+  {
+    id: 'fl_fern', name: '薄荷繖花', cat: 'flora', color: '#94d3bd', parts: [
+      s(UMBEL.map(([a, L]) => `M50 94L${n(50 + L * Math.cos(a))} ${n(94 + L * Math.sin(a))}`).join(''), '#c9e3a0', 2.2),
+      f(UMBEL.map(([a, L]) => circ(50 + (L + 5) * Math.cos(a), 94 + (L + 5) * Math.sin(a), 6)).join('')),
+      f(UMBEL.map(([a, L]) => circ(48.5 + (L + 6) * Math.cos(a), 92.5 + (L + 6) * Math.sin(a), 2)).join(''), '#ffffff', 0.8),
+    ]
+  },
 
   // ---------- pastel 粉彩線條 ----------
   {
     id: 'pl_catjump', name: '跳躍小貓', cat: 'pastel', color: '#ffffff', vb: [100, 64], parts: [
-      f(CAT_JUMP, 'M', 0.22), s(CAT_JUMP, 'M', 3), s('M24 28C12 28 6 20 9 8', 'M', 3),
-      s('M46 19L47 25M54 18L54 24M62 19L61 25', '#ffb36b', 2.6),
-      f(ell(85, 29, 1.9, 2.4)), f(ell(89, 35, 2.6, 1.6), CH, 0.9),
+      f(CAT_JUMP, 'M', 0.9), s(CAT_JUMP, 'M', 3), s('M21 31C10 30 5 22 9 10', 'M', 3),
+      s('M40 19L41 25M47 18L47 24M54 18.5L53 24.5', '#ffb36b', 2.6),
+      ...CAT_JUMP_FACE(KT_LINE, CH),
     ]
   },
   {
     id: 'pl_gradcat', name: '漸層小貓', cat: 'pastel', color: '#ffffff', vb: [100, 64], parts: [
-      { d: CAT_JUMP, f: { lg: [8, 50, 92, 20, '#9fd8f5', '#ffb7d0'] } }, s(CAT_JUMP, 'M', 2.6), s('M24 28C12 28 6 20 9 8', '#ffb7d0', 3.4),
-      f(ell(85, 29, 1.9, 2.4), KT_LINE), f(ell(89, 35, 2.6, 1.6), '#ff8fb0', 0.9),
+      { d: CAT_JUMP, f: { lg: [8, 50, 92, 20, '#a8ecd2', '#ffc79e'] }, a: 0.9 }, s(CAT_JUMP, 'M', 2.6), s('M21 31C10 30 5 22 9 10', '#ffc79e', 3.4),
+      ...CAT_JUMP_FACE(KT_LINE, '#ff8fb0'),
     ]
   },
   {
     id: 'pl_catsit', name: '坐著的貓', cat: 'pastel', color: '#ffd7e6', parts: [
       s('M44 24L42 8L54 16Q60 14 66 16L76 6L76 24Q82 34 74 42Q80 56 78 72Q76 84 70 90Q56 94 40 92Q24 88 24 72Q24 56 40 44Q38 34 44 24Z', 'M', 3),
-      s('M26 84Q10 88 10 74Q10 62 22 64', 'M', 3),
+      s('M73 88Q94 89 95 74Q95 64 89 63', 'M', 3),
       f(circ(53, 28, 2)), f(circ(67, 28, 2)), s('M57 33q3 3 6 0', 'M', 2.2), f(ell(48, 33, 3, 2), CH, 0.9), f(ell(72, 33, 3, 2), CH, 0.9),
     ]
   },

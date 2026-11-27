@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <title>FilmDoodle · 底片塗鴉機</title>
-<meta name="description" content="上傳照片，套上理光、富士風格的底片色調、底片邊框和手繪塗鴉貼圖。照片只在你的裝置上處理，不會上傳。">
+<meta name="description" content="上傳照片，一鍵加上可愛的手繪塗鴉框、閃光燈底片色調、底片相框與貼圖。照片只在你的裝置上處理，不會上傳。">
 <meta name="theme-color" content="#15120f">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
@@ -54,7 +54,7 @@
         <canvas class="deco" id="decoCanvas" aria-hidden="true"></canvas>
         <div class="empty-card">
           <h1>把照片變成<span>底片</span></h1>
-          <p>一鍵塗鴉邊框 · 理光、富士風格色調 · 底片相框 · 手繪貼圖</p>
+          <p>一鍵塗鴉框 · 閃光燈底片色調 · 底片相框 · 手繪貼圖</p>
           <button class="primary-btn big" id="btnPick" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             <span>選擇一張照片</span>
@@ -131,7 +131,7 @@
             <input type="range" min="0" max="100" value="100" data-adj="intensity">
             <output>100</output>
           </label>
-          <p class="note">色調是參考各家底片／相機風格的模擬，與理光、富士、柯達等公司無關。</p>
+          <p class="note">色調為一般底片風格的模擬，非任何廠商官方數值。</p>
         </section>
 
         <!-- 塗鴉框 -->
@@ -141,37 +141,40 @@
             <div class="count-row">
               <span class="s-label">圖案數量</span>
               <button class="round-btn" type="button" id="doodleLess" aria-label="少一點">−</button>
-              <input type="range" min="4" max="40" value="20" id="doodleCount" aria-label="圖案數量">
+              <output id="doodleCountOut" aria-live="polite">20 個</output>
               <button class="round-btn" type="button" id="doodleMore" aria-label="多一點">＋</button>
-              <output>20 個</output>
+              <button class="chip strong" type="button" id="btnDoodleShuffle">🎲 換一組</button>
             </div>
             <label class="slider">
               <span class="s-label">圖案大小</span>
               <input type="range" min="60" max="150" value="100" id="doodleScale">
               <output>100%</output>
             </label>
-            <div class="sub doodle-actions">
-              <button class="chip strong" type="button" id="btnDoodleShuffle">🎲 換一組</button>
-              <button class="chip" type="button" id="btnDoodleEdit">轉成貼圖（可個別移動、刪除）</button>
-            </div>
-            <div class="sub">
-              <span class="sub-label">排列</span>
-              <div class="chips" id="doodleLayouts"></div>
-            </div>
-            <div class="sub">
-              <span class="sub-label">圖案風格</span>
-              <div class="chips" id="doodlePacks"></div>
-            </div>
-            <label class="field">
-              <span class="sub-label">加文字</span>
-              <input type="text" id="doodleLabel" maxlength="24" placeholder="例如：Australia、東京、Summer" autocomplete="off">
-            </label>
-            <div class="sub">
-              <span class="sub-label">文字樣式</span>
-              <div class="chips" id="doodleLabelStyles"></div>
-            </div>
+            <details class="advanced" id="doodleAdvanced">
+              <summary>進階：排列、風格、加文字、轉成貼圖</summary>
+              <div class="sub">
+                <span class="sub-label">排列</span>
+                <div class="chips" id="doodleLayouts"></div>
+              </div>
+              <div class="sub">
+                <span class="sub-label">圖案風格</span>
+                <div class="chips" id="doodlePacks"></div>
+              </div>
+              <label class="field">
+                <span class="sub-label">加文字</span>
+                <input type="text" id="doodleLabel" maxlength="24" placeholder="例如：Australia、東京、Summer" autocomplete="off">
+              </label>
+              <div class="sub">
+                <span class="sub-label">文字樣式</span>
+                <div class="chips" id="doodleLabelStyles"></div>
+              </div>
+              <div class="sub">
+                <span class="sub-label">個別調整</span>
+                <button class="chip" type="button" id="btnDoodleEdit">轉成貼圖</button>
+              </div>
+            </details>
           </div>
-          <p class="note">選一種塗鴉框，照片邊緣就會自動撒上手繪塗鴉；用「圖案數量」調多少，不喜歡這一組就按「換一組」。</p>
+          <p class="note">選一種塗鴉框，照片邊緣會自動撒上手繪塗鴉。用「圖案數量」調多少；不喜歡這一組就按「換一組」；想移動某個塗鴉，到「進階」按「轉成貼圖」。</p>
         </section>
 
         <!-- 調整 -->
@@ -311,12 +314,13 @@
 <dialog class="sheet" id="infoDialog" aria-labelledby="infoTitle">
   <div class="sheet-body prose">
     <h2 id="infoTitle">關於 FilmDoodle</h2>
-    <p>把手機或相機照片變成底片感：選底片色調、加上 35mm 齒孔、拍立得、instax 或幻燈片邊框，再貼上手繪塗鴉貼圖。</p>
+    <p>把手機或相機照片變成底片感：選底片色調、加上 35mm 齒孔、拍立得、迷你相紙或幻燈片相框，再貼上手繪塗鴉貼圖。</p>
     <h3>隱私</h3>
     <ul>
       <li>照片只在你的瀏覽器裡處理，沒有伺服器、不會上傳。</li>
       <li>匯出的照片是重新繪製的 JPG，不帶 GPS 位置、相機型號等 EXIF 資訊。</li>
       <li>只記住你上次用的底片和邊框設定（存在這台裝置）。</li>
+      <li>字型由 Google Fonts 載入（會連到 Google 的伺服器，但照片不會）。</li>
     </ul>
     <h3>加到主畫面</h3>
     <ul>
@@ -325,7 +329,7 @@
       <li><b>電腦</b>：Chrome / Edge 網址列右邊的安裝圖示。</li>
     </ul>
     <h3>說明</h3>
-    <p>底片色調為參考各品牌底片與相機風格的模擬，非官方數值，與理光、富士、柯達等公司無關。所有貼圖皆為原創手繪風格。</p>
+    <p>色調為一般底片風格的模擬，非任何廠商官方數值。所有貼圖與塗鴉皆為原創繪製。</p>
     <p class="muted">Made by <a href="../">Claire Chen</a></p>
     <div class="sheet-actions">
       <button class="primary-btn" type="button" id="btnCloseInfo">好</button>

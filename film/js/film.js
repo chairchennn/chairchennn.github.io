@@ -1,6 +1,6 @@
 // FilmDoodle — 底片色調引擎
 // 每個底片預設 = 一組色彩參數 → 烘焙成 3D LUT（33³）→ 每個像素用四面體內插查表。
-// 這些都是「風格模擬」，不是相機廠商的官方數值。
+// 色調為一般底片風格的模擬，非任何廠商官方數值。
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 const toLin = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
@@ -15,14 +15,14 @@ export const PRESETS = [
   { id: 'none', name: '原色', sub: 'Original', fx: { grain: 0, vignette: 0, halation: 0 } },
   {
     id: 'flash', name: '閃光底片', sub: '開閃光燈',
-    exp: 0.05, wb: { temp: 0.04, tint: -0.03 }, contrast: 0.2, sat: 1.08, vib: 0.05,
+    exp: 0.05, wb: { temp: 0.02, tint: -0.03 }, contrast: 0.26, sat: 1.08, vib: 0.05,
     hue: [{ c: 120, w: 55, h: 8, s: 0.92 }, { c: 25, w: 30, s: 1.05, l: 0.02 }, { c: 210, w: 45, h: -6, s: 0.9 }],
     curves: { all: [[0, 0.05], [0.25, 0.24], [0.75, 0.8], [1, 0.97]], g: [[0, 0.015], [0.5, 0.51], [1, 1]] },
     split: { sh: [-0.015, 0.02, 0.012], hi: [0.02, 0.012, -0.015] },
-    fx: { grain: 0.28, vignette: 0.16, halation: 0.15, flash: 0.6, soften: 0.35 },
+    fx: { grain: 0.32, vignette: 0.3, halation: 0.22, flash: 0.85, soften: 0.25 },
   },
   {
-    id: 'gr-pos', name: '理光 正片', sub: 'Positive', brand: 'ricoh',
+    id: 'gr-pos', name: '正片風', sub: '濃郁飽和',
     wb: { temp: 0.02, tint: 0.015 }, contrast: 0.24, sat: 1.2, vib: 0.08,
     hue: [{ c: 0, w: 40, h: -3, s: 1.12 }, { c: 30, w: 32, h: -3, s: 1.1 }, { c: 58, w: 36, h: -6, s: 1.05 },
       { c: 120, w: 60, h: -6, s: 0.92 }, { c: 210, w: 50, h: 5, s: 1.08, l: -0.02 }],
@@ -31,7 +31,7 @@ export const PRESETS = [
     fx: { grain: 0.14, vignette: 0.16, halation: 0, soften: 0.25 },
   },
   {
-    id: 'gr-neg', name: '理光 負片', sub: 'Negative', brand: 'ricoh',
+    id: 'gr-neg', name: '負片風', sub: '低反差・淡青',
     wb: { temp: -0.02, tint: -0.035 }, contrast: -0.14, sat: 0.74,
     hue: [{ c: 0, w: 40, h: 6, s: 0.86 }, { c: 58, w: 36, s: 0.8 }, { c: 120, w: 60, h: 12, s: 0.7 }, { c: 215, w: 50, h: -8, s: 0.82 }],
     curves: { all: [[0, 0.06], [0.25, 0.28], [0.75, 0.76], [1, 0.95]], g: [[0, 0.01], [0.5, 0.52], [1, 1]], b: [[0, 0.04], [0.5, 0.5], [1, 0.96]] },
@@ -39,13 +39,13 @@ export const PRESETS = [
     fx: { grain: 0.2, vignette: 0.1, halation: 0, soften: 0.25 },
   },
   {
-    id: 'gr-bleach', name: '理光 漂白', sub: 'Bleach Bypass', brand: 'ricoh',
+    id: 'gr-bleach', name: '漂白風', sub: 'Bleach Bypass',
     wb: { temp: -0.03 }, contrast: 0.42, sat: 0.45,
     curves: { all: [[0, 0], [0.2, 0.14], [0.8, 0.88], [1, 1]] },
     fx: { grain: 0.22, vignette: 0.25, halation: 0, soften: 0.25 },
   },
   {
-    id: 'fuji-cc', name: '富士 Classic Chrome', sub: 'Classic Chrome', brand: 'fuji',
+    id: 'fuji-cc', name: '紀實灰調', sub: '低飽和・硬陰影',
     contrast: 0.18, sat: 0.8,
     hue: [{ c: 0, w: 35, h: 6, s: 0.8, l: -0.03 }, { c: 30, w: 30, s: 0.92 }, { c: 60, w: 35, h: -6, s: 0.75 },
       { c: 110, w: 50, h: -14, s: 0.62 }, { c: 180, w: 40, h: 8, s: 0.82 }, { c: 222, w: 45, h: -12, s: 0.78, l: -0.02 }],
@@ -54,7 +54,7 @@ export const PRESETS = [
     fx: { grain: 0.12, vignette: 0.12, halation: 0, soften: 0.25 },
   },
   {
-    id: 'fuji-cn', name: '富士 Classic Neg.', sub: 'Classic Neg.', brand: 'fuji',
+    id: 'fuji-cn', name: '懷舊負片', sub: '青綠暗部・相簿感',
     contrast: 0.2, sat: 0.92,
     hue: [{ c: 355, w: 35, h: -6, s: 0.96 }, { c: 58, w: 36, h: -8, s: 0.8 }, { c: 120, w: 55, h: 18, s: 0.62 },
       { c: 185, w: 40, s: 0.92 }, { c: 215, w: 45, h: -10, s: 0.86 }],
@@ -66,14 +66,14 @@ export const PRESETS = [
     fx: { grain: 0.18, vignette: 0.15, halation: 0, soften: 0.25 },
   },
   {
-    id: 'fuji-velvia', name: '富士 Velvia', sub: 'Velvia', brand: 'fuji',
+    id: 'fuji-velvia', name: '鮮豔風景', sub: '高飽和反轉片',
     wb: { temp: -0.02, tint: 0.03 }, contrast: 0.3, sat: 1.36, vib: 0.1,
     hue: [{ c: 0, w: 40, s: 1.12 }, { c: 120, w: 55, h: -4, s: 1.1 }, { c: 205, w: 50, h: 4, s: 0.95, l: -0.05 }],
     curves: { all: [[0, 0], [0.2, 0.15], [0.8, 0.86], [1, 1]] },
     fx: { grain: 0.08, vignette: 0.2, halation: 0, soften: 0.25 },
   },
   {
-    id: 'fuji-400h', name: '富士 Pro 400H', sub: '粉嫩空氣感', brand: 'fuji',
+    id: 'fuji-400h', name: '粉嫩空氣', sub: '淡粉・薄荷綠',
     exp: 0.15, wb: { temp: -0.03, tint: -0.02 }, contrast: -0.18, sat: 0.86,
     hue: [{ c: 0, w: 35, h: -4, s: 0.9 }, { c: 58, w: 36, s: 0.8 }, { c: 120, w: 55, h: 16, s: 0.75 }, { c: 210, w: 45, h: -6, s: 0.82 }],
     curves: { all: [[0, 0.05], [0.5, 0.53], [1, 0.98]], g: [[0, 0.01], [0.5, 0.52], [1, 1]] },
@@ -81,7 +81,7 @@ export const PRESETS = [
     fx: { grain: 0.14, vignette: 0.06, halation: 0, soften: 0.25 },
   },
   {
-    id: 'fuji-superia', name: '富士 Superia 400', sub: 'Superia', brand: 'fuji',
+    id: 'fuji-superia', name: '日常負片', sub: '偏綠・街頭感',
     wb: { temp: -0.02, tint: -0.05 }, contrast: 0.15, sat: 1.08,
     hue: [{ c: 0, w: 35, h: -4, s: 1.08 }, { c: 120, w: 55, h: 6, s: 1.04 }],
     curves: { g: [[0, 0.01], [0.45, 0.48], [1, 1]], b: [[0, 0.03], [0.5, 0.5], [1, 0.95]] },
@@ -89,7 +89,7 @@ export const PRESETS = [
     fx: { grain: 0.24, vignette: 0.15, halation: 0.08, flash: 0.3, soften: 0.25 },
   },
   {
-    id: 'kodak-portra', name: '柯達 Portra 400', sub: '溫柔膚色', brand: 'kodak',
+    id: 'kodak-portra', name: '溫柔膚色', sub: '人像負片',
     exp: 0.05, wb: { temp: 0.07 }, contrast: -0.06, sat: 0.93,
     hue: [{ c: 0, w: 30, s: 0.95 }, { c: 25, w: 35, h: 2, s: 1.05, l: 0.02 }, { c: 55, w: 35, h: -6, s: 0.85 },
       { c: 110, w: 50, h: -10, s: 0.72 }, { c: 215, w: 45, h: -8, s: 0.8 }],
@@ -98,7 +98,7 @@ export const PRESETS = [
     fx: { grain: 0.16, vignette: 0.08, halation: 0, soften: 0.25 },
   },
   {
-    id: 'kodak-gold', name: '柯達 Gold 200', sub: '金黃懷舊', brand: 'kodak',
+    id: 'kodak-gold', name: '金黃懷舊', sub: '暖黃・夏日',
     wb: { temp: 0.14 }, contrast: 0.1, sat: 1.12,
     hue: [{ c: 30, w: 30, s: 1.1 }, { c: 55, w: 35, h: -4, s: 1.2 }, { c: 110, w: 50, h: -10, s: 0.85 }, { c: 215, w: 45, s: 0.9 }],
     curves: { r: [[0, 0], [0.5, 0.53], [1, 1]], b: [[0, 0], [0.5, 0.47], [1, 0.94]] },
@@ -106,7 +106,7 @@ export const PRESETS = [
     fx: { grain: 0.22, vignette: 0.15, halation: 0.08, flash: 0.3, soften: 0.25 },
   },
   {
-    id: 'cine-800t', name: '電影 800T', sub: '夜景鎢絲燈', brand: 'cine',
+    id: 'cine-800t', name: '電影夜景', sub: '鎢絲燈・暖燈青影',
     wb: { temp: -0.22, tint: 0.02 }, contrast: 0.12, sat: 1.0,
     hue: [{ c: 0, w: 35, s: 1.2, l: 0.02 }, { c: 30, w: 30, h: -6 }, { c: 120, w: 55, h: 14, s: 0.7 }, { c: 190, w: 40, s: 1.1 }],
     curves: { b: [[0, 0.04], [0.5, 0.52], [1, 0.98]] },
@@ -114,21 +114,21 @@ export const PRESETS = [
     fx: { grain: 0.25, vignette: 0.18, halation: 0.45, soften: 0.25 },
   },
   {
-    id: 'disposable', name: '拋棄式相機', sub: '閃光燈派對', brand: 'other',
+    id: 'disposable', name: '拋棄式相機', sub: '暖色日常',
     exp: 0.1, wb: { temp: 0.08, tint: -0.04 }, contrast: 0.32, sat: 1.15,
     hue: [{ c: 120, w: 55, h: -6, s: 1.05 }],
     curves: { g: [[0, 0.02], [0.5, 0.52], [1, 1]] },
     split: { sh: [-0.01, 0.025, 0] }, fade: 0.03,
-    fx: { grain: 0.32, vignette: 0.3, halation: 0.12, flash: 0.75, soften: 0.3 },
+    fx: { grain: 0.32, vignette: 0.28, halation: 0.12, flash: 0.35, soften: 0.3 },
   },
   {
-    id: 'bw-acros', name: '黑白 ACROS', sub: '細緻黑白', brand: 'fuji',
+    id: 'bw-acros', name: '細緻黑白', sub: '柔和灰階',
     bw: [0.3, 0.6, 0.1], contrast: 0.2,
     curves: { all: [[0, 0.02], [0.25, 0.2], [0.75, 0.8], [1, 0.98]] },
     fx: { grain: 0.18, vignette: 0.15, halation: 0, soften: 0.25 },
   },
   {
-    id: 'bw-trix', name: '黑白 Tri-X', sub: '高反差顆粒', brand: 'kodak',
+    id: 'bw-trix', name: '顆粒黑白', sub: '高反差・粗顆粒',
     bw: [0.4, 0.45, 0.15], contrast: 0.45,
     curves: { all: [[0, 0], [0.15, 0.08], [0.85, 0.93], [1, 1]] },
     fx: { grain: 0.45, vignette: 0.22, halation: 0, soften: 0.25 },
@@ -494,16 +494,18 @@ export function applyFlash(px, w, h, amount) {
   const cx = w * 0.5, cy = h * 0.44, R2 = (w * w + h * h) / 4, G = new Float32Array(1025);
   for (let i = 0; i <= 1024; i++) {
     const r = Math.sqrt((i / 1024) * 1.6);
-    G[i] = Math.pow(2, Math.max(-1.6 * amount, amount * (0.55 - 1.55 * Math.pow(r, 1.6)))) * 1024;
+    G[i] = Math.pow(2, Math.max(-2 * amount, amount * (0.6 - 2 * Math.pow(r, 1.4)))) * 1024;
   }
+  const cool = 0.06 * amount;
   for (let y = 0; y < h; y++) {
     const dy = (y - cy) * (y - cy);
     let p = y * w * 4;
     for (let x = 0; x < w; x++, p += 4) {
       const g = G[Math.min(1024, ((((x - cx) * (x - cx) + dy) / R2) * 640) | 0)];
-      px[p] = SHOULDER[Math.min(3071, (LIN8[px[p]] * g) | 0)];
+      const c = g > 1024 ? 1 + cool * (g / 1024 - 1) : 1;
+      px[p] = SHOULDER[Math.min(3071, ((LIN8[px[p]] * g) / c) | 0)];
       px[p + 1] = SHOULDER[Math.min(3071, (LIN8[px[p + 1]] * g) | 0)];
-      px[p + 2] = SHOULDER[Math.min(3071, (LIN8[px[p + 2]] * g) | 0)];
+      px[p + 2] = SHOULDER[Math.min(3071, LIN8[px[p + 2]] * g * c | 0)];
     }
   }
 }

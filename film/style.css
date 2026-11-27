@@ -598,9 +598,23 @@ dialog.sheet::backdrop { background: rgba(8, 6, 4, .7); -webkit-backdrop-filter:
 /* doodle frames */
 .doodle-actions { margin-top: 4px; }
 .doodle-actions .chip { min-height: 34px; }
-/* 圖案數量：一眼看得到的 − 滑桿 ＋ */
-.count-row { display: grid; grid-template-columns: 70px 32px 1fr 32px 48px; align-items: center; gap: 8px; min-height: 40px; }
-.count-row output { text-align: right; font: 600 13px/1 var(--round); color: var(--fg); }
-.round-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); font-size: 18px; line-height: 1; padding: 0; }
-.round-btn:active { background: var(--panel3); }
-@media (min-width: 900px) { .count-row { grid-template-columns: 80px 32px 1fr 32px 48px; } }
+/* 圖案數量：− N 個 ＋，換一組就在旁邊（手機首屏看得到） */
+.count-row { display: flex; align-items: center; gap: 6px; min-height: 44px; }
+.count-row .s-label { width: 70px; flex: none; }
+.count-row output { min-width: 52px; text-align: center; font: 700 15px/1 var(--round); color: var(--fg); font-variant-numeric: tabular-nums; }
+.count-row .chip { margin-left: auto; }
+/* 看起來 36px、可以點的範圍 44px */
+.round-btn {
+  width: 44px; height: 44px; padding: 4px; border: 0; border-radius: 50%;
+  background: transparent; font-size: 20px; line-height: 1; color: var(--fg);
+  display: grid; place-items: center; position: relative;
+}
+.round-btn::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); z-index: -1; }
+.round-btn { z-index: 0; }
+.round-btn:active::before { background: var(--panel3); }
+.advanced { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 4px; }
+.advanced summary { cursor: pointer; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--muted); list-style: none; }
+.advanced summary::-webkit-details-marker { display: none; }
+.advanced summary::before { content: "▸ "; color: var(--accent); }
+.advanced[open] summary::before { content: "▾ "; }
+@media (min-width: 900px) { .count-row .s-label, .slider .s-label { width: 80px; } }

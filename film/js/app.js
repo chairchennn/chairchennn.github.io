@@ -2,7 +2,7 @@
 import {
   PRESETS, developBase, applyFx, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, formatDate,
 } from './film.js';
-import { DOODLE_PRESETS, LAYOUTS, PACKS, generateDoodles } from './doodles.js';
+import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, generateDoodles } from './doodles.js';
 import {
   FRAMES, FRAME_COLORS, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
@@ -52,7 +52,7 @@ const state = {
   orig: null, full: null, preview: null, thumb: null, srcVersion: 0, rotation: 0, photoDate: null,
   preset: 'flash',
   adj: defaultAdj('flash'),
-  doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, scale: 100, seed: 1, label: '', labelStyle: 'bubble' },
+  doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, label: '', labelStyle: 'bubble' },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, cropPos: 0.5, seed: 7 },
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br' },
   glow: true,
@@ -79,7 +79,8 @@ function loadPrefs() {
     if (p.date) for (const k of ['on', 'format', 'color', 'pos']) if (typeof p.date[k] === typeof state.date[k]) state.date[k] = p.date[k];
     if (typeof p.glow === 'boolean') state.glow = p.glow;
     if (p.doodle && DOODLE_PRESETS.some((d) => d.id === p.doodle.preset)) {
-      for (const k of ['preset', 'pack', 'layout', 'count', 'scale', 'labelStyle']) if (typeof p.doodle[k] === typeof state.doodle[k]) state.doodle[k] = p.doodle[k];
+      for (const k of ['preset', 'pack', 'layout', 'count', 'scale', 'labelStyle', 'countTouched']) if (typeof p.doodle[k] === typeof state.doodle[k]) state.doodle[k] = p.doodle[k];
+      state.doodle.count = Math.min(COUNT_MAX, Math.max(COUNT_MIN, state.doodle.count));
     }
     if (['film', 'doodle', 'adjust', 'frame', 'sticker', 'date'].includes(p.tab)) state.tab = p.tab;
   } catch { /* 無法讀取就用預設值 */ }
@@ -177,7 +178,8 @@ function makeSample() {
 const SAMPLE = makeSample();
 
 // ---------------------------------------------------------------- stickers: geometry + draw
-const defOf = (st) => STICKERS.find((d) => d.id === st.id);
+const FALLBACK_DEF = STICKERS.find((d) => d.id === 'sparkle') || STICKERS[0];
+const defOf = (st) => STICKERS.find((d) => d.id === st.id) || FALLBACK_DEF;
 const measureCtx = makeCanvas(4, 4).getContext('2d');
 
 function textLayout(st, h) {
@@ -961,9 +963,12 @@ function buildDoodlePane() {
   chipRow($('#doodleLayouts'), LAYOUTS, 'layout');
   chipRow($('#doodlePacks'), Object.entries(PACKS).map(([id, pk]) => [id, pk.name]), 'pack');
   chipRow($('#doodleLabelStyles'), TEXT_STYLES, 'labelStyle');
-  $('#doodleCount').addEventListener('input', (e) => { state.doodle.count = +e.target.value; syncDoodleUI(); requestRender(); savePrefs(); });
   $('#doodleScale').addEventListener('input', (e) => { state.doodle.scale = +e.target.value; syncDoodleUI(); requestRender(); savePrefs(); });
-  const stepCount = (d) => { state.doodle.count = Math.min(40, Math.max(4, state.doodle.count + d)); syncDoodleUI(); requestRender(); savePrefs(); };
+  const stepCount = (d) => {
+    state.doodle.count = Math.min(COUNT_MAX, Math.max(COUNT_MIN, state.doodle.count + d));
+    state.doodle.countTouched = true;
+    syncDoodleUI(); requestRender(); savePrefs();
+  };
   $('#doodleLess').addEventListener('click', () => stepCount(-2));
   $('#doodleMore').addEventListener('click', () => stepCount(2));
   $('#doodleLabel').addEventListener('input', async (e) => {
@@ -994,7 +999,11 @@ function buildDoodlePane() {
 function selectDoodle(id) {
   const p = DOODLE_PRESETS.find((x) => x.id === id);
   state.doodle.preset = id;
-  if (p.pack) Object.assign(state.doodle, { pack: p.pack, layout: p.layout, count: p.count, scale: 100 });
+  if (p.pack) {
+    Object.assign(state.doodle, { pack: p.pack, layout: p.layout });
+    // 使用者自己調過數量就保留她的數字，沒調過就用這一款的預設
+    if (!state.doodle.countTouched) state.doodle.count = p.count;
+  }
   syncDoodleUI();
   requestRender();
   savePrefs();
@@ -1008,8 +1017,9 @@ function syncDoodleUI() {
   $$('#doodleLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.layout)));
   $$('#doodlePacks .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.pack)));
   $$('#doodleLabelStyles .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.labelStyle)));
-  $('#doodleCount').value = d.count;
-  $('#doodleCount').parentElement.querySelector('output').textContent = `${d.count} 個`;
+  $('#doodleCountOut').textContent = `${d.count} 個`;
+  $('#doodleLess').disabled = d.count <= COUNT_MIN;
+  $('#doodleMore').disabled = d.count >= COUNT_MAX;
   $('#doodleScale').value = d.scale;
   $('#doodleScale').parentElement.querySelector('output').textContent = `${d.scale}%`;
   if ($('#doodleLabel').value !== d.label) $('#doodleLabel').value = d.label;
@@ -1301,12 +1311,13 @@ function drawDeco() {
   ctx.scale(dpr, dpr);
   const W = r.width, H = r.height, S = Math.min(W, H);
   const items = [
-    ['sunny', 0.1, 0.12, 0.2, -0.2], ['heart', 0.88, 0.14, 0.18, 0.2], ['camera', 0.86, 0.86, 0.2, -0.15],
-    ['sparkles', 0.13, 0.85, 0.16, 0.1], ['bear', 0.5, 0.06, 0.14, 0.05], ['cloudface', 0.33, 0.93, 0.15, 0],
-    ['film', 0.07, 0.5, 0.15, -0.3], ['star5', 0.94, 0.5, 0.13, 0.25], ['swirl', 0.67, 0.95, 0.11, 0],
+    ['cr_heart', 0.1, 0.12, 0.17, -0.2], ['kt_cat', 0.88, 0.13, 0.17, 0.15], ['fl_daisy', 0.87, 0.86, 0.19, -0.15],
+    ['pl_twinkle', 0.13, 0.85, 0.15, 0.1], ['cr_flower5', 0.5, 0.06, 0.12, 0.05], ['kt_fish', 0.33, 0.93, 0.14, -0.1],
+    ['pl_catjump', 0.08, 0.5, 0.19, -0.2], ['cr_sparkle', 0.94, 0.5, 0.12, 0.25], ['fl_cosmos', 0.67, 0.95, 0.13, 0],
   ];
   for (const [id, x, y, s, rot] of items) {
     const def = STICKERS.find((d) => d.id === id);
+    if (!def) continue;
     const [vw, vh] = stickerBox(def), size = Math.max(54, S * s), k = size / Math.max(vw, vh);
     ctx.save();
     ctx.globalAlpha = 0.85;

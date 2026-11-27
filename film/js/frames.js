@@ -1,7 +1,7 @@
 // FilmDoodle — 底片邊框
 // 尺寸參考實體規格：35mm 底片寬 35mm、畫面 36×24、齒孔間距 4.75mm；
-// 拍立得 600 相紙 88×107、畫面 79×79；instax mini 54×86 / 畫面 46×62；
-// instax square 72×86 / 62×62；instax wide 108×86 / 99×62；幻燈片框 50×50 / 開窗 36×24。
+// 拍立得相紙 88×107、畫面 79×79；迷你相紙 54×86 / 畫面 46×62；
+// 方形相紙 72×86 / 62×62；寬幅相紙 108×86 / 99×62；幻燈片框 50×50 / 開窗 36×24。
 
 import { rng, makeCanvas } from './film.js';
 
@@ -14,9 +14,9 @@ export const FRAMES = [
   { id: 'film120', name: '120 中片幅', filmNo: true },
   { id: 'slide', name: '幻燈片框', colors: ['#f4f1ea', '#e3d4b4', '#2a2826', '#f7c9d6', '#bfe3f0'], caption: true },
   { id: 'polaroid', name: '拍立得', colors: true, caption: true },
-  { id: 'mini', name: 'instax mini', colors: true, caption: true },
-  { id: 'square', name: 'instax square', colors: true, caption: true },
-  { id: 'wide', name: 'instax wide', colors: true, caption: true },
+  { id: 'mini', name: '迷你相紙', colors: true, caption: true },
+  { id: 'square', name: '方形相紙', colors: true, caption: true },
+  { id: 'wide', name: '寬幅相紙', colors: true, caption: true },
 ];
 
 export const FRAME_COLORS = ['#fbfaf6', '#f3ead8', '#1e1d1c', '#f9cdd9', '#c7e6f5', '#cdeedd', '#fde59a', '#d9ccf5'];
@@ -282,7 +282,7 @@ function draw120(ctx, L, no, seed) {
   ctx.textBaseline = 'middle';
   ctx.font = `700 ${1.5 * u}px ${EDGE_FONT}`;
   ctx.textAlign = 'left';
-  ctx.fillText(`${BRAND} 160NS`, x + 2 * u, y / 2);
+  ctx.fillText(`${BRAND} 160`, x + 2 * u, y / 2);
   ctx.textAlign = 'right';
   ctx.fillText(`${no}`, x + pw - 2 * u, y / 2);
   ctx.textAlign = 'center';

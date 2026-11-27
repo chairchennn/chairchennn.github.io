@@ -1,6 +1,6 @@
 // FilmDoodle service worker：把程式本身存起來，離線也能用。
 // 照片不會經過這裡（照片從來不會被送到網路上）。
-const VERSION = 'filmdoodle-v3';
+const VERSION = 'filmdoodle-v4';
 const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/film.js', './js/frames.js', './js/stickers.js', './js/exif.js', './js/doodles.js',
