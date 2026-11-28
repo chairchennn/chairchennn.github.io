@@ -36,12 +36,12 @@ const HAND_FONT = '"Fredoka", "Chiron GoRound TC", cursive';
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const TABS = ['film', 'doodle', 'sticker', 'frame'];            // 主要編輯（左側／手機底部導覽）
 const TOOLS = ['add', 'crop', 'tape', 'glue'];  // 文具工具列（快速創作）
-const PANES = [...TABS, 'add', 'crop', 'tape'];
+const PANES = [...TABS, 'add', 'crop', 'tape', 'glue'];
 const TOOL_INFO = {
   add: { name: '新增', tip: '新增：換照片、匯入圖片剪成貼圖', icon: 'add' },
   crop: { name: '裁切', tip: '裁切：取景、縮放、角度、比例', icon: 'scissors' },
   tape: { name: '膠帶', tip: '紙膠帶：貼在照片邊上', icon: 'tape' },
-  glue: { name: '膠水', tip: '膠水：把所有貼圖黏好，不會再被拖動', icon: 'glue' },
+  glue: { name: '膠水', tip: '膠水：選要黏住哪些東西、調整上下層', icon: 'glue' },
 };
 const PANE_INFO = {
   film: ['底片', '選一種底片色調，再調閃光燈與顆粒'],
@@ -51,6 +51,7 @@ const PANE_INFO = {
   add: ['新增', '照片，以及剪貼：匯入圖片或剪照片做成貼圖'],
   crop: ['裁切', '取景、縮放、角度與比例'],
   tape: ['紙膠帶', '點一下貼上；連續貼會換到別的邊角'],
+  glue: ['膠水・圖層', '上面的在最上層；黏住的不會被拖動'],
 };
 const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1:1', polaroid: '1:1', square: '1:1', mini: '約 3:4', wide: '約 16:10' };
 // 紙膠帶連續貼時輪流換位置：上、下、四個角（斜貼）
@@ -92,7 +93,7 @@ const state = {
   doodle: { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 16, countTouched: false, scale: 100, seed: 1, glow: null },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', archColor: '#a99bc5', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   cropCell: 0,
-  tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame', tapeMat: 'washi',
+  tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame', tapeMat: 'washi', tool: 'add', zoom: 1,
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
   glow: true,
   stickers: [], stash: { single: [], four: [] }, selected: null,
@@ -364,6 +365,8 @@ function drawSticker(ctx, st, L) {
 
 // ---------------------------------------------------------------- rendering
 const view = $('#view');
+// 照片的捲動框（工作畫面放大時用）
+{ const vp = document.createElement('div'); vp.className = 'viewport'; vp.id = 'viewport'; view.before(vp); vp.append(view); }
 const vctx = view.getContext('2d');
 let baseCache = { key: '', canvas: null };
 let fxCache = { key: '', canvas: null };
@@ -610,7 +613,7 @@ function render() {
   compose(vctx, photo, L, o);
   const sel = selectedSticker();
   if (sel) drawSelection(vctx, sel, L);
-  if (state.mode === 'four' && (state.tab === 'crop' || gesture?.tgt)) drawCellOutline(vctx);
+  if (state.mode === 'four' && ((state.tool === 'crop' && isOpen('tool')) || gesture?.tgt)) drawCellOutline(vctx);
 }
 
 function fitView() {
@@ -618,10 +621,31 @@ function fitView() {
   const st = $('#stage'), cs = getComputedStyle(st);
   const aw = Math.max(50, st.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
   const ah = Math.max(50, st.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom));
-  const k = Math.min(aw / view.width, ah / view.height);
+  // 照片放在自己的捲動框裡（放大時可以捲），工具列和按鈕不會跟著捲走
+  const vp = $('#viewport');
+  Object.assign(vp.style, { top: cs.paddingTop, right: cs.paddingRight, bottom: cs.paddingBottom, left: cs.paddingLeft });
+  const k = Math.min(aw / view.width, ah / view.height) * (state.zoom || 1);
   view.style.width = Math.floor(view.width * k) + 'px';
   view.style.height = Math.floor(view.height * k) + 'px';
+  $('#app').dataset.zoomed = String((state.zoom || 1) > 1.01);
+  const z = $('#zoomOut');
+  if (z) z.textContent = `${Math.round((state.zoom || 1) * 100)}%`;
 }
+// 工作畫面縮放：50%–300%（只是看的大小，不影響匯出）
+function setZoom(z, keepCenter = true) {
+  const st = $('#viewport'), cx = st.scrollLeft + st.clientWidth / 2, cy = st.scrollTop + st.clientHeight / 2, k0 = state.zoom || 1;
+  state.zoom = Math.min(3, Math.max(0.5, Math.round(z * 20) / 20));
+  fitView();
+  if (keepCenter) { const r = state.zoom / k0; st.scrollLeft = cx * r - st.clientWidth / 2; st.scrollTop = cy * r - st.clientHeight / 2; }
+}
+$('#btnZoomIn').addEventListener('click', () => setZoom((state.zoom || 1) * 1.25));
+$('#btnZoomOutBtn').addEventListener('click', () => setZoom((state.zoom || 1) / 1.25));
+$('#zoomOut').addEventListener('click', () => setZoom(1, false));
+$('#stage').addEventListener('wheel', (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return; // Ctrl／⌘＋滾輪（觸控板捏合）縮放工作畫面
+  e.preventDefault();
+  setZoom((state.zoom || 1) * Math.exp(-e.deltaY * 0.01));
+}, { passive: false });
 
 const pxPerCss = () => {
   const r = view.getBoundingClientRect();
@@ -669,6 +693,7 @@ function select(id) {
   state.selected = id;
   updateStickerBar();
   syncGlueUI();
+  renderLayers();
   requestRender();
 }
 
@@ -691,7 +716,7 @@ let showColors = false;
 
 function removeSticker(st) {
   state.stickers = state.stickers.filter((s) => s !== st);
-  if (state.selected === st.uid) select(null); else { syncGlueUI(); requestRender(); }
+  if (state.selected === st.uid) select(null); else { syncGlueUI(); renderLayers(); requestRender(); }
 }
 
 function updateStickerBar() {
@@ -972,6 +997,7 @@ function endPointer(e) {
 view.addEventListener('pointerup', endPointer);
 view.addEventListener('pointercancel', endPointer);
 view.addEventListener('wheel', (e) => {
+  if (e.ctrlKey || e.metaKey) return; // 交給工作畫面縮放
   const sel = selectedSticker();
   if (!sel) {
     const tgt = lastL && photoTargetAt(toCanvas(e));
@@ -1242,114 +1268,120 @@ cmp.addEventListener('pointerdown', (e) => { e.preventDefault(); try { cmp.setPo
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((t) => cmp.addEventListener(t, () => setCompare(false)));
 cmp.addEventListener('contextmenu', (e) => e.preventDefault());
 
-// ---------------------------------------------------------------- tabs
+// ---------------------------------------------------------------- 兩個視窗：主要編輯（底片、塗鴉框、貼圖、相框）和文具（新增、裁切、膠帶、膠水）各自一個，不共用
+const TOOL_PANES = new Set(['add', 'crop', 'tape', 'glue']);
+const WINS = {
+  main: { id: '#panel', attr: 'panel', key: 'filmdoodle:win', side: 'left' },
+  tool: { id: '#panel2', attr: 'panel2', key: 'filmdoodle:win2', side: 'right' },
+};
+const winOf = (t) => (TOOL_PANES.has(t) ? 'tool' : 'main');
+const isOpen = (w) => $('#app').dataset[WINS[w].attr] !== 'closed';
+const isPhone = () => matchMedia('(max-width: 899px)').matches;
+function markSelected() {
+  $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(isOpen('main') && b.dataset.tab === state.tab)));
+  $$('#stationery .tool[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(isOpen('tool') && b.dataset.tool === state.tool)));
+}
 function setTab(t) {
   if (!PANES.includes(t)) t = 'film';
-  if (t === 'crop') $('#xfHint').textContent = `直接在照片上${xfHowTo()}；也可以用下面的滑桿。`;
-  state.tab = t;
-  const shown = $('#app').dataset.panel !== 'closed';
-  $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(shown && b.dataset.tab === t)));
-  $$('#stationery .tool[data-tool]').forEach((b) => { if (b.dataset.tool !== 'glue') b.setAttribute('aria-pressed', String(shown && b.dataset.tool === t)); });
-  $$('.pane').forEach((p) => { p.hidden = p.dataset.pane !== t; });
+  const w = winOf(t), el = $(WINS[w].id);
+  if (w === 'tool') state.tool = t; else state.tab = t;
+  el.querySelectorAll('.pane').forEach((p) => { p.hidden = p.dataset.pane !== t; });
   const [title, hint] = PANE_INFO[t];
-  $('#panelTitle').textContent = title;
-  $('#panelHint').textContent = hint;
-  $('#panel').dataset.pane = t;
-  $('.tab-body').scrollTop = 0;
-  if (t === 'crop') syncCropUI();
+  el.querySelector('.panel-head h2').textContent = title;
+  el.querySelector('.panel-head p').textContent = hint;
+  el.dataset.pane = t;
+  el.querySelector('.tab-body').scrollTop = 0;
+  if (t === 'crop') { $('#xfHint').textContent = `直接在照片上${xfHowTo()}；也可以用下面的滑桿。`; syncCropUI(); }
+  if (t === 'glue') renderLayers();
+  markSelected();
   requestRender();
   savePrefs();
 }
-const isPhone = () => matchMedia('(max-width: 899px)').matches;
-// 電腦：面板是浮在畫布上的小視窗，點底部工具才出現；拖標題移動、拖右下角改大小，位置會記住
-const WIN_KEY = 'filmdoodle:win';
-function loadWin() {
-  try { const w = JSON.parse(localStorage.getItem(WIN_KEY) || 'null'); if (w && [w.x, w.y, w.w, w.h].every(Number.isFinite)) return w; } catch { /* ignore */ }
+// 電腦：視窗浮在畫布上，點底部工具才出現；拖標題移動、拖右下角改大小，位置各自記住
+function loadWin(w) {
+  try { const v = JSON.parse(localStorage.getItem(WINS[w].key) || 'null'); if (v && [v.x, v.y, v.w, v.h].every(Number.isFinite)) return v; } catch { /* ignore */ }
   return null;
 }
-// 小視窗下緣不能超過底部工具列（工具列永遠點得到）
+// 視窗下緣不能超過底部工具（工具永遠點得到）
 function winBottom() {
   const ws = $('.workspace').getBoundingClientRect(), dock = $('.stationery-dock').getBoundingClientRect();
-  const tray = [...$('.stationery-dock').children].map((c) => c.getBoundingClientRect()).filter((r) => r.height);
+  const tray = [...$('.stationery-dock').querySelectorAll('.tabs button, .tool')].map((c) => c.getBoundingClientRect()).filter((r) => r.height);
   const top = tray.length ? Math.min(...tray.map((r) => r.top)) : dock.top;
   return Math.max(200, top - ws.top - 10);
 }
-function placeWin() {
-  const p = $('#panel'), ws = $('.workspace');
+function placeWin(w) {
+  const p = $(WINS[w].id), ws = $('.workspace');
   if (isPhone()) { p.style.left = p.style.top = p.style.width = p.style.height = ''; return; }
-  const W = ws.clientWidth, B = winBottom(), saved = loadWin();
-  let w = saved?.w ?? 380, h = saved?.h ?? Math.min(620, B - 16);
-  w = Math.min(Math.max(300, w), W - 24); h = Math.min(Math.max(220, h), B - 16);
+  const W = ws.clientWidth, B = winBottom(), saved = loadWin(w);
+  let ww = saved?.w ?? 360, h = saved?.h ?? Math.min(600, B - 16);
+  ww = Math.min(Math.max(280, ww), W - 24); h = Math.min(Math.max(220, h), B - 16);
   let x = saved?.x, y = saved?.y ?? 16;
   if (x == null) {
-    // 第一次：放在照片左右比較寬的那一側的空白處
+    // 第一次：主要編輯放照片左邊的空白，文具放右邊
     const wr = ws.getBoundingClientRect(), vr = view.hidden ? null : view.getBoundingClientRect();
     if (vr && vr.width) {
-      const left = vr.left - wr.left, right = wr.right - vr.right;
-      x = right >= left ? Math.max(vr.right - wr.left + 16, W - w - 16) : Math.max(8, Math.min(16, left - w - 16));
-      if (right >= left && right < w + 24) x = W - w - 16;
-    } else x = 24;
+      x = WINS[w].side === 'left' ? Math.max(8, Math.min(16, vr.left - wr.left - ww - 16)) : Math.max(vr.right - wr.left + 16, W - ww - 16);
+      if (WINS[w].side === 'right' && wr.right - vr.right < ww + 24) x = W - ww - 16;
+    } else x = WINS[w].side === 'left' ? 24 : W - ww - 24;
   }
-  x = Math.min(Math.max(8, x), W - w - 8); y = Math.min(Math.max(8, y), B - h);
-  Object.assign(p.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  x = Math.min(Math.max(8, x), W - ww - 8); y = Math.min(Math.max(8, y), B - h);
+  Object.assign(p.style, { left: x + 'px', top: y + 'px', width: ww + 'px', height: h + 'px' });
 }
-function saveWin() {
-  const p = $('#panel');
-  try { localStorage.setItem(WIN_KEY, JSON.stringify({ x: p.offsetLeft, y: p.offsetTop, w: p.offsetWidth, h: p.offsetHeight })); } catch { /* ignore */ }
+function saveWin(w) {
+  const p = $(WINS[w].id);
+  try { localStorage.setItem(WINS[w].key, JSON.stringify({ x: p.offsetLeft, y: p.offsetTop, w: p.offsetWidth, h: p.offsetHeight })); } catch { /* ignore */ }
 }
-(() => {
-  const head = $('.panel-head');
+for (const w of Object.keys(WINS)) {
+  const p = $(WINS[w].id), head = p.querySelector('.panel-head');
   let drag = null;
   head.addEventListener('pointerdown', (e) => {
     if (isPhone() || e.target.closest('button')) return;
-    const p = $('#panel');
     drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: p.offsetLeft, y: p.offsetTop };
     head.setPointerCapture(e.pointerId);
     head.classList.add('dragging');
+    p.style.zIndex = 22; $(WINS[w === 'main' ? 'tool' : 'main'].id).style.zIndex = 20; // 拖的那個在上面
   });
   head.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
-    const p = $('#panel'), ws = $('.workspace');
-    const x = Math.min(Math.max(0, drag.x + e.clientX - drag.sx), ws.clientWidth - 80);
-    const y = Math.min(Math.max(0, drag.y + e.clientY - drag.sy), winBottom() - p.offsetHeight);
-    p.style.left = x + 'px'; p.style.top = y + 'px';
+    const ws = $('.workspace');
+    p.style.left = Math.min(Math.max(0, drag.x + e.clientX - drag.sx), ws.clientWidth - 80) + 'px';
+    p.style.top = Math.min(Math.max(0, drag.y + e.clientY - drag.sy), winBottom() - p.offsetHeight) + 'px';
   });
-  const end = () => { if (drag) { drag = null; head.classList.remove('dragging'); saveWin(); } };
+  const end = () => { if (drag) { drag = null; head.classList.remove('dragging'); saveWin(w); } };
   head.addEventListener('pointerup', end);
   head.addEventListener('pointercancel', end);
-  // 拖右下角改大小（CSS resize）之後記住
   new ResizeObserver(() => {
-    if (isPhone() || $('#app').dataset.panel === 'closed') return;
-    const p = $('#panel'), B = winBottom();
+    if (isPhone() || !isOpen(w)) return;
+    const B = winBottom();
     if (p.offsetTop + p.offsetHeight > B) p.style.height = Math.max(220, B - p.offsetTop) + 'px';
-    saveWin();
-  }).observe($('#panel'));
-  addEventListener('resize', () => { if ($('#app').dataset.panel !== 'closed') placeWin(); });
-})();
-function setPanel(open) {
-  $('#app').dataset.panel = open ? 'open' : 'closed';
-  // 收起時，分頁和文具都不顯示選中（看得出面板是關著的）
-  $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(open && b.dataset.tab === state.tab)));
-  $$('#stationery .tool[data-tool]').forEach((b) => { if (b.dataset.tool !== 'glue') b.setAttribute('aria-pressed', String(open && b.dataset.tool === state.tab)); });
-  if (open) placeWin();
+    saveWin(w);
+  }).observe(p);
+}
+addEventListener('resize', () => { for (const w of Object.keys(WINS)) if (isOpen(w)) placeWin(w); });
+function setPanel(open, w = 'main') {
+  $('#app').dataset[WINS[w].attr] = open ? 'open' : 'closed';
+  // 手機一次只開一個（底部面板）
+  if (open && isPhone()) $('#app').dataset[WINS[w === 'main' ? 'tool' : 'main'].attr] = 'closed';
+  markSelected();
+  if (open) placeWin(w);
   fitView();
 }
-function togglePane(t, isTool = false) {
-  const closed = $('#app').dataset.panel === 'closed';
-  // 文具再點一次可以收起面板（主分頁不收，用面板上的「收起」）
-  if (t === state.tab && !closed && (isTool || !isPhone())) { setPanel(false); return; }
+function togglePane(t) {
+  const w = winOf(t), cur = w === 'tool' ? state.tool : state.tab;
+  if (t === cur && isOpen(w)) { setPanel(false, w); return; }
   setTab(t);
   // 四格在手機上格子很小：打開裁切時先把面板收起來，照片大一點
-  if (t === 'crop' && state.mode === 'four' && state.cropMode !== 'cut' && isPhone() && hasFour() && closed === false) {
-    setPanel(false);
-    toast('面板先收起來，照片比較大；再點一次「裁切」可以打開滑桿和「剪下形狀」', { ms: 4000 });
+  if (t === 'crop' && state.mode === 'four' && isPhone() && hasFour() && !isOpen('tool') && isOpen('main')) {
+    setPanel(false, 'main');
+    toast('面板先收起來，照片比較大；再點一次「裁切」可以打開滑桿', { ms: 4000 });
     return;
   }
-  setPanel(true);
+  setPanel(true, w);
 }
-$('#btnPanelClose').addEventListener('click', () => setPanel(false));
+$('#btnPanelClose').addEventListener('click', () => setPanel(false, 'main'));
+$('#btnPanelClose2').addEventListener('click', () => setPanel(false, 'tool'));
 $$('.tabs button').forEach((b) => b.addEventListener('click', () => togglePane(b.dataset.tab)));
-$$('[data-goto]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.goto)));
+$$('[data-goto]').forEach((b) => b.addEventListener('click', () => togglePane(b.dataset.goto)));
 
 // ---------------------------------------------------------------- film presets
 function buildPresetCards() {
@@ -2191,13 +2223,49 @@ function syncGlueUI() {
   const b = $('#stationery .tool[data-tool="glue"]');
   if (!b) return;
   const g = glueState();
-  b.setAttribute('aria-pressed', String(g.all));
   b.classList.toggle('glued', g.all);
   b.querySelector('.tool-name').textContent = g.all ? '已黏' : TOOL_INFO.glue.name;
-  const label = g.all ? '膠水：全部已黏好，按一下全部撕開（長按單一貼圖可以只撕那一張）' : TOOL_INFO.glue.tip;
+  const label = g.all ? '膠水：全部已黏好（打開可以選擇要撕開哪些）' : TOOL_INFO.glue.tip;
   b.setAttribute('aria-label', label);
   b.dataset.tip = label;
 }
+
+// ---------------------------------------------------------------- 膠水・圖層：一個清單，上面的在最上層；每一列可以選取、黏住／撕開、上下移、刪除
+const stickerName = (st) => (st.kind === 'tape' ? `${tapeOf(st.id).name}紙膠帶` : st.kind === 'img' ? '我的圖' : st.kind === 'svg' ? defOf(st).name : '貼圖');
+function renderLayers() {
+  const list = $('#layerList');
+  if (!list || state.tool !== 'glue' || !isOpen('tool')) return;
+  list.innerHTML = '';
+  const n = state.stickers.length;
+  $('#layerEmpty').hidden = n > 0;
+  [...state.stickers].reverse().forEach((st, ri) => {
+    const i = n - 1 - ri, li = document.createElement('li');
+    li.className = 'layer' + (st.uid === state.selected ? ' on' : '') + (st.glued ? ' glued' : '');
+    const c = makeCanvas(56, 56), cx = c.getContext('2d'), g0 = stickerGeom({ ...st, x: 0.5, y: 0.5, rot: 0 }, { x: 0, y: 0, pw: 100, ph: 100 });
+    const k = 48 / Math.max(g0.w, g0.h);
+    drawSticker(cx, { ...st, x: 0.5, y: 0.5, rot: 0, size: st.size * k }, { x: 0, y: 0, pw: 56, ph: 56, W: 56, H: 56 });
+    c.className = 'l-thumb';
+    const name = document.createElement('button');
+    name.type = 'button'; name.className = 'l-name'; name.textContent = stickerName(st);
+    name.addEventListener('click', () => { if (st.glued) { toast('先撕開才能移動'); } else select(st.uid); renderLayers(); });
+    const mk = (label, txt, fn, dis = false, pressed) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'round-btn'; b.textContent = txt; b.setAttribute('aria-label', label); b.disabled = dis;
+      if (pressed !== undefined) b.setAttribute('aria-pressed', String(pressed));
+      b.addEventListener('click', () => { commitHistory(); fn(); syncGlueUI(); renderLayers(); requestRender(); });
+      return b;
+    };
+    const up = mk('往上一層', '↑', () => { const a = state.stickers; [a[i], a[i + 1]] = [a[i + 1], a[i]]; }, i === n - 1);
+    const down = mk('往下一層', '↓', () => { const a = state.stickers; [a[i], a[i - 1]] = [a[i - 1], a[i]]; }, i === 0);
+    const glue = mk(st.glued ? '撕開' : '黏住', st.glued ? '撕' : '黏', () => { st.glued = !st.glued; if (st.glued && state.selected === st.uid) select(null); }, false, !!st.glued);
+    glue.classList.add('l-glue');
+    const del = mk('刪除', '×', () => removeSticker(st));
+    li.append(c, name, up, down, glue, del);
+    list.append(li);
+  });
+}
+$('#btnGlueAll').addEventListener('click', () => { commitHistory(); state.stickers.forEach((s) => { s.glued = true; }); select(null); syncGlueUI(); renderLayers(); toast('全部黏好了'); });
+$('#btnUnglueAll').addEventListener('click', () => { commitHistory(); state.stickers.forEach((s) => { s.glued = false; }); syncGlueUI(); renderLayers(); toast('全部撕開了'); });
 
 // ---------------------------------------------------------------- 文具工具列（順序可以自己調）
 // 文具：用色鉛筆筆刷畫在 canvas 上（和貼圖同一種質感），一根一根橫躺
@@ -2224,7 +2292,7 @@ function buildStationery() {
     b.dataset.tool = t;
     b.dataset.tip = TOOL_INFO[t].tip;
     b.setAttribute('aria-label', TOOL_INFO[t].tip);
-    if (t !== 'glue') b.setAttribute('aria-pressed', String(state.tab === t));
+    b.setAttribute('aria-pressed', String(isOpen('tool') && state.tool === t));
     const n = document.createElement('span'); n.className = 'tool-name'; n.textContent = TOOL_INFO[t].name;
     b.append(toolArt(`tl_${t}`), n);
     b.addEventListener('click', () => useTool(t));
@@ -2242,8 +2310,7 @@ function buildStationery() {
   syncGlueUI();
 }
 function useTool(t) {
-  if (t === 'glue') { useGlue(); return; }
-  togglePane(t, true);
+  togglePane(t);
 }
 function openToolsDialog() {
   renderToolOrder();
@@ -2410,7 +2477,7 @@ function applySnapshot(snap, keys) {
   $$('#presetList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.preset)));
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.frame.id)));
   $('#glow').checked = state.glow;
-  syncSliders(); syncDoodleUI(); updateFrameOpts(); syncDateUI(); syncFourUI(); syncCropUI(); syncGlueUI(); syncCutUI();
+  syncSliders(); syncDoodleUI(); updateFrameOpts(); syncDateUI(); syncFourUI(); syncCropUI(); syncGlueUI(); syncCutUI(); renderLayers();
   refreshFrameThumbs();
   refreshWorkspace();
   savePrefs();
@@ -2656,7 +2723,11 @@ function init() {
   syncCutUI();
   buildStationery();
   placeRail();
-  if (!isPhone()) setPanel(false);
+  // 兩個視窗的面板搬到各自的位置
+  for (const id of ['add', 'crop', 'tape', 'glue']) $('#panel2 .tab-body').append($(`.pane[data-pane="${id}"]`));
+  setTab(state.tool);
+  setTab(state.tab);
+  if (!isPhone()) { setPanel(false, 'main'); setPanel(false, 'tool'); } else setPanel(false, 'tool');
   buildDateUI();
   syncSliders();
   syncDateUI();

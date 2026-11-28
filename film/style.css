@@ -1164,7 +1164,7 @@ dialog.sheet::backdrop { background: rgba(46, 38, 33, .38); -webkit-backdrop-fil
    ========================================================= */
 @media (max-width: 899px) {
   /* 選項收起來：只留底部導覽，照片變大 */
-  .app[data-panel="closed"] .panel { display: none; }
+  .app[data-panel="closed"] #panel { display: none; }
   /* 面板圓角露出底下同一張點點紙（不重疊，照片不會少高度） */
   .workspace { background: var(--dots), var(--stage); background-size: 18px 18px, auto; background-position: 9px 9px, 0 0; }
   .stage { box-shadow: inset 0 1px 0 var(--line); }
@@ -1642,7 +1642,7 @@ details.cute-group summary { color: var(--ink-2); }
     flex-direction: column;
     box-shadow: inset 0 0 0 1px var(--line), 0 18px 40px rgba(60, 44, 34, .24), 0 2px 6px rgba(60, 44, 34, .12);
   }
-  .app[data-panel="closed"] .panel { display: none; }
+  .app[data-panel="closed"] #panel { display: none; }
   .panel .tab-body { flex: 1; min-height: 0; height: auto; overflow-y: auto; }
   .panel-head { cursor: grab; user-select: none; touch-action: none; position: relative; }
   .panel-head.dragging { cursor: grabbing; }
@@ -1668,3 +1668,28 @@ details.cute-group summary { color: var(--ink-2); }
 /* QA：貼圖動作列在小視窗之上；收起鈕 44px */
 .sticker-bar { z-index: 30; }
 @media (min-width: 900px) { .panel-close { min-width: 44px; justify-content: center; } }
+
+/* =========================================================
+   第八版：兩個視窗（主要編輯／文具）各自開關；膠水・圖層；工作畫面縮放
+   ========================================================= */
+.app[data-panel2="closed"] #panel2 { display: none; }
+@media (max-width: 899px) { #panel2 { order: 8; } }
+.layer-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.layer { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 12px; background: var(--paper, #fffdf9); box-shadow: inset 0 0 0 1px var(--line); }
+.layer.on { box-shadow: inset 0 0 0 2px var(--ink-2); background: #fbf3df; }
+.layer .l-thumb { width: 44px; height: 44px; flex: none; border-radius: 8px; background: repeating-conic-gradient(#efe6d4 0 25%, #fbf7ee 0 50%) 0 0 / 10px 10px; }
+.layer .l-name { flex: 1; min-width: 0; min-height: 44px; border: 0; background: none; text-align: left; font: 700 13px/1.3 var(--round); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer .round-btn { width: 40px; height: 44px; flex: none; }
+.layer .l-glue[aria-pressed="true"] { background: #e9d79a; font-weight: 700; }
+.layer.glued .l-name::after { content: " ・黏住"; color: var(--muted); font-weight: 500; }
+.zoom-bar { position: absolute; top: 10px; right: 10px; z-index: 6; display: flex; gap: 2px; padding: 2px; border-radius: 999px; background: rgba(255, 253, 248, .92); box-shadow: inset 0 0 0 1px var(--line), 0 2px 6px rgba(60, 44, 34, .12); }
+.zoom-bar button { min-width: 44px; min-height: 40px; border: 0; border-radius: 999px; background: transparent; color: var(--ink); font: 700 13px/1 var(--round); }
+.zoom-bar button:hover { background: var(--paper-2, #f3ead8); }
+.app[data-has-photo="false"] .zoom-bar { display: none; }
+.viewport { position: absolute; display: flex; overflow: hidden; }
+.app[data-has-photo="false"] .viewport { display: none; }
+.app[data-zoomed="true"] .viewport { overflow: auto; }
+.viewport .view { margin: auto; flex: none; }
+.app[data-zoomed="true"] .view { margin: auto; flex: none; }
+@media (max-width: 899px) { .zoom-bar { top: 8px; right: 8px; } .zoom-bar button { min-height: 44px; } }
+@media (min-width: 900px) { .zoom-bar { top: auto; bottom: 22px; right: 18px; z-index: 25; } }

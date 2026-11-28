@@ -107,6 +107,11 @@
 
       <canvas class="view" id="view" hidden></canvas>
 
+      <div class="zoom-bar" id="zoomBar" role="group" aria-label="工作畫面大小">
+        <button type="button" id="btnZoomOutBtn" aria-label="縮小畫面">−</button>
+        <button type="button" id="zoomOut" aria-label="回到剛好的大小" title="回到剛好的大小">100%</button>
+        <button type="button" id="btnZoomIn" aria-label="放大畫面">＋</button>
+      </div>
       <div class="stage-tools" id="stageTools" hidden>
         <button class="chip-btn" id="btnCompare" type="button" aria-label="按住看原圖">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6C16.8 3.4 20.6 7.2 20.5 12.1C20.4 16.8 16.7 20.5 11.9 20.4C7.2 20.3 3.5 16.6 3.6 11.9C3.7 7.3 7.3 3.7 12 3.6Z"/><path d="M12 3.6L11.9 20.4"/><path class="re" d="M13.5 7.1L17.4 5.8M13.4 10.6L19.7 8.6M13.3 14.1L20.2 12M13.3 17.6L18.9 15.8"/></svg>
@@ -132,7 +137,7 @@
       </div>
     </section>
 
-    <aside class="panel" id="panel">
+    <aside class="panel main-panel" id="panel">
       <div class="panel-head">
         <h2 id="panelTitle">底片</h2>
         <p id="panelHint"></p>
@@ -342,6 +347,24 @@
           <div class="tape-grid" id="tapeGrid"></div>
         </section>
 
+      </div>
+    </aside>
+    <aside class="panel tool-panel" id="panel2">
+      <div class="panel-head">
+        <h2 id="panelTitle2">新增</h2>
+        <p id="panelHint2"></p>
+        <button class="panel-close" id="btnPanelClose2" type="button" aria-label="關閉文具視窗"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 6.4L17.6 17.8M17.8 6.2L6.4 17.6"/></svg><span>收起</span></button>
+      </div>
+      <div class="tab-body">
+        <!-- 文具：膠水・圖層 -->
+        <section class="pane" data-pane="glue" role="tabpanel" hidden>
+          <div class="sub first">
+            <button class="chip" type="button" id="btnGlueAll">全部黏好</button>
+            <button class="chip" type="button" id="btnUnglueAll">全部撕開</button>
+          </div>
+          <p class="note" id="layerEmpty">照片上還沒有貼圖、紙膠帶或剪下的圖。</p>
+          <ol class="layer-list" id="layerList" aria-label="圖層（上面的在最上層）"></ol>
+        </section>
       </div>
     </aside>
   </main>
