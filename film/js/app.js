@@ -457,7 +457,8 @@ function wholeFx(src) {
 function doodleLayer(w, h) {
   const overlay = doodleOverlay();
   if (!overlay) return null;
-  const key = JSON.stringify([doodleCache.key, w, h, state.glow, fontsVersion]);
+  // 包含塗鴉框的全部設定與日期：整體畫面款式不會經過 doodleItems，只看 doodleCache 會拿到舊的一層
+  const key = JSON.stringify([state.doodle, state.date, state.mode, w, h, state.glow, fontsVersion]);
   if (layerCache.key !== key) {
     if (layerCache.canvas) layerCache.canvas.width = 0;
     const c = makeCanvas(w, h);
@@ -483,6 +484,8 @@ function fastPreview(src, crop) {
 function getPreviewPhoto() {
   const src = state.preview;
   const crop = xfCrop(src.width, src.height, cropAspect(state.frame.id, src.width, src.height, state.frame.ratio), state.frame.crop);
+  // 只有手指／滑桿／滾輪真的還在動時才用快速預覽；不然就回到完整品質（避免卡在快速模式）
+  if (state.dragging === 'photo' && !pointers.size && !sliderActive && !wheelTimer) state.dragging = false;
   const lutN = state.dragging ? 17 : 33, fast = state.dragging === 'photo';
   if (fast) {
     if (fxCache.canvas) fxCache.canvas.width = 0;
@@ -979,7 +982,7 @@ view.addEventListener('wheel', (e) => {
     else tgt.t.zoom = clampZoom(tgt.t.zoom * Math.exp(-e.deltaY * 0.0015));
     state.dragging = 'photo';
     clearTimeout(wheelTimer);
-    wheelTimer = setTimeout(() => { state.dragging = false; requestRender(); }, 250);
+    wheelTimer = setTimeout(() => { wheelTimer = 0; state.dragging = false; requestRender(); }, 250);
     syncXfOutputs();
     requestRender();
     return;
@@ -1556,13 +1559,16 @@ function syncPaperUI() {
 
 // ---------------------------------------------------------------- doodle frames（塗鴉框）
 function buildDoodlePane() {
-  const main = $('#doodleList');
-  const cute = document.createElement('details');
-  cute.className = 'more cute-group';
-  cute.innerHTML = '<summary>可愛系列（奶油、花花、法式、日式、Y2K…）</summary><div class="cards wrap" id="doodleCute"></div>';
-  main.after(cute);
+  const box = $('#doodleList');
+  let cuteLabel = false;
   for (const p of DOODLE_PRESETS) {
-    const box = p.group === 'cute' ? $('#doodleCute') : main;
+    if (p.group === 'cute' && !cuteLabel) {
+      cuteLabel = true;
+      const h = document.createElement('p');
+      h.className = 'cards-divider';
+      h.textContent = '可愛系列';
+      box.append(h);
+    }
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'card';
@@ -1582,10 +1588,21 @@ function buildDoodlePane() {
     }
   };
   chipRow($('#doodleLayouts'), LAYOUTS, 'layout');
-  chipRow($('#doodlePacks'), Object.entries(PACKS).map(([id, pk]) => [id, pk.name]), 'pack');
+  for (const [id, name] of [['few', '少'], ['mid', '中'], ['many', '多']]) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
+    b.setAttribute('role', 'radio');
+    b.addEventListener('click', () => {
+      state.doodle.count = amountOf(id);
+      state.doodle.countTouched = true;
+      syncDoodleUI(); requestRender(); savePrefs();
+    });
+    $('#doodleAmounts').append(b);
+  }
   $('#doodleScale').addEventListener('input', (e) => { state.doodle.scale = +e.target.value; syncDoodleUI(); requestRender(); savePrefs(); });
   const stepCount = (d) => {
-    state.doodle.count = Math.min(COUNT_MAX, Math.max(COUNT_MIN, state.doodle.count + d));
+    const [mn, mx] = countRange();
+    state.doodle.count = Math.min(mx, Math.max(mn, state.doodle.count + (overlayKind() ? Math.sign(d) : d)));
     state.doodle.countTouched = true;
     syncDoodleUI(); requestRender(); savePrefs();
   };
@@ -1610,6 +1627,16 @@ function buildDoodlePane() {
   });
 }
 
+// 數量的範圍與「少／中／多」：一般塗鴉 4–30；整體畫面款式各自的範圍
+function countRange() {
+  const ov = overlayKind();
+  return ov ? OVERLAY_COUNT[ov] : [COUNT_MIN, COUNT_MAX];
+}
+function amountOf(id) {
+  const [mn, mx] = countRange();
+  if (overlayKind()) return id === 'few' ? mn : id === 'many' ? mx : Math.round((mn + mx) / 2);
+  return { few: 8, mid: 16, many: 26 }[id];
+}
 function selectDoodle(id) {
   const p = DOODLE_PRESETS.find((x) => x.id === id);
   state.doodle.preset = id;
@@ -1642,13 +1669,16 @@ function syncDoodleUI() {
   // 整體畫面款式：沒有排列、風格包、光暈、轉成貼圖；數量是圖案多少
   const ov = overlayKind();
   $('#doodleOpts').dataset.overlay = String(!!ov);
-  $('#doodleAdvanced').hidden = !!ov;
+  $('#doodleLayoutRow').hidden = !!ov;
+  $('#btnDoodleEdit').hidden = !!ov;
   if (ov) { const [mn, mx] = OVERLAY_COUNT[ov]; d.count = Math.min(mx, Math.max(mn, d.count)); }
-  $$('#doodleLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.layout)));
-  $$('#doodlePacks .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.pack)));
   $('#doodleCountOut').textContent = `${d.count} 個`;
-  $('#doodleLess').disabled = d.count <= COUNT_MIN;
-  $('#doodleMore').disabled = d.count >= COUNT_MAX;
+  $$('#doodleLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.layout)));
+  $('#doodleCountOut').textContent = `${d.count} 個`;
+  const [cmn, cmx] = countRange();
+  $('#doodleLess').disabled = d.count <= cmn;
+  $('#doodleMore').disabled = d.count >= cmx;
+  $$('#doodleAmounts .chip').forEach((b) => b.setAttribute('aria-checked', String(amountOf(b.dataset.id) === d.count)));
   $('#doodleScale').value = d.scale;
   $('#doodleScale').parentElement.querySelector('output').textContent = `${d.scale}%`;
   $('#doodleGlow').closest('.slider').hidden = !!PACKS[d.pack]?.noGlow;
@@ -2455,6 +2485,15 @@ function drawDeco() {
 }
 
 // ---------------------------------------------------------------- init
+// 電腦：主要編輯（底片、塗鴉框、貼圖、相框）放進底部的文具托盤，和文具在同一條；手機維持底部導覽
+const deskMQ = matchMedia('(min-width: 900px)');
+function placeRail() {
+  const rail = $('.rail');
+  if (deskMQ.matches) { if (rail.parentElement !== $('.stationery-dock')) $('.stationery-dock').prepend(rail); }
+  else if (rail.parentElement !== $('.workspace')) $('.workspace').prepend(rail);
+  fitView();
+}
+deskMQ.addEventListener?.('change', placeRail);
 function init() {
   loadPrefs();
   buildPresetCards();
@@ -2469,6 +2508,7 @@ function init() {
   buildCutUI();
   syncCutUI();
   buildStationery();
+  placeRail();
   buildDateUI();
   syncSliders();
   syncDateUI();

@@ -163,14 +163,14 @@
 
         <!-- 塗鴉框 -->
         <section class="pane" data-pane="doodle" role="tabpanel" hidden>
-          <div class="cards" id="doodleList"></div>
+          <!-- 選了款式之後的調整（放在最上面，不用捲下去找） -->
           <div class="doodle-opts" id="doodleOpts" hidden>
             <div class="count-row">
               <span class="s-label">圖案數量</span>
+              <div class="chips count-presets" id="doodleAmounts" role="radiogroup" aria-label="圖案數量"></div>
               <button class="round-btn" type="button" id="doodleLess" aria-label="少一點">−</button>
               <output id="doodleCountOut" aria-live="polite">20 個</output>
               <button class="round-btn" type="button" id="doodleMore" aria-label="多一點">＋</button>
-              <button class="chip strong" type="button" id="btnDoodleShuffle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 4.9L19.1 4.6L19.4 19.2L4.8 19.4Z"/><path class="pip" d="M8.6 8.7h.1M15.4 8.6h.1M12 12h.1M8.6 15.4h.1M15.5 15.3h.1"/></svg>換一組</button>
             </div>
             <label class="slider">
               <span class="s-label">圖案大小</span>
@@ -182,22 +182,16 @@
               <input type="range" min="0" max="100" value="0" id="doodleGlow">
               <output>0</output>
             </label>
-            <details class="more" id="doodleAdvanced">
-              <summary>更多：排列、風格、個別調整</summary>
-              <div class="sub">
-                <span class="sub-label">排列</span>
-                <div class="chips" id="doodleLayouts"></div>
-              </div>
-              <div class="sub">
-                <span class="sub-label">圖案風格</span>
-                <div class="chips" id="doodlePacks"></div>
-              </div>
-              <div class="sub">
-                <span class="sub-label">個別調整</span>
-                <button class="chip" type="button" id="btnDoodleEdit">轉成貼圖</button>
-              </div>
-            </details>
+            <div class="sub" id="doodleLayoutRow">
+              <span class="sub-label">排列</span>
+              <div class="chips" id="doodleLayouts"></div>
+            </div>
+            <div class="sub doodle-actions">
+              <button class="chip strong" type="button" id="btnDoodleShuffle"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.6 4.9L19.1 4.6L19.4 19.2L4.8 19.4Z"/><path class="pip" d="M8.6 8.7h.1M15.4 8.6h.1M12 12h.1M8.6 15.4h.1M15.5 15.3h.1"/></svg>換一組</button>
+              <button class="chip" type="button" id="btnDoodleEdit">轉成貼圖（個別調整）</button>
+            </div>
           </div>
+          <div class="cards wrap" id="doodleList"></div>
         </section>
 
         <!-- 貼圖 -->
