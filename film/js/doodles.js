@@ -32,19 +32,21 @@ export const PACKS = {
   pencil: {
     name: '色鉛筆小物', glow: 0, noGlow: true, lw: 0.0034,
     sizes: { small: [0.06, 0.085], medium: [0.1, 0.14], large: [0.17, 0.23] },
-    small: { pc_star8: 2, pc_button: 1, pc_cherry: 1.2, pc_flower: 1.5, pc_moon: 0.6 },
-    medium: { pc_cherry: 1, pc_bow: 1, pc_flower: 1, pc_cutlery: 0.8, pc_teacup: 1, pc_bread: 0.8, pc_mitten: 0.8, pc_star8: 1, pc_moon: 0.8 },
-    large: { pc_sweater: 1, pc_teacup: 1, pc_cake: 1, pc_bow: 0.8 },
-    max: { pc_sweater: 1, pc_cake: 1, pc_cutlery: 1 },
+    small: { pc_star8: 2, pc_button: 1, pc_cherry: 1.2, pc_flower: 1.5, pc_moon: 0.6, pc_heart: 1, pc_lemon: 0.8, pc_strawberry: 1, pc_apple: 0.8, pc_cloud: 0.8, pc_letter: 0.6 },
+    medium: { pc_cherry: 1, pc_bow: 1, pc_flower: 1, pc_cutlery: 0.8, pc_teacup: 1, pc_bread: 0.8, pc_mitten: 0.8, pc_star8: 1, pc_moon: 0.8,
+      pc_apple: 1, pc_pear: 1, pc_lemon: 1, pc_mushroom: 1, pc_sock: 0.8, pc_heart: 0.8, pc_cloud: 1, pc_jar: 0.8, pc_candle: 0.8, pc_tulip: 1, pc_strawberry: 1, pc_letter: 0.8 },
+    large: { pc_sweater: 1, pc_teacup: 1, pc_cake: 1, pc_bow: 0.8, pc_teapot: 1, pc_jar: 0.8, pc_mushroom: 0.8, pc_tulip: 0.8 },
+    max: { pc_sweater: 1, pc_cake: 1, pc_cutlery: 1, pc_teapot: 1, pc_jar: 1, pc_candle: 1, pc_sock: 1 },
   },
   // 第六版：B 植物版畫（參考圖 13 的印壓顆粒、挖空）
   print: {
     name: '植物版畫', glow: 0, noGlow: true, lw: 0.0034,
     sizes: { small: [0.08, 0.11], medium: [0.13, 0.18], large: [0.22, 0.3] },
     colors: ['#9dc044', '#8fb0c9', '#cb8875', '#a99bc5'], recolor: 0.25,
-    small: { pr_clover: 1.5, pr_daisy: 1, pr_oak: 1 },
-    medium: { pr_wheat: 1, pr_daisy: 1, pr_clover: 1, pr_olive: 1, pr_dandelion: 1, pr_oak: 0.8 },
-    large: { pr_fern: 1, pr_pine: 1, pr_wheat: 1, pr_olive: 1 },
+    small: { pr_clover: 1.5, pr_daisy: 1, pr_oak: 1, pr_ginkgo: 1, pr_maple: 1, pr_mushroom: 0.8, pr_acorn: 0.8, pr_eucalyptus: 0.8, pr_leaf: 0.8, pr_grass: 0.8 },
+    medium: { pr_wheat: 1, pr_daisy: 1, pr_clover: 1, pr_olive: 1, pr_dandelion: 1, pr_oak: 0.8,
+      pr_tulip: 1, pr_lavender: 1, pr_ginkgo: 0.8, pr_maple: 0.8, pr_cosmos: 1, pr_thistle: 1, pr_eucalyptus: 1, pr_berry: 1, pr_mushroom: 0.8, pr_poppy: 1, pr_allium: 1, pr_cattail: 1, pr_grass: 0.8 },
+    large: { pr_fern: 1, pr_pine: 1, pr_wheat: 1, pr_olive: 1, pr_monstera: 1, pr_sunflower: 1, pr_leaf: 1, pr_tulip: 0.8, pr_cattail: 0.8, pr_berry: 0.8 },
   },
   // 奶油貼紙（第八版）：象牙紙底＋玫瑰色細線的色鉛筆貼紙；'M' 換成色票的低飽和色
   cream: {
