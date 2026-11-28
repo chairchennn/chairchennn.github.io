@@ -42,11 +42,11 @@ function pencilCanvas(color, angle) {
   const r = rng(Math.round(angle * 97) + 11);
   ctx.strokeStyle = color;
   ctx.lineCap = 'round';
-  // 很多細短的鉛筆線（畫在 3×3 的位置上 → 可以無縫重複）
-  for (let i = 0; i < 3400; i++) {
-    const x = r() * S, y = r() * S, len = 5 + r() * 10, a = angle + (r() - 0.5) * 0.22;
-    ctx.globalAlpha = 0.2 + r() * 0.26;
-    ctx.lineWidth = 0.6 + r() * 0.9;
+  // 很多細短的鉛筆線（畫在 3×3 的位置上 → 可以無縫重複）。參考圖 14：筆觸短而密，看得出方向但不成一條條長線
+  for (let i = 0; i < 6200; i++) {
+    const x = r() * S, y = r() * S, len = 3 + r() * 6, a = angle + (r() - 0.5) * 0.3;
+    ctx.globalAlpha = 0.3 + r() * 0.3;
+    ctx.lineWidth = 0.5 + r() * 0.7;
     for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) {
       ctx.beginPath();
       ctx.moveTo(x + dx, y + dy);
@@ -54,11 +54,11 @@ function pencilCanvas(color, angle) {
       ctx.stroke();
     }
   }
-  // 紙紋：凹處淡、凸處實；再撒一點完全沒塗到的白點
+  // 紙紋：凹處淡、凸處實（細細的淺色顆粒）；再撒一點完全沒塗到的白點
   const id = ctx.getImageData(0, 0, S, S), px = id.data, tooth = paperTooth();
   for (let i = 0, k = 0; i < px.length; i += 4, k++) {
-    const t = tooth[k], m = t < 0.3 ? 0.15 : t < 0.37 ? 0.5 : 0.88 + 0.3 * (t - 0.37);
-    px[i + 3] = Math.round(Math.min(255, px[i + 3] * 1.35 * m * (r() < 0.04 ? 0.3 : 1)));
+    const t = tooth[k], m = t < 0.3 ? 0.3 : t < 0.36 ? 0.62 : 0.95 + 0.3 * (t - 0.36);
+    px[i + 3] = Math.round(Math.min(255, px[i + 3] * 1.6 * m * (r() < 0.03 ? 0.35 : 1)));
   }
   ctx.putImageData(id, 0, 0);
   pencilCache.set(key, c);
@@ -75,7 +75,7 @@ export const pencilInk = (fill) => mix(fill, '#655047', 0.32);
 export function drawPencilDef(ctx, def, color, strokeScale = 1, seed = 1) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  const ga = ctx.globalAlpha, cell = 0.25;
+  const ga = ctx.globalAlpha, cell = 0.2;
   def.parts.forEach((p, i) => {
     const fc = p.f === 'M' ? color : p.f, sc = p.s === 'M' ? color : p.s === 'D' ? pencilInk(fc || color) : p.s;
     const a = (p.a ?? 1) * ga, sd = seed + i * 13;
@@ -129,7 +129,7 @@ function inkCanvas(color) {
     const u = x * ca + y * sa, v = -x * sa + y * ca;
     const st = streakN(((u / 6) % S + S) % S, ((v * 1.6) % S + S) % S);
     const n = r();
-    let a = 0.74 + 0.22 * big(x, y) + 0.1 * mid(x, y) + 0.14 * fine(x, y) - 0.2 * Math.max(0, st - 0.55) * 2.5 - 0.14 * n * n;
+    let a = 0.82 + 0.2 * big(x, y) + 0.1 * mid(x, y) + 0.14 * fine(x, y) - 0.2 * Math.max(0, st - 0.55) * 2.5 - 0.14 * n * n;
     if (n > 0.972) a *= 0.3; // 紙纖維的小白點
     const i = (y * S + x) * 4;
     px[i + 3] = Math.round(255 * Math.max(0, Math.min(1, a)));
@@ -218,7 +218,7 @@ export function drawPrintDef(ctx, def, color, strokeScale = 1, seed = 1) {
     paths.forEach((path) => g.stroke(path));
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = ga * gr.a * 0.95;
+    ctx.globalAlpha = ga * gr.a;
     ctx.drawImage(plate, 0, 0, W, H, x0, y0, W, H);
     ctx.restore();
   });
@@ -228,112 +228,130 @@ export function drawPrintDef(ctx, def, color, strokeScale = 1, seed = 1) {
   ctx.globalAlpha = ga;
 }
 
-// ---------- 十字繡格：在照片上疊一塊半透明格線，圖案用白色 X 繡出來 ----------
-// motifs：[{ def, x, y, size, rot }]（x,y,size 是面板內 0~1 的位置與大小）
-// def.grid（點陣，見 art/v8.js 的 MOTIF_STITCH）：size 不用，一個 X 一格；可加 len（邊條重複長度）、rot（90° 倍數）、flip
+// ---------- 十字繡格：在照片上疊一層淡淡的白格線，圖案用白色 X 一格一格繡出來 ----------
+// 參考圖 10：格線細、淡，照片透得過去；X 幾乎塞滿一格、線粗而清楚，有一點陰影，像真的線。
+// o.cell：一格幾像素；o.items：[{ grid, gx, gy, flip }]（gx, gy = 圖案左上角在第幾格）
+// o.avoid：[x, y, w, h] 不繡、不畫格線的範圍（相機日期）
+// 格線與薄白霧只在照片邊緣，往中間慢慢淡掉（沒有硬邊），中間留給主角。
 export function drawCrossStitch(ctx, W, H, o) {
-  const S = Math.min(W, H), r = rng(o.seed || 1);
-  const cols = Math.round(o.cols || 34), cell = (W * (o.panelW || 0.74)) / cols;
-  const rows = Math.round((H * (o.panelH || 0.78)) / cell);
-  const pw = cols * cell, ph = rows * cell, px = (W - pw) / 2 + (o.dx || 0) * W, py = (H - ph) / 2 + (o.dy || 0) * H;
-  // 半透明面板＋格線
+  const r = rng(o.seed || 1), cell = o.cell, cols = Math.ceil(W / cell), rows = Math.ceil(H / cell);
+  const offX = (W - cols * cell) / 2, offY = (H - rows * cell) / 2;
+  // 1. 格線＋薄白霧，畫在另一張畫布，再用「邊緣實、中間空」的遮罩淡出
+  const g = document.createElement('canvas');
+  g.width = W; g.height = H;
+  const gx = g.getContext('2d');
+  gx.fillStyle = 'rgba(255,255,255,.13)';
+  gx.fillRect(0, 0, W, H);
+  gx.strokeStyle = 'rgba(255,255,255,.36)';
+  gx.lineWidth = Math.max(0.7, cell * 0.06);
+  gx.beginPath();
+  for (let i = 0; i <= cols; i++) { const x = Math.round(offX + i * cell) + 0.5; gx.moveTo(x, 0); gx.lineTo(x, H); }
+  for (let j = 0; j <= rows; j++) { const y = Math.round(offY + j * cell) + 0.5; gx.moveTo(0, y); gx.lineTo(W, y); }
+  gx.stroke();
+  gx.globalCompositeOperation = 'destination-in';
+  const R = Math.hypot(W, H) / 2, k = W / H;
+  gx.save();
+  gx.translate(W / 2, H / 2); gx.scale(Math.sqrt(k), 1 / Math.sqrt(k));
+  const grad = gx.createRadialGradient(0, 0, 0, 0, 0, R);
+  const inner = o.clear ?? 0.42;
+  grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(inner, 'rgba(0,0,0,0)');
+  grad.addColorStop(inner + 0.2, 'rgba(0,0,0,.55)'); grad.addColorStop(0.78, 'rgba(0,0,0,1)'); grad.addColorStop(1, 'rgba(0,0,0,1)');
+  gx.fillStyle = grad;
+  gx.fillRect(-W, -H, W * 2, H * 2);
+  gx.restore();
+  if (o.avoid) { gx.globalCompositeOperation = 'destination-out'; gx.fillStyle = '#000'; gx.fillRect(...o.avoid); }
   ctx.save();
-  ctx.fillStyle = `rgba(255,255,255,${o.panelAlpha ?? 0.1})`;
-  ctx.fillRect(px, py, pw, ph);
-  ctx.strokeStyle = 'rgba(255,255,255,.34)';
-  ctx.lineWidth = Math.max(0.6, S * 0.0012);
-  ctx.beginPath();
-  for (let i = 0; i <= cols; i++) { ctx.moveTo(px + i * cell, py); ctx.lineTo(px + i * cell, py + ph); }
-  for (let j = 0; j <= rows; j++) { ctx.moveTo(px, py + j * cell); ctx.lineTo(px + pw, py + j * cell); }
-  ctx.stroke();
-  // 圖案先畫在「一格一像素」的小畫布上，看哪些格子要繡
-  const m = document.createElement('canvas');
-  m.width = cols; m.height = rows;
-  const mx = m.getContext('2d');
-  mx.fillStyle = '#000'; mx.strokeStyle = '#000';
-  mx.lineCap = 'round'; mx.lineJoin = 'round';
-  for (const it of o.motifs || []) {
-    // 點陣圖案（def.grid：'X' = 繡一格）：一格對一格蓋上去，最清楚；rot 取 90° 的倍數，len = 沿長邊重複到幾格長（邊條）
-    if (it.def.grid) {
-      const G = it.def.grid, gh = G.length, gw = G[0].length, len = Math.max(gw, Math.round(it.len || gw));
-      const qt = (((Math.round((it.rot || 0) / (Math.PI / 2))) % 4) + 4) % 4, sw = qt % 2 ? gh : len, sh = qt % 2 ? len : gh;
-      const ox = Math.round(it.x * cols - sw / 2), oy = Math.round(it.y * rows - sh / 2);
-      for (let j = 0; j < gh; j++) for (let i = 0; i < len; i++) {
-        if (G[j][(it.flip ? len - 1 - i : i) % gw] !== 'X') continue;
-        const [a, b] = qt === 0 ? [i, j] : qt === 1 ? [gh - 1 - j, i] : qt === 2 ? [len - 1 - i, gh - 1 - j] : [j, len - 1 - i];
-        mx.fillRect(ox + a, oy + b, 1, 1);
-      }
-      continue;
-    }
-    const [vw, vh] = it.def.vb || [100, 100], k = (it.size * cols) / Math.max(vw, vh);
-    mx.save();
-    mx.translate(it.x * cols, it.y * rows);
-    mx.rotate(it.rot || 0);
-    if (it.flip) mx.scale(-1, 1);
-    mx.scale(k, k);
-    mx.translate(-vw / 2, -vh / 2);
-    for (const p of it.def.parts) {
-      const path = new Path2D(p.d);
-      if (p.f) mx.fill(path, 'evenodd');
-      if (p.s) { mx.lineWidth = Math.max(p.w || 2, 1.15 / k); mx.stroke(path); }
-    }
-    mx.restore();
+  ctx.drawImage(g, 0, 0);
+  // 2. 要繡的格子
+  const on = new Set();
+  for (const it of o.items || []) {
+    const G = it.grid, gw = G[0].length;
+    G.forEach((row, j) => { for (let i = 0; i < gw; i++) if (row[it.flip ? gw - 1 - i : i] === 'X') on.add((it.gy + j) * 4096 + it.gx + i); });
   }
-  const data = mx.getImageData(0, 0, cols, rows).data;
-  ctx.strokeStyle = o.thread || '#ffffff';
+  const av = o.avoid, inAvoid = (x, y) => av && x > av[0] - cell * 0.5 && x < av[0] + av[2] + cell * 0.5 && y > av[1] - cell * 0.5 && y < av[1] + av[3] + cell * 0.5;
+  // 3. X：先繡「/」再繡「\」（上面那一針略亮），外面一圈淡淡的白暈，像參考圖那樣微微發亮
+  const q = cell * 0.31, lw = cell * 0.27;
   ctx.lineCap = 'round';
-  ctx.lineWidth = cell * 0.17;
-  ctx.shadowColor = 'rgba(30,35,70,.4)';
-  ctx.shadowBlur = cell * 0.22;
-  ctx.shadowOffsetY = cell * 0.04;
-  const q = cell * 0.27;
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-    if (data[(j * cols + i) * 4 + 3] < 110) continue;
-    const cx = px + (i + 0.5) * cell + (r() - 0.5) * cell * 0.06, cy = py + (j + 0.5) * cell + (r() - 0.5) * cell * 0.06;
-    ctx.globalAlpha = 0.86 + r() * 0.14;
-    ctx.beginPath();
-    ctx.moveTo(cx - q, cy - q); ctx.lineTo(cx + q, cy + q);
-    ctx.moveTo(cx + q, cy - q); ctx.lineTo(cx - q, cy + q);
-    ctx.stroke();
+  ctx.shadowColor = 'rgba(235,240,255,.75)';
+  ctx.shadowBlur = cell * 0.4;
+  for (const key of on) {
+    const i = key % 4096, j = Math.floor(key / 4096);
+    if (i < 0 || j < 0 || i >= cols || j >= rows) continue;
+    const cx = offX + (i + 0.5) * cell + (r() - 0.5) * cell * 0.05, cy = offY + (j + 0.5) * cell + (r() - 0.5) * cell * 0.05;
+    if (inAvoid(cx, cy)) continue;
+    const a = 0.9 + r() * 0.1, tw = (r() - 0.5) * cell * 0.06;
+    ctx.lineWidth = lw;
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = '#eef1f8';
+    ctx.beginPath(); ctx.moveTo(cx - q, cy + q + tw); ctx.lineTo(cx + q, cy - q); ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(cx - q, cy - q); ctx.lineTo(cx + q, cy + q - tw); ctx.stroke();
   }
   ctx.restore();
 }
 
-// ---------- 點描線稿：沿著線條灑白點與小十字，花心帶一點奶油黃 ----------
+// ---------- 點描線稿：沿著線條密密灑白色小方點與小十字，花頭一團一團、帶檸檬黃，整片微微發亮 ----------
+// 參考圖 12：線是兩三排錯開的小點串成的；花頭是很密的一團（白＋黃），外圍散開；點本身有一圈柔光。
+// 先把所有點畫在另一張畫布，再「光暈一次＋清楚一次」貼回去（shadowBlur，各瀏覽器都支援）。
 export function drawStipple(ctx, W, H, o) {
   const S = Math.min(W, H), r = rng(o.seed || 1);
-  const dot = S * (o.dot || 0.0042);
-  ctx.save();
-  ctx.shadowColor = 'rgba(255,255,255,.55)';
-  ctx.shadowBlur = dot * 1.6;
+  const dot = S * (o.dot || 0.006);
+  const L = document.createElement('canvas');
+  L.width = W; L.height = H;
+  const lx = L.getContext('2d');
+  const put = (X, Y, d, col, a) => {
+    lx.fillStyle = col;
+    lx.globalAlpha = a;
+    if (r() < 0.2) { // 小十字
+      lx.fillRect(X - d, Y - d * 0.22, d * 2, d * 0.44);
+      lx.fillRect(X - d * 0.22, Y - d, d * 0.44, d * 2);
+    } else lx.fillRect(X - d / 2, Y - d / 2, d, d);
+  };
+  const yellow = o.accent || '#e8f046';
   for (const it of o.motifs || []) {
     const [vw, vh] = it.def.vb || [100, 100], k = (it.size * S) / Math.max(vw, vh);
     const ox = it.x * W, oy = it.y * H, c = Math.cos(it.rot || 0), s = Math.sin(it.rot || 0), fl = it.flip ? -1 : 1;
-    const toXY = (x, y) => { const lx = (x - vw / 2) * k * fl, ly = (y - vh / 2) * k; return [ox + lx * c - ly * s, oy + lx * s + ly * c]; };
+    const toXY = (x, y) => { const lx2 = (x - vw / 2) * k * fl, ly = (y - vh / 2) * k; return [ox + lx2 * c - ly * s, oy + lx2 * s + ly * c]; };
     it.def.parts.forEach((p) => {
-      const accent = p.accent; // 花心：白點＋黃點、比較密
-      for (const sp of flattenPath(p.d, 1.2)) {
+      const accent = p.accent;
+      for (const sp of flattenPath(p.d, 1)) {
+        const pts = sp.pts.map(([x, y]) => toXY(x, y));
         let acc = 0;
-        for (let n = 1; n < sp.pts.length; n++) {
-          const [x0, y0] = sp.pts[n - 1], [x1, y1] = sp.pts[n];
-          acc += Math.hypot(x1 - x0, y1 - y0) * k;
-          const step = dot * (accent ? 1.1 : 1.45);
+        for (let n = 1; n < pts.length; n++) {
+          const [x0, y0] = pts[n - 1], [x1, y1] = pts[n], len = Math.hypot(x1 - x0, y1 - y0);
+          if (!len) continue;
+          const nx = -(y1 - y0) / len, ny = (x1 - x0) / len;
+          acc += len;
+          const step = dot * (accent ? 0.4 : 0.55);
           while (acc > step) {
             acc -= step;
-            const t = r(), [X, Y] = toXY(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t);
-            const spread = dot * (accent ? 3.6 : 2.3);
-            const jx = (r() - 0.5) * spread, jy = (r() - 0.5) * spread;
-            ctx.fillStyle = accent && r() < 0.45 ? (o.accent || '#f3e66b') : '#ffffff';
-            ctx.globalAlpha = 0.75 + r() * 0.25;
-            const d = dot * (0.5 + r() * r() * 1.3);
-            if (r() < 0.22) { // 小十字
-              ctx.fillRect(X + jx - d, Y + jy - d * 0.25, d * 2, d * 0.5);
-              ctx.fillRect(X + jx - d * 0.25, Y + jy - d, d * 0.5, d * 2);
-            } else ctx.fillRect(X + jx - d / 2, Y + jy - d / 2, d, d);
+            const t = 1 - acc / len, X = x0 + (x1 - x0) * t, Y = y0 + (y1 - y0) * t;
+            // 線：兩排平行、錯開的點（參考圖的莖是雙線點串）；花頭在法線方向散得更開
+            const off = accent ? (r() - 0.5) * dot * 2.6 : (r() < 0.5 ? -1 : 1) * dot * (0.75 + r() * 0.3), along = (r() - 0.5) * dot * 0.8;
+            const d = dot * (0.55 + r() * r() * 1.1);
+            put(X + nx * off + (x1 - x0) / len * along, Y + ny * off + (y1 - y0) / len * along, d, accent && r() < 0.24 ? yellow : '#ffffff', 0.8 + r() * 0.2);
+            // 花頭：外面再散開一團（越外越稀、越小）
+            if (accent) for (let m = 0; m < 3; m++) {
+              const ang = r() * Math.PI * 2, rr = dot * (1.2 + 4.2 * r() * r());
+              put(X + Math.cos(ang) * rr, Y + Math.sin(ang) * rr, dot * (0.4 + r() * 0.7), r() < 0.32 ? yellow : '#ffffff', 0.55 + r() * 0.45);
+            } else if (r() < 0.08) { // 莖旁邊偶爾跳出去一兩點
+              const ang = r() * Math.PI * 2, rr = dot * (2 + 2.5 * r());
+              put(X + Math.cos(ang) * rr, Y + Math.sin(ang) * rr, dot * (0.4 + r() * 0.5), '#ffffff', 0.6 + r() * 0.4);
+            }
           }
         }
       }
     });
   }
+  ctx.save();
+  // 光暈：白中帶一點暖，像參考圖點描在照片上微微發亮
+  ctx.shadowColor = 'rgba(255,255,235,.95)';
+  ctx.shadowBlur = dot * 7;
+  ctx.globalAlpha = 0.5;
+  ctx.drawImage(L, 0, 0);
+  ctx.shadowColor = 'rgba(255,255,255,.8)';
+  ctx.shadowBlur = dot * 1.4;
+  ctx.globalAlpha = 1;
+  ctx.drawImage(L, 0, 0);
   ctx.restore();
 }
