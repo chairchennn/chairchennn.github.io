@@ -295,4 +295,76 @@ const EMOJI = [
   },
 ];
 
-export const ART_Y2K_EMOJI = [...Y2K, ...EMOJI];
+// ---------- 第八版（網站 v10）新增 Y2K：在 stickers.js 換成褪色的版畫／孔版印刷（不用鉻銀漸層） ----------
+const rotE = (cx, cy, rx, ry, deg) => {
+  const a = (deg * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+  const x1 = n(cx + rx * c), y1 = n(cy + rx * sn), x2 = n(cx - rx * c), y2 = n(cy - rx * sn);
+  return `M${x1} ${y1}A${rx} ${ry} ${deg} 1 1 ${x2} ${y2}A${rx} ${ry} ${deg} 1 1 ${x1} ${y1}Z`;
+};
+const SILVER = '#c9c7c0';
+const y2 = (id, name, color, parts, vb) => ({ id, name, cat: 'y2k', color, ...(vb ? { vb } : {}), parts });
+const Y2K_V10 = [
+  y2('y2k_mp3', '隨身聽', LILAC, [
+    f(rr(28, 10, 44, 80, 11)), f(rr(35, 18, 30, 24, 4), BABY), f(circ(50, 66, 15) + circR(50, 66, 5.5), WH),
+    s(rr(28, 10, 44, 80, 11), INK, 2.4), s('M60 10Q60 0 74 2Q84 4 86 14', INK, 2),
+  ]),
+  y2('y2k_headphones', '耳機', HOT, [
+    s('M18 62Q16 16 50 16Q84 16 82 62', 'M', 6), f(rr(8, 52, 20, 32, 9)), f(rr(72, 52, 20, 32, 9)),
+    f(rr(14, 58, 8, 20, 4) + rr(78, 58, 8, 20, 4), LILAC), f(sparkleD(50, 34, 7, 0.22), LIME),
+  ]),
+  y2('y2k_digicam', '數位相機', BABY, [
+    f(rr(10, 28, 80, 50, 11), SILVER), f(circ(58, 53, 17), INK), f(circ(58, 53, 10)), f(rr(18, 35, 14, 8, 2.5), WH),
+    f(rr(68, 20, 14, 9, 3), HOT), s(rr(10, 28, 80, 50, 11), INK, 2.2),
+  ]),
+  y2('y2k_gamepad', '手把', LILAC, [
+    f(roundPoly([[16, 36], [84, 36], [95, 72], [80, 82], [66, 64], [34, 64], [20, 82], [5, 72]], 11)),
+    f('M24 46H30V40H36V46H42V52H36V58H30V52H24Z', INK), f(circ(64, 48, 4.5), HOT), f(circ(74, 42, 4.5), BABY), f(circ(74, 54, 4.5), LIME), f(circ(84, 48, 4.5), WH),
+  ]),
+  y2('y2k_pager', '呼叫器', BABY, [
+    f(rr(14, 28, 72, 44, 11)), f(rr(22, 36, 44, 18, 3), LIME), s('M28 45H34M38 45H44M48 45H54', INK, 3),
+    f(circ(30, 63, 3.4) + circ(42, 63, 3.4) + circ(54, 63, 3.4), INK), f(rr(72, 36, 6, 28, 3), HOT), f(sparkleD(84, 18, 8, 0.22), HOT),
+  ]),
+  y2('y2k_lipgloss', '唇蜜', HOT, [
+    f(rr(38, 36, 24, 56, 9)), f(rr(42, 52, 16, 34, 6), WH, 0.6), f(rr(40, 8, 20, 30, 6), SILVER), s(rr(40, 8, 20, 30, 6), INK, 1.6),
+    f(sparkleD(74, 30, 9, 0.22), LIME), f(sparkleD(24, 62, 6, 0.22), BABY),
+  ]),
+  y2('y2k_hairclip', '彈簧髮夾', LIME, [
+    f('M8 50Q8 38 22 38L86 45Q94 50 86 55L22 62Q8 62 8 50Z'), f(rotE(30, 50, 12, 4.5, 3), WH),
+    f(heartD(58, 50, 12) + heartD(74, 50, 9), HOT),
+  ], [100, 70]),
+  y2('y2k_disco', '迪斯可球', LILAC, [
+    s('M50 4V20', INK, 2), f(circ(50, 56, 36), SILVER),
+    f([...Array(5)].flatMap((_, i) => [...Array(5)].map((_, j) => ((i + j) % 2 ? '' : rr(26 + i * 10, 32 + j * 10, 8, 8, 1.2)))).join('')),
+    s(circ(50, 56, 36), INK, 2.2), f(sparkleD(80, 28, 9, 0.22), HOT), f(sparkleD(18, 84, 6, 0.22), BABY),
+  ]),
+  y2('y2k_globe', '線框地球', BABY, [
+    s(circ(50, 50, 38), 'M', 3.4), s(ell(50, 50, 18, 38) + ell(50, 50, 4, 38), 'M', 2.4),
+    s('M15 34H85M12 50H88M15 66H85', 'M', 2.4), f(sparkleD(86, 14, 8, 0.22), HOT),
+  ]),
+  y2('y2k_cursor', '游標', WH, [
+    f(poly([[30, 10], [30, 76], [46, 62], [58, 88], [68, 84], [56, 58], [76, 58]])), s(poly([[30, 10], [30, 76], [46, 62], [58, 88], [68, 84], [56, 58], [76, 58]]), INK, 2.6),
+    f(sparkleD(80, 22, 8, 0.22), HOT), f(sparkleD(16, 86, 6, 0.22), BABY),
+  ]),
+  y2('y2k_window', '小視窗', BABY, [
+    f(rr(10, 18, 80, 64, 6), WH), f('M10 24Q10 18 16 18H84Q90 18 90 24V32H10Z'), f(rr(68, 22, 6, 6, 1) + rr(78, 22, 6, 6, 1), WH),
+    s(rr(10, 18, 80, 64, 6), INK, 2.2), f(heartD(50, 58, 30), HOT), f(rr(20, 72, 26, 4, 2), LILAC),
+  ]),
+  y2('y2k_daisy', '小雛菊', WH, [
+    f([...Array(8)].map((_, i) => circ(50 + 22 * Math.cos(i * Math.PI / 4), 50 + 22 * Math.sin(i * Math.PI / 4), 13)).join('')),
+    f(circ(50, 50, 14), '#e9d79a'), s([...Array(8)].map((_, i) => circ(50 + 22 * Math.cos(i * Math.PI / 4), 50 + 22 * Math.sin(i * Math.PI / 4), 13)).join(''), INK, 1.6, 0.6),
+  ]),
+  y2('y2k_dice', '絨毛骰子', HOT, [
+    f('M50 12L86 30L50 48L14 30Z', LILAC), f('M14 30L50 48V90L14 72Z'), f('M86 30L50 48V90L86 72Z', BABY),
+    f(rotE(50, 30, 5, 3, 0) + circ(26, 52, 3.4) + circ(38, 68, 3.4) + circ(62, 56, 3.4) + circ(74, 74, 3.4) + circ(68, 64, 3.4), WH),
+  ]),
+  y2('y2k_heartlock', '愛心鎖', HOT, [
+    s('M34 50V32Q34 16 50 16Q66 16 66 32V50', SILVER, 7), f(heartD(50, 64, 64)), f(circ(50, 58, 5.5) + 'M47 60H53L55 76H45Z', INK),
+    f(sparkleD(84, 22, 8, 0.22), LIME),
+  ]),
+  y2('y2k_orbit', '原子星', BABY, [
+    s(rotE(50, 50, 42, 13, 30) + rotE(50, 50, 42, 13, -30) + rotE(50, 50, 42, 13, 90), 'M', 2.6),
+    f(sparkleD(50, 50, 15, 0.22), HOT), f(circ(86, 72, 3.4) + circ(14, 28, 3.4), LIME),
+  ]),
+];
+
+export const ART_Y2K_EMOJI = [...Y2K, ...Y2K_V10, ...EMOJI];

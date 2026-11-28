@@ -674,6 +674,262 @@ const CUTE = [
     ]
   },
 ];
+// ===========================================================================
+// 第八版（網站 v10）：舊的可愛系列改成 STYLE.md 的媒材，各包保留自己的主題
+//   cream  奶油貼紙 → 色鉛筆：象牙色紙底＋乾燥玫瑰色細描邊（不用白色亮點、不用粗深色線）
+//   flora  花花世界 → 版畫：扁平色塊＋印壓顆粒，配色換成色票
+//   pastel 夢幻粉彩 → 色鉛筆細線：淡粉彩、拿掉腮紅
+//   螢光塗鴉（最早的一批貼圖）→ 蠟筆：粉筆般的亮色，不加光暈
+// ===========================================================================
+const IV = '#F4EEDF', CRY = '#E9D79A', LIL = '#A99BC5', SKB = '#9CB9D0', SGE = '#A6B58A', TER = '#CB8875',
+  CHO = '#655047', CHA = '#65645D', ROS = '#D69C98', RLINE = '#C48A82';
+const RAD = Math.PI / 180;
+// Catmull-Rom：穿過各點的平滑線（v10 新圖案用）
+function crD(pts, closed) {
+  const N = pts.length, at = (i) => (closed ? pts[(i + N) % N] : pts[Math.max(0, Math.min(N - 1, i))]);
+  let d = `M${n(pts[0][0])} ${n(pts[0][1])}`;
+  for (let i = 0; i < (closed ? N : N - 1); i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    d += `C${n(p1[0] + (p2[0] - p0[0]) / 6)} ${n(p1[1] + (p2[1] - p0[1]) / 6)} ${n(p2[0] - (p3[0] - p1[0]) / 6)} ${n(p2[1] - (p3[1] - p1[1]) / 6)} ${n(p2[0])} ${n(p2[1])}`;
+  }
+  return d + (closed ? 'Z' : '');
+}
+const blobD = (pts) => crD(pts, true), lineD = (pts) => crD(pts, false);
+function rellD(cx, cy, rx, ry, deg = 0) {
+  const c = Math.cos(deg * RAD), sn = Math.sin(deg * RAD);
+  const x1 = n(cx + rx * c), y1 = n(cy + rx * sn), x2 = n(cx - rx * c), y2 = n(cy - rx * sn);
+  return `M${x1} ${y1}A${rx} ${ry} ${deg} 1 1 ${x2} ${y2}A${rx} ${ry} ${deg} 1 1 ${x1} ${y1}Z`;
+}
+// 新月：大圓（cx,cy,r）扣掉小圓（ox,oy,r2）
+function crescentD(cx, cy, r, ox, oy, r2) {
+  const out = [];
+  for (let i = 0; i < 72; i++) { const a = (i / 72) * 2 * Math.PI, p = [cx + r * Math.cos(a), cy + r * Math.sin(a)]; if (Math.hypot(p[0] - ox, p[1] - oy) > r2) out.push([a, p]); }
+  let k = 0;
+  for (let i = 1; i < out.length; i++) if (out[i][0] - out[i - 1][0] > 0.2) k = i;
+  const outer = [...out.slice(k), ...out.slice(0, k)].map((q) => q[1]);
+  const A = outer[0], Bp = outer[outer.length - 1];
+  const a0 = Math.atan2(Bp[1] - oy, Bp[0] - ox), a1 = Math.atan2(A[1] - oy, A[0] - ox);
+  let da = a1 - a0;
+  while (da > 0) da -= 2 * Math.PI;
+  const inner = Array.from({ length: 23 }, (_, i) => { const a = a0 + (da * (i + 1)) / 24; return [ox + r2 * Math.cos(a), oy + r2 * Math.sin(a)]; });
+  return poly([...outer, ...inner]);
+}
+const CLOUD_D = 'M20 70C8 70 7 53 20 51C18 37 34 30 43 39C47 25 67 25 71 39C81 35 93 45 87 55C95 59 92 71 82 70Z';
+
+// 換媒材：加 style、換色（cmap 的值是 null 就拿掉那一筆）；白色半透明的亮點（光澤）一律拿掉
+function restyle(defs, style, cmap = {}) {
+  const m = (c) => {
+    if (c && typeof c === 'object' && c.lg) c = c.lg[4];
+    if (typeof c !== 'string' || c === 'M') return c;
+    const k = c.toLowerCase();
+    return k in cmap ? cmap[k] : c;
+  };
+  for (const d of defs) {
+    d.style = style;
+    d.color = m(d.color) || d.color;
+    d.parts = d.parts.filter((p) => {
+      const white = (p.f || p.s || '').toString().toLowerCase() === '#ffffff';
+      if (white && p.a != null && p.a < 1) return false; // 光澤亮點
+      return !((p.f && m(p.f) === null) || (p.s && m(p.s) === null));
+    }).map((p) => ({ ...p, f: m(p.f) || undefined, s: m(p.s) || undefined }));
+  }
+  return defs;
+}
+
+// ---------- 奶油貼紙：象牙紙底＋玫瑰色細線（新圖案） ----------
+const crm = (id, name, shape, extra = [], color = ROS, vb) => ({ id, name, cat: 'cream', color, ...(vb ? { vb } : {}), parts: [f(shape, IV), s(shape, RLINE, 3.4), ...extra] });
+const CR_DROP = 'M50 10C62 30 78 46 78 64A28 28 0 0 1 22 64C22 46 38 30 50 10Z';
+const CR_SHELL = 'M50 88L20 56C12 42 18 22 32 16Q41 11 50 12Q59 11 68 16C82 22 88 42 80 56Z';
+const CR_CUT = 'M50 89C40 74 25 62 25 42C25 25 37 18 50 30C63 18 75 25 75 42C75 62 60 74 50 89Z';
+const CREAM_V10 = [
+  crm('cr_moon', '奶油月亮', crescentD(46, 54, 36, 64, 40, 30), [f(sparkleD(80, 20, 9, 0.24)), f(circ(84, 44, 3))]),
+  crm('cr_cloud', '奶油雲', CLOUD_D, [f(rellD(34, 82, 2.6, 4.6, 0) + rellD(52, 86, 2.6, 4.6, 0) + rellD(70, 82, 2.6, 4.6, 0))]),
+  {
+    id: 'cr_cherry', name: '奶油櫻桃', cat: 'cream', color: ROS, parts: [
+      s('M34 60Q40 36 58 18M66 62Q64 40 58 18', RLINE, 3),
+      f(petalD(58, 18, 0, 26, 8, -0.35), IV), s(petalD(58, 18, 0, 26, 8, -0.35), RLINE, 3), s('M62 16L80 9', RLINE, 1.8),
+      f(circ(33, 70, 16)), s(circ(33, 70, 16), RLINE, 3.4), f(circ(67, 72, 15)), s(circ(67, 72, 15), RLINE, 3.4),
+    ]
+  },
+  {
+    id: 'cr_strawberry', name: '奶油草莓', cat: 'cream', color: ROS, parts: [
+      f(blobD([[50, 92], [32, 76], [22, 52], [32, 34], [50, 31], [68, 34], [78, 52], [68, 76]])),
+      s(blobD([[50, 92], [32, 76], [22, 52], [32, 34], [50, 31], [68, 34], [78, 52], [68, 76]]), RLINE, 3.4),
+      f([[38, 48], [50, 44], [62, 48], [44, 60], [56, 60], [38, 70], [62, 70], [50, 76], [50, 56]].map(([x, y]) => rellD(x, y, 1.6, 2.6, 0)).join(''), IV),
+      f(softStar(50, 30, [15, 12, 15, 12, 15], 6), IV), s(softStar(50, 30, [15, 12, 15, 12, 15], 6), RLINE, 3), s('M50 22L52 10', RLINE, 3),
+    ]
+  },
+  {
+    id: 'cr_tulip', name: '奶油鬱金香', cat: 'cream', color: ROS, parts: [
+      s('M50 58Q47 78 50 95', RLINE, 3),
+      f(petalD(50, 90, 0, 26, 8, -2.3), IV), s(petalD(50, 90, 0, 26, 8, -2.3), RLINE, 3),
+      f(fit(TULIP, 1.3, -15, -16)), s(fit(TULIP, 1.3, -15, -16), RLINE, 3.4),
+    ]
+  },
+  crm('cr_leaf', '奶油葉子', blobD([[50, 8], [70, 26], [76, 52], [64, 76], [50, 90], [36, 76], [24, 52], [30, 26]]),
+    [s('M50 18Q52 54 50 94', 'M', 2.6), s('M51 40L64 31M51 54L36 44M51 66L64 57', 'M', 2.2)], SGE),
+  {
+    id: 'cr_clover', name: '奶油幸運草', cat: 'cream', color: SGE, parts: [
+      s('M50 52Q56 76 50 94', RLINE, 3),
+      ...[0, 90, 180, 270].flatMap((r) => { const d = heartD(50 + 18 * Math.sin(r * RAD), 46 - 18 * Math.cos(r * RAD), 36, r); return [f(d, IV), s(d, RLINE, 3.2)]; }),
+      f(circ(50, 46, 5.5)),
+    ]
+  },
+  crm('cr_button', '奶油鈕扣', circ(50, 50, 40), [s(circ(50, 50, 30), RLINE, 2, 0.7), f([[-9, -9], [9, -9], [-9, 9], [9, 9]].map(([x, y]) => circ(50 + x, 50 + y, 5)).join('')), s('M41 41L59 59M59 41L41 59', 'M', 2)], LIL),
+  crm('cr_envelope', '奶油信封', 'M12 26H88V76H12Z', [s('M12 26L50 54L88 26M12 76L40 50M88 76L60 50', RLINE, 2.6), f(heartD(50, 56, 22))]),
+  {
+    id: 'cr_mushroom', name: '奶油香菇', cat: 'cream', color: TER, parts: [
+      f('M38 58Q35 80 42 90H58Q65 80 62 58Z', IV), s('M38 58Q35 80 42 90H58Q65 80 62 58Z', RLINE, 3.4),
+      f('M12 58C12 30 32 14 50 14C68 14 88 30 88 58Q50 66 12 58Z'), s('M12 58C12 30 32 14 50 14C68 14 88 30 88 58Q50 66 12 58Z', RLINE, 3.4),
+      f(circ(32, 40, 5.5) + circ(52, 28, 6.5) + circ(70, 44, 5) + circ(50, 50, 3.6), IV),
+    ]
+  },
+  crm('cr_shell', '奶油貝殼', CR_SHELL, [s([[-30, 22], [-18, 14], [-6, 12], [6, 12], [18, 14], [30, 22]].map(([x, y]) => `M50 84L${50 + x} ${y + 6}`).join(''), 'M', 2.4)]),
+  crm('cr_star5', '奶油星星', softStar(50, 54, [46, 46, 46, 46, 46], 23), [s(softStar(50, 54, [26, 26, 26, 26, 26], 13), 'M', 2.6)], CRY),
+  crm('cr_sun', '奶油太陽', scallop(50, 50, 12, 32, 46, -Math.PI / 2, 0.1), [f(circ(50, 50, 19)), s(circ(50, 50, 19), RLINE, 2.4)], CRY),
+  crm('cr_drop', '奶油水滴', CR_DROP, [f('M50 34C56 46 64 54 64 64A14 14 0 0 1 36 64C36 54 44 46 50 34Z')], SKB),
+  crm('cr_cutheart', '奶油心形', CR_CUT, [s(heartD(50, 52, 46), 'M', 2.6), f(circ(50, 52, 4))]),
+];
+
+// ---------- 花花世界：版畫色塊（新圖案；'M' = 花的顏色） ----------
+const fl = (id, name, color, parts) => ({ id, name, cat: 'flora', color, parts });
+const alongQ = (p0, c, p1, t) => [(1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p1[0], (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p1[1]];
+const FLORA_V10 = [
+  fl('fl_eucalyptus', '尤加利', '#9FB5A5', [
+    s('M28 96Q34 54 74 10', CHA, 2.2, 0.8),
+    f([0.18, 0.3, 0.42, 0.54, 0.66, 0.78, 0.9].flatMap((t, i) => { const [x, y] = alongQ([28, 96], [34, 54], [74, 10], t), r = 9 - i * 0.6; return [circ(x - r - 1, y - 1, r), circ(x + r + 1, y + 2, r * 0.92)]; }).join('')),
+  ]),
+  fl('fl_lavender', '薰衣草', LIL, [
+    s('M50 96L42 30M50 96L58 24M50 96L72 40', SGE, 2.4),
+    f([[[50, 96], [42, 30]], [[50, 96], [58, 24]], [[50, 96], [72, 40]]].flatMap(([a, b]) => [0, 0.08, 0.16, 0.24, 0.32, 0.4].map((t) => {
+      const x = b[0] + (a[0] - b[0]) * t, y = b[1] + (a[1] - b[1]) * t, ang = Math.atan2(a[1] - b[1], a[0] - b[0]) * 180 / Math.PI;
+      return rellD(x - 3, y, 2.6, 4.4, ang + 60) + rellD(x + 3, y, 2.6, 4.4, ang - 60);
+    })).join('')),
+  ]),
+  fl('fl_poppy', '罌粟花', TER, [
+    s('M50 52Q44 76 52 96', SGE, 3), f(petalD(50, 84, 0, 18, 6, -0.6), SGE),
+    f([45, 135, 225, 315].map((a) => circ(50 + 14 * Math.cos(a * RAD), 36 + 14 * Math.sin(a * RAD), 18)).join('')),
+    f(circ(50, 36, 8), CHO), f([0, 60, 120, 180, 240, 300].map((a) => circ(50 + 12 * Math.cos(a * RAD), 36 + 12 * Math.sin(a * RAD), 1.6)).join(''), CHO),
+  ]),
+  fl('fl_mimosa', '含羞草花', CRY, [
+    s('M18 94Q34 60 82 18M40 62Q30 46 32 30M56 44Q70 44 84 52', SGE, 2.4),
+    f([[30, 26, 7], [36, 40, 6], [26, 48, 5.5], [82, 14, 7], [70, 22, 6], [88, 30, 5.5], [86, 52, 7], [74, 56, 5.5], [62, 36, 5]].map(([x, y, r]) => circ(x, y, r)).join('')),
+    f(petalD(28, 80, 0, 16, 4, -2.6) + petalD(30, 78, 0, 14, 4, -0.2) + petalD(48, 58, 0, 14, 4, -2.2), SGE),
+  ]),
+  fl('fl_anemone', '銀蓮花', IV, [
+    s('M50 60Q54 80 48 96', SGE, 3),
+    f(ringOf(50, 42, 6, 19, 15)), f(circ(50, 42, 9), CHA),
+    f([0, 45, 90, 135, 180, 225, 270, 315].map((a) => circ(50 + 13 * Math.cos(a * RAD), 42 + 13 * Math.sin(a * RAD), 1.5)).join(''), CHA),
+  ]),
+  fl('fl_monstera', '龜背芋', SGE, [
+    s('M52 84L56 98', SGE, 3.2),
+    f(blobD([[52, 86], [26, 74], [12, 50], [20, 24], [44, 10], [70, 14], [88, 34], [86, 62], [70, 80]]) +
+      [[30, 40, 3, 9, 20], [36, 60, 3, 9, -20], [64, 30, 3, 9, -25], [72, 52, 3, 9, 25], [50, 22, 2.6, 7, 0], [52, 70, 2.6, 6, 0]].map(([x, y, rx, ry, d]) => rellD(x, y, rx, ry, d)).join('')),
+  ]),
+  fl('fl_hydrangea', '繡球花', SKB, [
+    f(petalD(50, 80, 0, 22, 8, 2.5) + petalD(50, 80, 0, 22, 8, 0.6), SGE),
+    f([[50, 46], [34, 38], [66, 38], [40, 58], [60, 58], [50, 28], [30, 54], [70, 54]].map(([x, y]) => [0, 90, 180, 270].map((a) => circ(x + 5 * Math.cos((a + 45) * RAD), y + 5 * Math.sin((a + 45) * RAD), 4.8)).join('')).join('')),
+    f([[50, 46], [34, 38], [66, 38], [40, 58], [60, 58], [50, 28], [30, 54], [70, 54]].map(([x, y]) => circ(x, y, 1.6)).join(''), IV),
+  ]),
+  fl('fl_sunflower', '向日葵', CRY, [
+    s('M50 64Q54 82 50 96', SGE, 3.4), f(petalD(52, 84, 0, 20, 7, -0.5), SGE),
+    f([...Array(14)].map((_, i) => petalD(50, 40, 12, 36, 6.5, (i * 2 * Math.PI) / 14)).join('')),
+    f(circ(50, 40, 14), CHO), f([0, 72, 144, 216, 288].map((a) => circ(50 + 7 * Math.cos(a * RAD), 40 + 7 * Math.sin(a * RAD), 1.6)).join(''), CRY),
+  ]),
+  fl('fl_berries', '漿果枝', TER, [
+    s('M20 96Q40 60 80 20M44 58Q60 56 70 66M34 74Q24 66 22 54', CHO, 2.2, 0.8),
+    f(petalD(60, 38, 0, 18, 6, -2.4) + petalD(50, 52, 0, 16, 5.5, 0.4) + petalD(30, 82, 0, 15, 5, -2.9), SGE),
+    f([[80, 18, 6], [72, 14, 5], [76, 26, 5], [70, 66, 6], [76, 72, 5], [22, 52, 5.5], [16, 58, 4.5]].map(([x, y, r]) => circ(x, y, r)).join('')),
+  ]),
+  fl('fl_lupine', '魯冰花', LIL, [
+    s('M50 96L50 20', SGE, 2.6),
+    f([...Array(9)].flatMap((_, i) => { const y = 72 - i * 6.4, r = 6 - i * 0.45; return [rellD(50 - r * 0.9, y, r, r * 0.6, -20), rellD(50 + r * 0.9, y - 3, r, r * 0.6, 20)]; }).join('') + circ(50, 14, 3)),
+    f([-2.4, -1.9, -1.2, -0.7].map((a) => petalD(50, 90, 0, 18, 3.6, a)).join(''), SGE),
+  ]),
+  fl('fl_chamomile', '洋甘菊', IV, [
+    s('M50 96Q46 70 30 46M50 96Q52 64 60 34M50 96Q60 80 78 66', SGE, 2.2),
+    ...[[30, 44, 11], [60, 30, 13], [78, 64, 9]].flatMap(([x, y, r]) => [
+      f([...Array(10)].map((_, i) => petalD(x, y, r * 0.25, r, r * 0.22, (i * Math.PI) / 5)).join('')), f(circ(x, y, r * 0.34), CRY),
+    ]),
+  ]),
+  fl('fl_grass', '芒草', SGE, [
+    f([-2.0, -1.75, -1.5, -1.3, -1.1].map((a, i) => petalD(50, 96, 0, [56, 70, 82, 66, 54][i], 3.6, a)).join('')),
+    s('M50 96Q40 52 30 14M50 96Q62 50 74 20', CHA, 1.6, 0.8),
+    f([0.1, 0.2, 0.3, 0.4].flatMap((t) => [rellD(30 + (40 - 30) * t + 2, 14 + 40 * t, 1.8, 4.6, 30), rellD(74 - 12 * t - 2, 20 + 34 * t, 1.8, 4.6, -30)]).join(''), CRY),
+  ]),
+  fl('fl_rosebud', '玫瑰花苞', ROS, [
+    s('M50 56Q47 78 51 96', SGE, 3), f(petalD(50, 80, 0, 20, 7, -0.4) + petalD(49, 70, 0, 16, 6, -2.8), SGE),
+    f(blobD([[50, 12], [64, 28], [64, 46], [50, 56], [36, 46], [36, 28]])),
+    f(petalD(50, 56, 0, 18, 6, -2.0) + petalD(50, 56, 0, 18, 6, -1.14), SGE),
+  ]),
+];
+
+// ---------- 夢幻粉彩：細色鉛筆線（新圖案） ----------
+const pl = (id, name, color, parts, vb) => ({ id, name, cat: 'pastel', color, ...(vb ? { vb } : {}), parts });
+const PSAGE = '#BFD3B4', PROSE = '#E7B7C0', PBLUE = '#B9CFE0', PCRM = '#EADFA8';
+const PASTEL_V10 = [
+  pl('pl_moon', '線條月亮', PCRM, [s(crescentD(46, 54, 34, 62, 42, 28), 'M', 3), f(circ(80, 22, 2.6) + circ(88, 40, 1.8) + circ(70, 12, 1.6))]),
+  pl('pl_cloud', '線條雲', '#F4EEDF', [s(CLOUD_D, 'M', 3), s('M30 80L28 88M50 82L48 92M70 80L68 88', PBLUE, 2.6)]),
+  pl('pl_heart', '雙線愛心', PROSE, [s(heartD(50, 52, 80), 'M', 3), s(heartD(50, 52, 58), 'M', 2, 0.7)]),
+  pl('pl_ribbon', '飄帶', LIL, [s(lineD([[6, 64], [22, 42], [40, 50], [36, 66], [24, 60], [32, 42], [54, 34], [72, 50], [66, 64], [58, 56], [70, 38], [94, 28]]), 'M', 3)]),
+  pl('pl_tulip', '線條鬱金香', PROSE, [s(fit(TULIP, 1.2, -10, -12), 'M', 3), s('M50 60Q48 78 50 96', PSAGE, 2.6), s(petalD(50, 88, 0, 24, 7, -2.3), PSAGE, 2.6)]),
+  pl('pl_sprig', '線條小枝', PSAGE, [s('M30 96Q40 50 72 10', 'M', 2.6), s([0.25, 0.45, 0.65, 0.85].map((t, i) => { const [x, y] = alongQ([30, 96], [40, 50], [72, 10], t); return petalD(x, y, 0, 15, 5, i % 2 ? -0.3 : -2.6); }).join(''), 'M', 2.4)]),
+  pl('pl_bubbles', '泡泡', PBLUE, [s(circ(40, 58, 22) + circ(72, 30, 12) + circ(76, 70, 7), 'M', 2.8), s('M28 52Q30 44 37 41', 'M', 2, 0.7)]),
+  pl('pl_rainbow', '線條彩虹', PROSE, [
+    s('M14 56A36 36 0 0 1 86 56', 'M', 3.2), s('M22 56A28 28 0 0 1 78 56', PCRM, 3.2), s('M30 56A20 20 0 0 1 70 56', PBLUE, 3.2),
+  ], [100, 62]),
+  pl('pl_swirl', '線條漩渦', LIL, [s(spiralD(50, 50, 2.4, 2, 36), 'M', 2.8)]),
+  pl('pl_butterfly', '線條蝴蝶', PBLUE, [s(BFLY_UP + BFLY_LO, 'M', 2.8), s('M50 40V72M48 40Q44 26 38 20M52 40Q56 26 62 20', PROSE, 2.4)]),
+  pl('pl_balloon', '氣球', PROSE, [s(ell(50, 36, 24, 29), 'M', 3), s('M47 66L53 66L50 70Z', 'M', 2.4), s(lineD([[50, 70], [44, 80], [54, 88], [48, 98]]), '#F4EEDF', 2)]),
+  pl('pl_saturn', '線條星球', LIL, [s(circ(50, 50, 20), 'M', 3), s(rellD(50, 50, 40, 10, -18), PCRM, 2.6), f(circ(16, 18, 2) + circ(84, 84, 2.4) + circ(86, 20, 1.6), PCRM)]),
+  pl('pl_wave', '雙波浪', PBLUE, [s('M6 22q11 -14 22 0t22 0t22 0t22 0', 'M', 3), s('M6 36q11 -14 22 0t22 0t22 0t22 0', PSAGE, 2.6)], [100, 50]),
+  pl('pl_bow', '線條蝴蝶結', PROSE, [s(BOW_LOOP + BOW_TAIL, 'M', 2.8), s(ell(50, 48, 6, 7), 'M', 2.6)]),
+];
+
+CUTE.push(...CREAM_V10, ...FLORA_V10, ...PASTEL_V10);
+restyle(CUTE.filter((d) => d.cat === 'cream'), 'pencil', {
+  '#fffaf2': IV, '#e6abb4': RLINE, '#f7a8bb': ROS,
+}).forEach((d) => { // 象牙紙底塗兩層：貼紙要實一點，照片不會從紙紋透出來
+  d.parts = d.parts.flatMap((p) => (p.f === IV ? [p, { ...p }] : [p]));
+});
+restyle(CUTE.filter((d) => d.cat === 'flora' || d.id === 'kt_blossom2'), 'print', {
+  '#f39552': TER, '#f4a2b8': ROS, '#f8b48a': '#DDA47F', '#6f9ed9': '#8FB0C9', '#94d3bd': '#9FB5A5', '#9cc47a': SGE,
+  '#ffd66b': CRY, '#ffffff': IV, '#fff1dd': IV, '#ffd8a3': CRY, '#e9783a': CHO, '#f08a5d': CHO, '#f2a55a': '#C99A63',
+  '#f7a9bd': ROS, '#e3d27a': SGE, '#fff3d6': IV, '#f2bd4f': '#D9B45E', '#c9e3a0': SGE, '#ff9e5e': TER, '#fff1d6': IV,
+});
+restyle(CUTE.filter((d) => d.cat === 'pastel' || d.id === 'nc_scratch'), 'pencil', {
+  '#ffffff': '#F4EEDF', '#ffb7d0': PROSE, '#9fd8f5': PBLUE, '#c8b6ff': LIL, '#ffe08a': PCRM, '#ffd86b': PCRM, '#9ff0d0': PSAGE,
+  '#ffd7e6': PROSE, '#ffb36b': '#E8B896', '#ffc79e': '#E8B896', '#a8ecd2': PSAGE, '#ff8fc0': PROSE, '#3d3332': CHO, '#ff9ec7': null, '#ff8fb0': null,
+}).forEach((d) => { d.parts = d.parts.map((p) => (p.s ? { ...p, w: p.w * 1.5 } : p)); }); // 色鉛筆線比向量線細，加粗一點才看得到
+// 最早的一批貼圖（螢光塗鴉、表情、動物、旅行、裝飾、線條）→ 蠟筆
+restyle(STICKERS, 'crayon', {
+  '#ff8fc0': '#F2A7C3', '#ff5f6d': '#EE8C86', '#ff9a3c': '#F2AE6E', '#ffd23c': '#F1D06A', '#6fdc7f': '#A3D49B',
+  '#46d2f0': '#8FCFE0', '#3f7bff': '#8DA6E6', '#b48cff': '#BFA4E8', '#2a2433': '#5A4E52', '#ff9ec7': '#F2B3C6', '#ffb020': '#F1C064',
+  '#ffc27a': '#F2C48E', '#ffb3d1': '#F2B8CC', '#8fe3c8': '#A9D8C4',
+});
+
+// 法式手繪 → 色鉛筆線稿（墨線換成褪色的藍灰／酒紅，拿掉線稿底下的紙色粗邊）
+restyle(ART_FR_JP.filter((d) => d.cat === 'french'), 'pencil', {
+  '#2b3a67': '#56647F', '#8c2f39': '#9A5E5E', '#fffaf0': IV, '#f8e3a3': CRY, '#f5c3c8': '#E2B3B0', '#cfe1f3': SKB,
+  '#f2cd8a': '#DDB27A', '#d8e5c6': SGE, '#e48e9b': '#D08C8C', '#d6b08c': '#B98F6E', '#b44a5a': '#A65E5E', '#b96a6a': '#B87C78',
+  '#f6ecc6': '#EFE3B8', '#d98a8a': '#D08C8C',
+}).forEach((d) => { d.parts = d.parts.filter((p) => !(p.s === IV && p.w >= 6)); });
+// 日式手繪 → 木版畫（朱、藍、抹茶換成褪色版；墨線換成柔和的焦茶）
+restyle(ART_FR_JP.filter((d) => d.cat === 'japan'), 'print', {
+  '#e2554a': '#C9705F', '#2f4b7c': '#5D7393', '#8fb573': SGE, '#f4a7b9': '#E1A9AE', '#fbf5e6': IV, '#3e3836': '#6B5A50',
+  '#d9768f': '#C98A92', '#e06c8c': '#C98A92', '#fff0f3': IV, '#ffffff': IV, '#c9a26a': '#C4A77D', '#9cbf7e': SGE, '#6f8f55': '#7E8D62',
+  '#f6c64f': CRY, '#f6a0a6': null, '#d9cdb4': '#D9CDB4', '#e0a0a6': '#DDA3A6', '#9cb9d0': SKB, '#b98f6e': '#B98F6E', '#9a7558': '#9A7558',
+  '#e8a39a': '#DFA79C', '#c7dbb0': '#C7D3B0', '#b9a99a': '#B9A99A', '#a99b7a': '#A99B7A', '#c9b88a': '#C9B88A', '#d9b45e': '#D9B45E',
+  '#a99bc5': LIL, '#b99a58': '#B99A58', '#a98458': '#A98458',
+});
+// Y2K → 褪色的孔版印刷：螢光粉、天藍、淡紫各自一版，鉻銀漸層換成平的銀灰，白色反光拿掉
+restyle(ART_Y2K_EMOJI.filter((d) => d.cat === 'y2k'), 'print', {
+  '#ff4fb8': '#D98AA6', '#8fd8ff': SKB, '#c9a7ff': LIL, '#c6f45a': '#B9C46A', '#5b3fa8': '#5B5A7E', '#ffffff': IV,
+  '#f4f6ff': '#C9C7C0', '#f8f9ff': '#C9C7C0', '#effaff': SKB, '#b28cff': LIL, '#9c86ff': LIL, '#5aa83a': '#8A9A6E', '#f6c64f': CRY, '#c9c7c0': '#C9C7C0',
+}).forEach((d) => {
+  // 反光線（白色的線）和白色小亮點拿掉；其餘不透明，像一次印上去
+  d.parts = d.parts.filter((p) => !(p.s === IV)).map((p) => ({ ...p, a: p.a != null && p.a < 1 ? 1 : p.a }));
+});
 STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS);
 
 // 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框

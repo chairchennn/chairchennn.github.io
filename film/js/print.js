@@ -11,6 +11,7 @@ function rng(seed) {
 }
 const hexRgb = (hex) => { const v = parseInt(hex.replace('#', ''), 16); return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; };
 const mix = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return `rgb(${A.map((x, i) => Math.round(x + (B[i] - x) * t)).join(',')})`; };
+const mixHex = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((x, i) => Math.round(x + (B[i] - x) * t).toString(16).padStart(2, '0')).join(''); };
 
 // ---------- 色鉛筆：細密的短筆觸＋紙張凹凸（填色），外框描兩三次 ----------
 // 參考圖 14：顏色幾乎塗滿，但紙的凹處留下細細的淺色顆粒；筆觸方向很淡、看得出來但不刮。
@@ -398,10 +399,10 @@ export const PIX_PAL = {
 };
 export function drawPixelDef(ctx, def, color, strokeScale = 1, seed = 1) {
   const G = def.grid, r = rng(seed * 13 + 5), ga = ctx.globalAlpha;
-  const base = (ch) => (ch === 'M' ? color : ch === 'd' ? mix(color, '#3b2f2a', 0.5) : ch === 'l' ? mix(color, '#ffffff', 0.5) : PIX_PAL[ch] || def.pal?.[ch]);
+  const base = (ch) => (ch === 'M' ? color : ch === 'd' ? mixHex(color, '#3b2f2a', 0.45) : ch === 'l' ? mixHex(color, '#ffffff', 0.5) : PIX_PAL[ch] || def.pal?.[ch]);
   const shades = new Map(); // 每個顏色三種深淺（像印刷／螢幕的不均）
   const shade = (ch) => {
-    if (!shades.has(ch)) { const c0 = base(ch); shades.set(ch, c0 ? [mix(c0, '#ffffff', 0.05), c0, mix(c0, '#2a2420', 0.06)] : null); }
+    if (!shades.has(ch)) { const c0 = base(ch); shades.set(ch, c0 ? [mixHex(c0, '#ffffff', 0.05), c0, mixHex(c0, '#2a2420', 0.06)] : null); }
     return shades.get(ch);
   };
   const gap = 0.07;
@@ -427,7 +428,7 @@ export function drawPixelDef(ctx, def, color, strokeScale = 1, seed = 1) {
 // ---------- 單張十字繡貼圖：把點陣（'X'）一格一格繡成 X，線有一點陰影與光澤（參考圖 10 的線） ----------
 export function drawStitchDef(ctx, def, color, strokeScale = 1, seed = 1) {
   const G = def.grid, r = rng(seed * 7 + 1), m = ctx.getTransform(), k = Math.hypot(m.a, m.b), ga = ctx.globalAlpha;
-  const q = 0.31, top = mix(color, '#ffffff', 0.35), under = mix(color, '#55606e', 0.18);
+  const q = 0.31, top = mixHex(color, '#ffffff', 0.35), under = mixHex(color, '#55606e', 0.18);
   ctx.save();
   ctx.lineCap = 'round';
   // 底下一層淡淡的布格（只在有繡的格子周圍）
@@ -464,7 +465,7 @@ export function drawStippleDef(ctx, def, color, strokeScale = 1, seed = 1) {
   const { g, m, x0, y0, k } = P;
   g.setTransform(1, 0, 0, 1, 0, 0);
   const toXY = (x, y) => [m.a * x + m.c * y + m.e - x0, m.b * x + m.d * y + m.f - y0];
-  stippleDots(g, def, toXY, Math.max(1, 0.85 * k), rng(seed * 3 + 1), color, mix('#e8f046', color, 0.15));
+  stippleDots(g, def, toXY, Math.max(1, 0.85 * k), rng(seed * 3 + 1), color, mixHex('#e8f046', color, 0.15));
   const dot = 0.85 * k;
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -484,7 +485,7 @@ export function drawStippleDef(ctx, def, color, strokeScale = 1, seed = 1) {
 //   hatch：角度（度）→ 在形狀裡畫斜線塗色（間距 sp）；gem：[[x,y,r],…] 水鑽；ink：深灰細線（編號、點）
 const DS_INK = '#5d5f66';
 export function drawDotstarDef(ctx, def, color, strokeScale = 1, seed = 1) {
-  const ga = ctx.globalAlpha, res = (c) => (c === 'M' ? color : c === 'D' ? mix(color, '#2e4a6e', 0.45) : c === 'K' ? DS_INK : c);
+  const ga = ctx.globalAlpha, res = (c) => (c === 'M' ? color : c === 'D' ? mixHex(color, '#2e4a6e', 0.45) : c === 'K' ? DS_INK : c);
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   def.parts.forEach((p, i) => {
@@ -535,7 +536,7 @@ export function drawDotstarDef(ctx, def, color, strokeScale = 1, seed = 1) {
       ctx.fillStyle = pencilStyle(ctx, fc, -0.85, cell, sd + 5);
       ctx.fill(path, 'evenodd');
       ctx.globalAlpha = a * 0.25;
-      ctx.fillStyle = pencilStyle(ctx, mix(fc, '#2e4a6e', 0.25), 0.5, cell, sd + 9);
+      ctx.fillStyle = pencilStyle(ctx, mixHex(fc, '#2e4a6e', 0.25), 0.5, cell, sd + 9);
       ctx.fill(path, 'evenodd');
     }
     if (sc) {
@@ -551,21 +552,34 @@ export function drawDotstarDef(ctx, def, color, strokeScale = 1, seed = 1) {
     }
     if (p.dot) { // 實心小圓點（連連看的點）：平塗、邊緣稍深
       ctx.globalAlpha = a; ctx.fillStyle = res(p.dot); ctx.fill(path);
-      ctx.globalAlpha = a * 0.5; ctx.strokeStyle = mix(res(p.dot), '#2e3440', 0.35); ctx.lineWidth = 0.35; ctx.stroke(path);
+      ctx.globalAlpha = a * 0.5; ctx.strokeStyle = mixHex(res(p.dot), '#2e3440', 0.35); ctx.lineWidth = 0.35; ctx.stroke(path);
     }
   });
   ctx.restore();
   ctx.globalAlpha = ga;
 }
 
-// ---------- 蠟筆貓咪（參考圖 22）：稚拙的蠟筆塗色——斜斜來回的筆觸、留一點紙白，外框同色加深；細線鬍鬚 ----------
+// ---------- 蠟筆貓咪（參考圖 22）：稚拙的蠟筆塗色——幾乎塗滿、留下一道道斜斜的紙白；外框是深色細線、跟色塊對不太準 ----------
 // parts：body:true 的部件（同一色）先合成一個剪影，再一次塗色 → 重疊處不會變深、接縫看不到
-//        s 為 'K' 的細線 = 臉、鬍鬚（深灰細線）；其他 f/s 照一般蠟筆畫
-const CAT_INK = '#3f3a3a';
+//        s 為 'K' 的細線 = 臉、鬍鬚（深灰細線）；under:true 的線畫在身體下面（曬衣繩、樹枝）
+const CAT_INK = '#3b3535';
 export function drawScribbleDef(ctx, def, color, strokeScale = 1, seed = 1) {
   const [vw, vh] = def.vb || [100, 100], ga = ctx.globalAlpha;
-  const res = (c) => (c === 'M' ? color : c === 'D' ? mix(color, '#2a2020', 0.38) : c === 'L' ? mix(color, '#ffffff', 0.45) : c === 'K' ? CAT_INK : c);
-  // 依顏色分組的剪影
+  const res = (c) => (c === 'M' ? color : c === 'D' ? mixHex(color, '#2a2020', 0.38) : c === 'L' ? mixHex(color, '#ffffff', 0.45) : c === 'K' ? CAT_INK : c);
+  const line = (p, i) => {
+    const a = (p.a ?? 1) * ga, fc = res(p.f), sc = res(p.s);
+    if (fc) { ctx.globalAlpha = a * 0.9; ctx.fillStyle = p.f === 'K' ? fc : crayonStyle(ctx, fc, 0.45); ctx.fill(wobblePath(p.d, 0.2, seed + i * 7, 0.1)); }
+    if (sc) {
+      ctx.globalAlpha = a * 0.88;
+      ctx.strokeStyle = p.s === 'K' ? sc : crayonStyle(ctx, sc, 0.45);
+      ctx.lineWidth = (p.w || 0.6) * strokeScale;
+      ctx.stroke(wobblePath(p.d, p.s === 'K' ? 0.25 : 0.6, seed + i * 7, 0.12));
+    }
+  };
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  def.parts.forEach((p, i) => { if (p.under) line(p, i); });
+  ctx.restore();
   const groups = [];
   def.parts.forEach((p, i) => {
     if (!p.body) return;
@@ -579,68 +593,64 @@ export function drawScribbleDef(ctx, def, color, strokeScale = 1, seed = 1) {
   const { g } = P;
   groups.forEach((gr, gi) => {
     const sd = seed + gi * 31, r = rng(sd * 11 + 7);
-    const paths = gr.parts.map(([p, i]) => wobblePath(p.d, 0.8, seed + i * 19, 0.08));
+    const paths = gr.parts.map(([p, i]) => wobblePath(p.d, 0.7, seed + i * 19, 0.07));
     let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
     gr.parts.forEach(([p]) => { const b = pathBox(p.d); bx0 = Math.min(bx0, b[0]); by0 = Math.min(by0, b[1]); bx1 = Math.max(bx1, b[2]); by1 = Math.max(by1, b[3]); });
-    // ① 剪影
+    const bw = bx1 - bx0, bh = by1 - by0;
+    // ① 剪影 → 蠟筆色（顆粒本身就有深淺）
     P.reset();
     g.fillStyle = '#000';
     paths.forEach((path) => g.fill(path));
-    // ② 先薄薄打底（蠟筆在紙上第一層，顆粒多）
     g.globalCompositeOperation = 'source-in';
-    g.fillStyle = crayonStyle(g, gr.c, 0.45);
-    g.globalAlpha = 0.55;
+    g.fillStyle = crayonStyle(g, gr.c, 0.4);
     g.fillRect(-6, -6, vw + 12, vh + 12);
-    // ③ 斜斜的來回筆觸（主要方向＋少數交叉），每筆粗細、濃淡不同
     g.globalCompositeOperation = 'source-atop';
-    const ang = -0.95 + (r() - 0.5) * 0.25, ca = Math.cos(ang), sa = Math.sin(ang);
-    const cx = (bx0 + bx1) / 2, cy = (by0 + by1) / 2, R = Math.hypot(bx1 - bx0, by1 - by0) / 2 + 3;
+    g.globalAlpha = 0.6;
+    g.fillStyle = crayonStyle(g, gr.c, 0.55);
+    g.fillRect(-6, -6, vw + 12, vh + 12);
+    // ② 一道道斜斜的紙白（蠟筆來回塗時沒塗到的地方）：往右上斜，長短粗細不一
+    const ang = -1.05 + (r() - 0.5) * 0.2, ca = Math.cos(ang), sa = Math.sin(ang);
+    g.globalCompositeOperation = 'destination-out';
     g.lineCap = 'round';
-    const dark = mix(gr.c, '#2a2020', 0.12);
-    for (let pass = 0; pass < 2; pass++) {
-      const a2 = pass ? ang + 0.5 : ang, c2 = Math.cos(a2), s2 = Math.sin(a2), sp = pass ? 3.2 : 1.35;
-      for (let t = -R; t <= R; t += sp * (0.7 + r() * 0.6)) {
-        g.globalAlpha = pass ? 0.3 + r() * 0.25 : 0.55 + r() * 0.4;
-        g.strokeStyle = crayonStyle(g, r() < 0.3 ? dark : gr.c, 0.45);
-        g.lineWidth = (pass ? 0.8 : 1.1 + r() * 0.9) * strokeScale;
-        const ox = cx - s2 * t, oy = cy + c2 * t, L0 = R * (0.6 + r() * 0.4), sh = (r() - 0.5) * R * 0.5;
-        g.beginPath();
-        g.moveTo(ox - c2 * (L0 - sh), oy - s2 * (L0 - sh));
-        // 稍微彎一下、手抖
-        g.quadraticCurveTo(ox + s2 * (r() - 0.5) * 2, oy - c2 * (r() - 0.5) * 2, ox + c2 * (L0 + sh), oy + s2 * (L0 + sh));
-        g.stroke();
+    const N = Math.round((bw * bh) / 60);
+    for (let k = 0; k < N; k++) {
+      // 一筆紙白：微彎、兩頭細（用兩三條細線疊出來）
+      const x = bx0 + r() * bw, y = by0 + r() * bh, L = 5 + r() * 14, a2 = (r() - 0.5) * 0.25, c2 = Math.cos(ang + a2), s2 = Math.sin(ang + a2);
+      const wd = (0.5 + r() * 1.1) * strokeScale, al = 0.3 + r() * 0.55;
+      for (let m = 0; m < 3; m++) {
+        const o = (m - 1) * wd * 0.35, sh = m === 1 ? 0 : L * 0.15;
+        g.globalAlpha = al * (m === 1 ? 1 : 0.6);
+        g.lineWidth = wd * (m === 1 ? 0.8 : 0.45);
+        g.beginPath(); g.moveTo(x - s2 * o + c2 * sh, y + c2 * o + s2 * sh); g.lineTo(x - s2 * o + c2 * (L - sh), y + c2 * o + s2 * (L - sh)); g.stroke();
       }
     }
-    // ④ 外框：同色加深，描一次（只留剪影外緣：先描整圈，再把剪影裡面挖掉一半）——畫在另一張
+    // ③ 同方向幾筆深一點的筆觸（壓得比較用力）
+    g.globalCompositeOperation = 'source-atop';
+    g.strokeStyle = crayonStyle(g, mixHex(gr.c, '#2a2020', 0.18), 0.4);
+    for (let k = 0; k < N * 0.35; k++) {
+      const x = bx0 + r() * bw, y = by0 + r() * bh, L = 4 + r() * 12;
+      g.globalAlpha = 0.25 + r() * 0.3;
+      g.lineWidth = (0.6 + r() * 1.1) * strokeScale;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + ca * L, y + sa * L); g.stroke();
+    }
     P.blit(ga);
+    // ④ 外框：深色細線，畫在剪影外緣（線和色塊稍微錯開：用另一組手抖）
     P.reset();
     g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = crayonStyle(g, mix(gr.c, '#2a2020', 0.35), 0.45);
-    g.globalAlpha = 0.85;
-    g.lineWidth = 2.1 * strokeScale;
-    gr.parts.forEach(([p, i]) => g.stroke(wobblePath(p.d, 1.1, seed + i * 19 + 3, 0.08)));
+    const outl = gr.parts.map(([p, i]) => wobblePath(p.d, 0.9, seed + i * 19 + 5, 0.09));
+    g.strokeStyle = CAT_INK; g.globalAlpha = 0.85;
+    g.lineWidth = 1.3 * strokeScale;
+    outl.forEach((path) => g.stroke(path));
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'destination-out';
     g.fillStyle = '#000';
-    paths.forEach((path) => g.fill(path));
-    // 裡面只挖掉大部分（邊緣內側留一點點深色，像蠟筆壓邊）
-    P.blit(ga);
+    outl.forEach((path) => g.fill(path));
+    P.blit(ga * 0.9);
   });
-  // ⑤ 其他部件：細線（臉、鬍鬚）與小東西
+  // ⑤ 其他部件：臉、鬍鬚與小東西
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  def.parts.forEach((p, i) => {
-    if (p.body) return;
-    const a = (p.a ?? 1) * ga, fc = res(p.f), sc = res(p.s);
-    if (fc) { ctx.globalAlpha = a * 0.85; ctx.fillStyle = crayonStyle(ctx, fc, 0.45); ctx.fill(wobblePath(p.d, 0.3, seed + i * 7, 0.1)); }
-    if (sc) {
-      const w = (p.w || 0.7) * strokeScale;
-      ctx.globalAlpha = a * 0.9;
-      ctx.strokeStyle = p.s === 'K' ? sc : crayonStyle(ctx, sc, 0.45);
-      ctx.lineWidth = w;
-      ctx.stroke(wobblePath(p.d, p.s === 'K' ? 0.25 : 0.6, seed + i * 7, 0.12));
-    }
-  });
+  def.parts.forEach((p, i) => { if (!p.body && !p.under) line(p, i); });
   ctx.restore();
   ctx.globalAlpha = ga;
 }

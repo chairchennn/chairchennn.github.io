@@ -2,7 +2,7 @@
 // 共用工具從 ./shapes.js 匯入。格式同 stickers.js：{ id, name, cat, color, vb?, parts: [...] }
 // 法式：'M' = 墨線色（預設深藍或酒紅），淡色填色固定；線稿底下墊一層紙色，深色照片上也看得清楚。
 // 日式：'M' = 主要填色（櫻粉、朱紅、靛藍、抹茶…），輪廓用柔和的墨色，部分線條用毛筆般的粗細變化。
-import { s, f, circ, ell, poly, sparkleD, heartD, petalD, notchPetalD, n } from './shapes.js';
+import { s, f, circ, ell, poly, sparkleD, heartD, petalD, notchPetalD, softStar, ringOf, n } from './shapes.js';
 
 // ---------- 小工具 ----------
 const { PI, cos, sin, hypot, atan2, abs, max, min } = Math;
@@ -267,7 +267,7 @@ const JAPAN = [
         const half = (r) => `M${n(x - r)} ${y}A${r} ${r} 0 0 1 ${n(x + r)} ${y}`;
         return [f(half(9) + 'Z', KINARI), s(half(9) + half(5), 'M', 1.8, 0.85)];
       }),
-      f('M42 27C47 20 58 20 62 27C58 34 47 34 42 27L33 20L34.5 34Z', SHU), f(circ(56, 26, 1.6), SUMI),
+      f(circ(60, 26, 7), SHU), // 第八版：原本的小金魚改成紅色太陽（不要小魚）
     ]
   },
   {
@@ -316,4 +316,170 @@ const JAPAN = [
   },
 ];
 
-export const ART_FR_JP = [...FRENCH, ...JAPAN];
+// ===========================================================================
+// 第八版（網站 v10）新增：每包約 25 種。法式＝色鉛筆線稿＋淡色（在 stickers.js 換成 pencil）；
+// 日式＝木版畫色塊＋柔和的墨色輪廓（在 stickers.js 換成 print）。全部原創、沒有臉。
+// ===========================================================================
+const fr = (id, name, color, parts, vb) => ({ id, name, cat: 'french', color, ...(vb ? { vb } : {}), parts });
+const FR_LINE = (d, w = FW) => s(d, 'M', w);
+const FRENCH_V10 = [
+  fr('fr_eiffel', '鐵塔', NAVY, [
+    f('M30 94L44 52L46 30L49 8L51 8L54 30L56 52L70 94Z', PAPER),
+    FR_LINE('M30 94L44 52L46 30L49 8L51 8L54 30L56 52L70 94'), FR_LINE('M38 94Q50 74 62 94'),
+    FR_LINE('M36 72H64M42 52H58M45.5 30H54.5', FW2), s('M40 62L60 72M60 62L40 72M45 40L55 50M55 40L45 50', 'M', 1.4, 0.7),
+    f(sparkleD(78, 20, 7, 0.22), BUTTER), s(sparkleD(78, 20, 7, 0.22), 'M', 1.4),
+  ]),
+  fr('fr_beret', '貝雷帽', WINE, [
+    f('M12 58C12 38 32 28 54 28C78 28 92 40 89 54C87 64 70 67 50 67C30 67 12 66 12 58Z', '#b96a6a'),
+    FR_LINE('M12 58C12 38 32 28 54 28C78 28 92 40 89 54C87 64 70 67 50 67C30 67 12 66 12 58Z'),
+    FR_LINE('M52 28L54 19', 3.4), s('M18 60Q50 70 86 58', 'M', FW2), s('M30 40Q44 34 60 36', PAPER, 2.2, 0.6),
+  ]),
+  fr('fr_cheese', '起司', NAVY, [
+    f('M12 64L88 44V78H12Z', BUTTER), f('M12 64L68 32L88 44Z', '#f6ecc6'),
+    f(ell(30, 70, 5, 3.6) + ell(52, 64, 4, 3) + ell(72, 68, 5.5, 4) + ell(60, 40, 4, 2.4), CRUST),
+    FR_LINE('M12 64L68 32L88 44V78H12Z'), s('M12 64L88 44', 'M', FW2),
+  ]),
+  fr('fr_perfume', '香水瓶', WINE, [
+    f('M28 52Q28 42 38 42H62Q72 42 72 52V82Q72 90 62 90H38Q28 90 28 82Z', ROSE), FR_LINE('M28 52Q28 42 38 42H62Q72 42 72 52V82Q72 90 62 90H38Q28 90 28 82Z'),
+    f('M44 30H56V42H44Z', PAPER), FR_LINE('M44 30H56V42H44Z', FW2),
+    f(rotEll(28, 24, 8, 6, -10), SKY), s(rotEll(28, 24, 8, 6, -10), 'M', FW2), s('M35 25Q46 24 46 30', 'M', FW2),
+    f('M38 60H62V74H38Z', PAPER), s('M38 60H62V74H38Z', 'M', 1.4), s('M43 66H57', 'M', 1.4, 0.7),
+  ]),
+  fr('fr_umbrella', '雨傘', NAVY, [
+    f('M10 52Q12 18 50 14Q88 18 90 52Q80 45 70 52Q60 45 50 52Q40 45 30 52Q20 45 10 52Z', SKY),
+    FR_LINE('M10 52Q12 18 50 14Q88 18 90 52Q80 45 70 52Q60 45 50 52Q40 45 30 52Q20 45 10 52Z'),
+    s('M50 14Q38 30 30 52M50 14Q62 30 70 52M50 14V52', 'M', FW2), FR_LINE('M50 52V84Q50 92 43 92Q37 92 37 86'), FR_LINE('M50 14V8', 3.2),
+  ]),
+  fr('fr_mariniere', '條紋衫', NAVY, [
+    f('M30 18L41 13Q50 22 59 13L70 18L88 34L78 46L70 40V90H30V40L22 46L12 34Z', PAPER),
+    s('M31 33H69M30 45H70M30 57H70M30 69H70M30 81H70M17 39L24 33M83 39L76 33', 'M', 3.2),
+    FR_LINE('M30 18L41 13Q50 22 59 13L70 18L88 34L78 46L70 40V90H30V40L22 46L12 34Z'),
+  ]),
+  fr('fr_chair', '小圓椅', NAVY, [
+    FR_LINE('M34 50Q26 10 50 10Q74 10 66 50'), s('M40 48Q36 18 50 18Q64 18 60 48', 'M', FW2),
+    f(ell(50, 54, 22, 5.5), CRUST), s(ell(50, 54, 22, 5.5), 'M', FW),
+    FR_LINE('M30 57L25 94M70 57L75 94M40 59L38 92M60 59L62 92'), s('M28 78Q50 84 72 78', 'M', FW2),
+  ]),
+  fr('fr_lamp', '街燈', NAVY, [
+    FR_LINE('M50 94V36'), f('M40 94H60L56 85H44Z', PAPER), FR_LINE('M40 94H60L56 85H44Z', FW2),
+    FR_LINE('M50 42Q38 30 28 36M50 42Q62 30 72 36', FW2),
+    ...[28, 72].flatMap((x) => [f(`M${x - 7} 40H${x + 7}L${x + 5} 56H${x - 5}Z`, BUTTER), s(`M${x - 7} 40H${x + 7}L${x + 5} 56H${x - 5}ZM${x - 8} 40L${x} 34L${x + 8} 40`, 'M', FW2)]),
+    s(circ(50, 32, 3.4), 'M', FW2),
+  ]),
+  fr('fr_book', '打開的書', WINE, [
+    f('M50 30Q34 21 12 25V80Q34 76 50 84Q66 76 88 80V25Q66 21 50 30Z', PAPER),
+    FR_LINE('M50 30Q34 21 12 25V80Q34 76 50 84Q66 76 88 80V25Q66 21 50 30ZM50 30V84'),
+    s('M20 38Q31 35 42 38M20 47Q31 44 42 47M20 56Q31 53 42 56M58 38Q69 35 80 38M58 47Q69 44 80 47M58 56Q69 53 76 55', 'M', 1.4, 0.75),
+    f(heartD(68, 68, 10), ROSE),
+  ]),
+  fr('fr_strawhat', '草帽', NAVY, [
+    f(ell(50, 62, 42, 12), CRUST), s(ell(50, 62, 42, 12), 'M', FW),
+    f('M28 60Q27 34 50 34Q73 34 72 60Q50 66 28 60Z', CRUST), FR_LINE('M28 60Q27 34 50 34Q73 34 72 60'),
+    f('M28 52Q50 58 72 52L72 59Q50 65 28 59Z', SKY), s('M28 52Q50 58 72 52M28 59Q50 65 72 59', 'M', FW2),
+    s('M70 58Q80 66 84 76M70 58Q74 70 72 80', 'M', FW2),
+  ]),
+  fr('fr_madeleine', '瑪德蓮', NAVY, [
+    f('M14 60Q16 26 50 22Q84 26 86 60Q50 72 14 60Z', CRUST), FR_LINE('M14 60Q16 26 50 22Q84 26 86 60Q50 72 14 60Z'),
+    s('M50 64L26 36M50 64L38 27M50 64L50 24M50 64L62 27M50 64L74 36', 'M', FW2, 0.85),
+  ]),
+  fr('fr_tart', '草莓塔', WINE, [
+    f('M14 58Q50 66 86 58L80 78Q50 86 20 78Z', CRUST), FR_LINE('M14 58Q50 66 86 58L80 78Q50 86 20 78Z'),
+    s('M26 64L27 79M38 66V82M50 66V83M62 66V82M74 64L73 79', 'M', 1.4, 0.7),
+    f('M18 58Q50 46 82 58Q50 64 18 58Z', PAPER), s('M18 58Q50 46 82 58', 'M', FW2),
+    ...[[34, 48, -14], [50, 42, 0], [66, 48, 14]].flatMap(([x, y, r]) => [f(heartD(x, y, 22, 180 + r), '#d98a8a'), s(heartD(x, y, 22, 180 + r), 'M', FW2)]),
+  ]),
+  fr('fr_key', '古董鑰匙', NAVY, [
+    f(circ(26, 50, 15) + circ(26, 50, 7), BUTTER), s(circ(26, 50, 15) + circ(26, 50, 7), 'M', FW),
+    FR_LINE('M41 50H88'), FR_LINE('M76 50V62H82V56M88 50V60'), s('M48 46V54M54 46V54', 'M', FW2),
+  ], [100, 72]),
+  fr('fr_vase', '花瓶', NAVY, [
+    s('M44 42Q40 26 28 18M50 42V14M56 42Q62 28 74 22', SAGE, 2.6), s('M44 42Q40 26 28 18M50 42V14M56 42Q62 28 74 22', 'M', 1.2, 0.6),
+    ...[[28, 17], [50, 12], [74, 21]].flatMap(([x, y]) => [f([...Array(5)].map((_, i) => circ(x + 5 * cos(i * 1.2566), y + 5 * sin(i * 1.2566), 4)).join(''), ROSE), f(circ(x, y, 2.4), BUTTER)]),
+    f('M38 50Q28 62 33 80Q38 92 50 92Q62 92 67 80Q72 62 62 50V42H38Z', SKY), FR_LINE('M38 50Q28 62 33 80Q38 92 50 92Q62 92 67 80Q72 62 62 50V42H38Z'),
+    s('M36 66Q50 72 64 66', 'M', FW2),
+  ]),
+  fr('fr_candle', '燭台', WINE, [
+    f('M50 10Q59 21 50 28Q41 21 50 10Z', BUTTER), s('M50 10Q59 21 50 28Q41 21 50 10Z', 'M', FW2),
+    f('M42 32H58V72H42Z', PAPER), FR_LINE('M42 32H58V72H42Z'), s('M50 28V32M46 32Q45 40 47 42', 'M', FW2),
+    f('M26 76Q50 70 74 76Q68 86 50 86Q32 86 26 76Z', CRUST), FR_LINE('M26 76Q50 70 74 76Q68 86 50 86Q32 86 26 76Z'), FR_LINE(circ(80, 78, 5), FW2),
+  ]),
+];
+
+const jp = (id, name, color, parts, vb) => ({ id, name, cat: 'japan', color, ...(vb ? { vb } : {}), parts });
+const JAPAN_V10 = [
+  jp('jp_torii', '鳥居', SHU, [
+    f('M28 32H37V94H28ZM63 32H72V94H63ZM16 42H84V49H16Z'), f('M10 22Q50 30 90 22L88 31Q50 37 12 31Z'),
+    f('M7 17Q50 25 93 17L91 22Q50 30 9 22Z', SUMI), f('M46 31H54V42H46Z', SUMI),
+  ]),
+  jp('jp_lantern', '燈籠', SHU, [
+    s('M50 4V18', SUMI, JW2), f(ell(50, 52, 26, 32)), s('M26 40H74M24 52H76M26 64H74', KINARI, 1.6, 0.8),
+    f('M37 16H63V24H37ZM37 80H63V88H37Z', SUMI), s('M50 88V96', SUMI, JW2),
+  ]),
+  jp('jp_maple', '楓葉', SHU, [
+    s('M50 60L54 96', '#c9a26a', 3), f(softStar(50, 50, [42, 36, 22, 10, 10, 22, 36], 13)),
+    s('M50 56L50 14M50 56L18 34M50 56L82 34M50 56L28 66M50 56L72 66', KINARI, 1.4, 0.7),
+  ]),
+  jp('jp_ume', '梅花', '#e0a0a6', [
+    f(ringOf(50, 50, 5, 19, 16)), s([...Array(10)].map((_, i) => `M50 50L${n(50 + 13 * cos((i * PI) / 5))} ${n(50 + 13 * sin((i * PI) / 5))}`).join(''), SHU, 1.4), f([...Array(10)].map((_, i) => circ(50 + 13 * cos((i * PI) / 5), 50 + 13 * sin((i * PI) / 5), 1.6)).join(''), BUTTER),
+    f(circ(50, 50, 4), SHU),
+  ]),
+  jp('jp_wagasa', '和傘', SHU, [
+    s('M50 50V94', '#c9a26a', 4.5), f('M10 54Q50 4 90 54Q80 50 70 54Q60 50 50 54Q40 50 30 54Q20 50 10 54Z'),
+    s('M50 10L30 53M50 10L70 53M50 10L50 53M50 10L14 52M50 10L86 52', KINARI, 1.4, 0.7), f(circ(50, 30, 6), KINARI),
+  ]),
+  jp('jp_yunomi', '茶杯', AI, [
+    f('M28 34H72L68 82Q66 88 60 88H40Q34 88 32 82Z'), f(ell(50, 34, 22, 5), MATCHA), s(ell(50, 34, 22, 5), SUMI, JW2),
+    s('M31 58Q40 52 50 58T69 58', KINARI, 3), s('M42 24Q38 16 44 8M56 24Q52 16 58 8', '#b9a99a', 2.2),
+  ]),
+  jp('jp_matcha', '抹茶碗', '#b98f6e', [
+    f('M12 44H88Q86 80 50 84Q14 80 12 44Z'), f(ell(50, 44, 38, 8), MATCHA), f(circ(40, 44, 2) + circ(56, 42, 1.6) + circ(62, 46, 1.4), '#c7dbb0'),
+    f('M40 84H60V90H40Z', '#9a7558'),
+  ]),
+  jp('jp_furin', '風鈴', '#9cb9d0', [
+    s('M50 4V22', SUMI, JW2), f('M28 52Q28 22 50 22Q72 22 72 52Z'), f(circ(38, 40, 3) + circ(52, 32, 3) + circ(62, 44, 3), SHU),
+    s('M50 52V66', SUMI, 1.6), f('M43 66H57V96H43Z', KINARI), s('M43 66H57V96H43Z', SUMI, 1.2),
+  ]),
+  jp('jp_crane', '紙鶴', SHU, [
+    f('M26 62L74 62L50 46Z'), f('M28 62L12 30L36 56Z'), f('M12 30L4 37L14 34Z'), f('M72 62L90 30L66 56Z'),
+    f('M42 52L32 10L58 48Z', '#e8a39a'), s('M26 62L50 46L74 62M42 52L32 10L58 48', SUMI, 1.2, 0.7),
+  ]),
+  jp('jp_geta', '木屐', '#c9a26a', [
+    f('M10 54Q10 50 14 50H86Q90 50 90 54V62H10Z'), f('M20 62H32V80H20ZM68 62H80V80H68Z', '#a98458'),
+    s('M28 50Q32 30 50 28Q68 30 72 50M50 28V38', SHU, 4.2),
+  ], [100, 86]),
+  jp('jp_sensu', '摺扇', AI, [
+    f('M50 88L8 44A60 60 0 0 1 92 44Z'), f('M50 88L36 72A20 20 0 0 1 64 72Z', '#c9a26a'),
+    s([...Array(9)].map((_, i) => { const a = PI * (1.25 + i * 0.0625); return `M50 88L${n(50 + 60 * cos(a) * 1.0)} ${n(88 + 60 * sin(a) * 1.0)}`; }).join(''), KINARI, 1.2, 0.6),
+    f(circ(62, 42, 9), SHU),
+  ]),
+  jp('jp_pine', '松', MATCHA, [
+    f(brush([[46, 96], [48, 70], [40, 50], [50, 30]], 7, { taper: [0, 0.3] }), '#9a7558'),
+    f('M12 52Q28 34 46 42Q60 34 72 48Z'), f('M34 30Q50 12 70 22Q82 18 90 32Z'), f('M50 70Q64 56 80 62Q88 60 94 70Z'),
+    s('M18 50Q30 42 44 46M40 28Q54 20 68 26M56 68Q70 62 86 66', KINARI, 1.2, 0.6),
+  ]),
+  jp('jp_tsukimi', '賞月', '#e9d79a', [
+    f(circ(60, 36, 24)), s('M30 98Q26 60 14 30M36 98Q40 64 52 44M42 98Q48 72 72 60', '#a99b7a', 2.4),
+    f(rotEll(14, 30, 2.6, 8, -20) + rotEll(52, 44, 2.6, 8, 30) + rotEll(72, 60, 2.6, 8, 60), '#c9b88a'),
+  ]),
+  jp('jp_chopsticks', '筷子', SHU, [
+    f('M14 82L86 18L88 21L18 86Z'), f('M24 88L90 32L92 35L28 92Z'), f(ell(26, 84, 9, 4), AI),
+  ]),
+  jp('jp_kiku', '菊花', '#e9d79a', [
+    f([...Array(16)].map((_, i) => petalD(50, 50, 8, 44, 5, (i * PI) / 8)).join('')),
+    f([...Array(12)].map((_, i) => petalD(50, 50, 4, 26, 4.4, (i * PI) / 6 + 0.2)).join(''), '#d9b45e'), f(circ(50, 50, 6), '#b98f6e'),
+  ]),
+  jp('jp_wisteria', '紫藤', '#a99bc5', [
+    s('M6 12Q50 4 94 14', '#9a7558', 3.2), s('M30 10L30 18M56 8L56 16M80 12L80 20', MATCHA, 2),
+    f([[30, 18, 7], [56, 16, 8], [80, 20, 6]].flatMap(([x, y, k]) => [...Array(k)].map((_, i) => { const r = 6 - i * 0.6; return circ(x + (i % 2 ? 3 : -3), y + 4 + i * 8.5, r); })).join('')),
+  ]),
+  jp('jp_suzu', '鈴鐺', '#e9d79a', [
+    s('M40 30Q50 14 60 30', SHU, 3.4), f(circ(50, 58, 28)), f('M24 58H76V62H24Z', '#b99a58'), f(circ(50, 72, 4) + 'M49 72H51V86H49Z', SUMI),
+    f(heartD(36, 24, 12, -90) + heartD(64, 24, 12, 90), SHU),
+  ]),
+  jp('jp_kite', '風箏', KINARI, [
+    f('M48 6L84 44L48 82L12 44Z'), f(circ(48, 44, 14), SHU), s('M48 6V82M12 44H84', SUMI, 1.2, 0.6),
+    s('M48 82Q40 90 50 96Q62 92 72 98', SUMI, 1.4), f(heartD(52, 94, 8, 90) + heartD(66, 96, 8, 90), AI),
+  ]),
+];
+
+export const ART_FR_JP = [...FRENCH, ...FRENCH_V10, ...JAPAN, ...JAPAN_V10];

@@ -45,96 +45,128 @@ export const PACKS = {
     medium: { pr_wheat: 1, pr_daisy: 1, pr_clover: 1, pr_olive: 1, pr_dandelion: 1, pr_oak: 0.8 },
     large: { pr_fern: 1, pr_pine: 1, pr_wheat: 1, pr_olive: 1 },
   },
+  // 奶油貼紙（第八版）：象牙紙底＋玫瑰色細線的色鉛筆貼紙；'M' 換成色票的低飽和色
   cream: {
-    name: '奶油貼紙', glow: 0, lw: 0.0034,
-    colors: ['#f7a8bb', '#f49ab0', '#ffb5c5', '#f6b38f', '#f4b6a6'],
-    small: { cr_dotheart: 2, cr_sparkle: 1.5, cr_cross: 1.5, cr_flower4: 2, cr_candy: 1, cr_twinstar: 1 },
-    medium: { cr_heart: 2, cr_flower5: 2, cr_bigstar: 1.5, cr_swirl: 0.4, cr_bow: 1, cr_butterfly: 1.5, cr_twinstar: 1.2 },
-    large: { cr_bigstar: 1, cr_heart: 1, cr_flower5: 1 },
+    name: '奶油貼紙', glow: 0, noGlow: true, lw: 0.0034,
+    sizes: { small: [0.05, 0.075], medium: [0.09, 0.13], large: [0.16, 0.22] },
+    colors: ['#D69C98', '#CB8875', '#A99BC5', '#9CB9D0', '#A6B58A', '#E3C77E'], recolor: 0.35,
+    small: { cr_dotheart: 1.2, cr_sparkle: 1.2, cr_cross: 1, cr_flower4: 1.2, cr_candy: 0.8, cr_twinstar: 1, cr_button: 1, cr_drop: 1, cr_star5: 1, cr_clover: 0.8, cr_cutheart: 0.8 },
+    medium: {
+      cr_heart: 1, cr_flower5: 1, cr_bigstar: 1, cr_swirl: 0.6, cr_bow: 1, cr_butterfly: 1, cr_moon: 1, cr_cloud: 1, cr_cherry: 1,
+      cr_strawberry: 1, cr_tulip: 1, cr_leaf: 1, cr_envelope: 0.8, cr_mushroom: 1, cr_shell: 1, cr_sun: 0.8,
+    },
+    large: { cr_bigstar: 1, cr_heart: 1, cr_flower5: 1, cr_moon: 1, cr_cloud: 1, cr_strawberry: 1, cr_bow: 1, cr_butterfly: 1 },
   },
+  // 花花世界（第八版）：版畫色塊，配色換成色票
   flora: {
-    name: '花花世界', glow: 0, lw: 0.0034, largeExtra: 1, bleed: 0.3,
-    sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.22, 0.3] },
-    colors: ['#f39552', '#f4a2b8', '#f8b48a', '#6f9ed9', '#94d3bd'], recolor: 0.3, keepColor: ['fl_ginkgo'],
-    small: { fl_star: 2, fl_blue: 2, kt_blossom2: 1, fl_round: 1 },
-    medium: { fl_daisy: 2, fl_cosmos: 2, fl_round: 1.5, fl_tulip: 1, fl_ginkgo: 1.5 },
-    large: { fl_sprig: 2, fl_bunch: 1.5, fl_fern: 1.2, fl_daisy: 1, fl_starbranch: 1.5 },
+    name: '花花世界', glow: 0, noGlow: true, lw: 0.0034, largeExtra: 1, bleed: 0.3,
+    sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.2, 0.28] },
+    colors: ['#CB8875', '#D69C98', '#9CB9D0', '#A99BC5', '#E9D79A'], recolor: 0.25,
+    keepColor: ['fl_ginkgo', 'fl_monstera', 'fl_eucalyptus', 'fl_grass', 'fl_sprig', 'fl_fern'],
+    small: { fl_star: 1.2, fl_blue: 1.2, kt_blossom2: 1, fl_round: 1, fl_anemone: 1, fl_chamomile: 0.8, fl_hydrangea: 0.8, fl_poppy: 0.8 },
+    medium: {
+      fl_daisy: 1, fl_cosmos: 1, fl_round: 0.8, fl_tulip: 1, fl_ginkgo: 1, fl_poppy: 1, fl_anemone: 1, fl_hydrangea: 1, fl_sunflower: 1,
+      fl_rosebud: 1, fl_chamomile: 1, fl_lupine: 1, fl_berries: 1, fl_monstera: 0.8,
+    },
+    large: { fl_sprig: 1, fl_bunch: 1, fl_fern: 0.8, fl_starbranch: 1, fl_eucalyptus: 1, fl_lavender: 1, fl_mimosa: 1, fl_monstera: 1, fl_grass: 0.8, fl_lupine: 0.8, fl_berries: 0.8 },
   },
+  // 夢幻粉彩（第八版）：淡粉彩的色鉛筆細線
   pastel: {
-    name: '夢幻粉彩', glow: 0.5, lw: 0.0032,
-    sizes: { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.22, 0.3] },
-    colors: ['#ffffff', '#ffb7d0', '#9fd8f5', '#c8b6ff', '#ffe08a', '#9ff0d0'],
-    small: { pl_twinkle: 2.5, pl_star: 1.5, pl_daisy: 1, pl_dotarc: 1, pl_crosses: 2 },
-    medium: { pl_flower: 2, pl_daisy: 1.5, pl_streak: 1.5, pl_dotarc: 1 },
-    large: { pl_catjump: 2, pl_gradcat: 1.2, pl_catsit: 1.5, pl_flower: 1, pl_stripecat: 1.2 },
+    name: '夢幻粉彩', glow: 0, noGlow: true, lw: 0.0032,
+    sizes: { small: [0.04, 0.065], medium: [0.09, 0.13], large: [0.2, 0.28] },
+    colors: ['#F4EEDF', '#E7B7C0', '#B9CFE0', '#A99BC5', '#EADFA8', '#BFD3B4'], recolor: 0.4,
+    small: { pl_twinkle: 1.6, pl_star: 1, pl_daisy: 0.8, pl_dotarc: 0.8, pl_crosses: 1.2, pl_bubbles: 1, pl_heart: 1, pl_moon: 0.8 },
+    medium: {
+      pl_flower: 1, pl_daisy: 1, pl_streak: 1, pl_dotarc: 0.8, pl_cloud: 1, pl_ribbon: 1, pl_tulip: 1, pl_sprig: 1, pl_rainbow: 1,
+      pl_swirl: 0.8, pl_butterfly: 1, pl_balloon: 1, pl_saturn: 1, pl_wave: 0.8, pl_bow: 1, pl_moon: 1,
+    },
+    large: { pl_catjump: 1, pl_gradcat: 0.8, pl_catsit: 1, pl_stripecat: 1, nc_cathead: 0.6, pl_flower: 1, pl_rainbow: 0.8, pl_cloud: 0.8, pl_balloon: 0.8 },
+    max: { pl_catjump: 1, pl_gradcat: 1, pl_catsit: 1, pl_stripecat: 1, nc_cathead: 1 },
   },
+  // 螢光塗鴉（第八版）：蠟筆粉筆般的亮色線條；有臉的舊圖不放
   neon: {
-    name: '螢光塗鴉', glow: 1, lw: 0.0045,
-    colors: ['#ff8fc0', '#ff5f6d', '#ff9a3c', '#ffd23c', '#6fdc7f', '#46d2f0', '#3f7bff', '#b48cff', '#ffffff'], recolor: 0.55,
-    small: { sparkle: 3, sparkles: 1.5, fstar: 2, ring: 1.5, wave: 2, zigzag: 2, cross: 1.4, lines: 0.4, hearto: 1.6 },
+    name: '螢光塗鴉', glow: 0, noGlow: true, lw: 0.0045,
+    colors: ['#F2A7C3', '#EE8C86', '#F2AE6E', '#F1D06A', '#A3D49B', '#8FCFE0', '#8DA6E6', '#BFA4E8', '#ffffff'], recolor: 0.55,
+    small: { sparkle: 1.6, sparkles: 1, fstar: 1.2, ring: 1, wave: 1.2, zigzag: 1.2, cross: 1, lines: 0.5, hearto: 1.2, dots: 0.6, note: 0.8 },
     medium: {
-      sunny: 1.5, burst: 1.5, heart: 2, smiley: 1.4, star5: 1.5, flower: 2, cloudface: 1.5, heartbuddy: 1.5,
-      camera: 1.5, film: 1.2, crown: 0.5, rainbow: 0.8, pennant: 0.4, stripes: 0.4, cat: 1, sun: 1,
-      nc_cathead: 1.2, nc_scratch: 0.8, pl_catsit: 0.8,
+      sunny: 1, burst: 1, camera: 1, film: 1, crown: 0.6, rainbow: 0.8, pennant: 0.5, stripes: 0.4, nc_scratch: 0.6,
+      swirl: 0.8, arrow: 0.8, bolt: 1, note: 0.8, plane: 1, cherry: 1, palm: 0.8, loop: 0.6, hearts: 0.8, bow: 0.8,
     },
-    large: { bear: 1, bunny: 1, puppy: 1, heartbuddy: 1, cloudface: 1, pl_catjump: 0.8 },
-    fixed: { pl_catjump: ['#ffffff', '#ffd23c'] },
+    large: { camera: 1, rainbow: 1, palm: 1, plane: 1, sunny: 0.8, crown: 0.6, bolt: 0.6 },
   },
-  // 蠟筆塗鴉：畫在照片上的療癒童趣塗鴉（蠟筆筆刷，線條粗細跟著圖案大小，像真的用粉彩筆畫）
+  // 蠟筆天空（第八版）：月亮、雲、星星、氣球、飛行的東西，排在照片上方
   crayon: {
-    name: '蠟筆塗鴉', glow: 0, noGlow: true, // 蠟筆筆刷不畫光暈，所以不顯示光暈滑桿
-    sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.22, 0.3] },
-    colors: ['#fff3df', '#ffe38a', '#ffb98a', '#ff9fc1', '#9fe3c0', '#8fe0e0'], recolor: 0.3,
-    anchors: { cr2_grass: 'bottom' }, // 小草長在照片底邊，不會飄在天空
-    small: { cr2_stars: 2.5, cr2_birds: 1.5, cr2_hearts: 1.2, cr2_starfish: 0.8, cr2_shell: 0.8, cr2_grass: 0.8 },
+    name: '蠟筆天空', glow: 0, noGlow: true, // 蠟筆筆刷不畫光暈，所以不顯示光暈滑桿
+    sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.2, 0.28] },
+    colors: ['#fff3df', '#ffe38a', '#ffb98a', '#ff9fc1', '#8fe0e0', '#c9b8f0'], recolor: 0.3,
+    small: { cr2_stars: 1.6, cr2_birds: 1.2, cr3_sparkles: 1.4, cr3_constellation: 1, cr3_snowflake: 0.8, cr3_moon: 0.8, cr3_bigstar: 0.8 },
     medium: {
-      cr2_sleepcat: 1, cr2_teacup: 1, cr2_jelly: 1, cr2_firework: 1.2, cr2_teru: 1, cr2_planet: 1,
-      cr2_shoot: 1.4, cr2_flower: 1.2, cr2_cloud: 1.5,
+      cr2_firework: 1, cr2_teru: 0.8, cr2_planet: 1, cr2_shoot: 1.2, cr2_cloud: 1.2, cr3_moon: 1, cr3_sun: 1, cr3_kite: 1, cr3_plane: 1,
+      cr3_rocket: 1, cr3_raincloud: 1, cr3_bigstar: 1, cr3_pinwheel: 0.8, cr3_umbrella: 0.8, cr3_ufo: 0.8,
     },
-    large: {
-      cr2_mooncat: 1.3, cr2_whale: 1.2, cr2_fuji: 1, cr2_cloudbunny: 1.2, cr2_twocats: 1.2, cr2_balloon: 1.2,
-      cr2_castle: 0.8, cr2_camp: 0.8, cr2_wave: 0.8,
+    large: { cr2_mooncat: 1.2, cr2_cloudbunny: 1.2, cr2_balloon: 1.2, cr2_castle: 0.8, cr3_rainbow: 1, cr3_rocket: 0.6, cr3_raincloud: 0.6 },
+    max: { cr2_mooncat: 1, cr2_cloudbunny: 1, cr2_balloon: 1, cr2_castle: 1, cr3_rainbow: 1, cr3_ufo: 1, cr3_rocket: 1, cr3_sun: 1 },
+  },
+  // 蠟筆花園（第八版）：花草、海邊、小動物，排在照片四周（小草、海草長在底邊）
+  crayon2: {
+    name: '蠟筆花園', glow: 0, noGlow: true,
+    sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.2, 0.28] },
+    colors: ['#9fe3c0', '#ffb98a', '#ff9fc1', '#ffe38a', '#fff3df'], recolor: 0.3,
+    anchors: { cr2_grass: 'bottom', cr3_seaweed: 'bottom' },
+    small: { cr2_hearts: 1, cr2_starfish: 1, cr2_shell: 1, cr2_grass: 0.8, cr3_clover: 1.2, cr3_ladybug: 1, cr3_daisy: 1.2, cr3_leaf: 1, cr3_strawberry: 0.8, cr3_bee: 0.8 },
+    medium: {
+      cr2_sleepcat: 0.8, cr2_teacup: 0.8, cr2_jelly: 1, cr2_flower: 1.2, cr3_tulip: 1.2, cr3_mushroom: 1, cr3_snail: 1, cr3_butterfly: 1.2,
+      cr3_strawberry: 1, cr3_daisy: 0.8, cr3_seaweed: 0.8, cr3_bee: 0.8, cr3_tree: 0.8,
     },
+    large: { cr2_whale: 1.2, cr2_fuji: 0.8, cr2_twocats: 1, cr2_camp: 0.8, cr2_wave: 0.8, cr3_tree: 1, cr3_tulip: 0.6, cr3_mushroom: 0.6 },
     max: {
-      cr2_mooncat: 1, cr2_whale: 1, cr2_fuji: 1, cr2_cloudbunny: 1, cr2_twocats: 1, cr2_balloon: 1, cr2_castle: 1, cr2_camp: 1, cr2_wave: 1,
-      cr2_sleepcat: 1, cr2_teacup: 1, cr2_teru: 1,
+      cr2_whale: 1, cr2_fuji: 1, cr2_twocats: 1, cr2_camp: 1, cr2_wave: 1, cr2_sleepcat: 1, cr2_teacup: 1, cr3_tree: 1, cr3_snail: 1,
     },
   },
-  // 法式手繪：細墨線、少量淡色（'M' 是墨線色）
+  // 法式手繪（第八版）：色鉛筆線稿＋淡色（'M' 是線的顏色）
   french: {
-    name: '法式手繪', glow: 0, lw: 0.003,
-    colors: ['#2b3a67', '#8c2f39'], recolor: 0.25,
-    small: { fr_heart: 1.5, fr_macaron: 1.2, fr_swash: 1.2 },
-    medium: { fr_croissant: 1, fr_baguette: 1, fr_wine: 1, fr_coffee: 1, fr_letter: 1, fr_heart: 0.6 },
-    large: { fr_rose: 1.2, fr_bike: 1 },
-    max: { fr_bike: 1 },
+    name: '法式手繪', glow: 0, noGlow: true, lw: 0.003,
+    colors: ['#56647F', '#9A5E5E', '#655047'], recolor: 0.3,
+    small: { fr_heart: 1, fr_macaron: 1, fr_swash: 0.8, fr_key: 1, fr_madeleine: 1, fr_cheese: 0.8, fr_candle: 0.6 },
+    medium: {
+      fr_croissant: 1, fr_baguette: 1, fr_wine: 1, fr_coffee: 1, fr_letter: 1, fr_beret: 1, fr_perfume: 1, fr_umbrella: 1,
+      fr_mariniere: 1, fr_chair: 0.8, fr_book: 1, fr_strawhat: 1, fr_tart: 1, fr_vase: 1, fr_cheese: 0.8, fr_candle: 0.8,
+    },
+    large: { fr_rose: 1, fr_bike: 1, fr_eiffel: 1, fr_lamp: 0.8, fr_vase: 0.8, fr_umbrella: 0.6 },
+    max: { fr_bike: 1, fr_eiffel: 1, fr_lamp: 1 },
   },
-  // 日式手繪：和紙色系
+  // 日式手繪（第八版）：木版畫色塊（招財貓、鯉魚、飯糰臉不放）
   japan: {
-    name: '日式手繪', glow: 0, lw: 0.0034,
-    // 招財貓、鯉魚、飯糰臉不放（使用者不要貓咪小魚、表情臉那種風格）
-    small: { jp_sakura: 2.5, jp_wave: 1, jp_bamboo: 1 },
-    medium: { jp_cloud: 1.2, jp_fan: 1, jp_dango: 1, jp_sakura: 0.6, jp_bamboo: 0.6 },
-    large: { jp_fuji: 1, jp_cloud: 0.8, jp_fan: 0.7 },
-    max: { jp_fuji: 1 },
+    name: '日式手繪', glow: 0, noGlow: true, lw: 0.0034,
+    small: { jp_sakura: 1.6, jp_ume: 1.2, jp_maple: 1.2, jp_wave: 0.8, jp_bamboo: 0.8, jp_kiku: 0.8, jp_suzu: 0.8, jp_chopsticks: 0.6 },
+    medium: {
+      jp_cloud: 1, jp_fan: 1, jp_dango: 1, jp_lantern: 1, jp_wagasa: 1, jp_yunomi: 1, jp_matcha: 1, jp_furin: 1, jp_crane: 1,
+      jp_geta: 0.8, jp_sensu: 1, jp_kiku: 1, jp_kite: 1, jp_suzu: 0.8, jp_chopsticks: 0.6, jp_maple: 0.8,
+    },
+    large: { jp_fuji: 1, jp_torii: 1, jp_pine: 1, jp_tsukimi: 1, jp_wisteria: 1, jp_cloud: 0.6, jp_sensu: 0.6 },
+    max: { jp_fuji: 1, jp_torii: 1, jp_tsukimi: 1, jp_pine: 1, jp_wisteria: 1 },
   },
-  // Y2K：鉻銀、彩虹光碟、掀蓋手機（自帶漸層色，不換色）
+  // Y2K（第八版）：褪色的孔版印刷感
   y2k: {
-    name: 'Y2K', glow: 0.3, lw: 0.0034,
-    small: { y2k_glitter: 2, y2k_bolt: 1.2, y2k_cherry: 1, pl_twinkle: 0.8 },
-    medium: { y2k_flip: 1, y2k_cd: 1.2, y2k_planet: 1.2, y2k_butterfly: 1.2, y2k_chromestar: 1.2, y2k_chromeheart: 1.2, y2k_checkheart: 1, y2k_cherry: 0.6 },
-    large: { y2k_chromestar: 1, y2k_chromeheart: 1, y2k_checkheart: 0.8, y2k_butterfly: 1 },
-    max: { y2k_flip: 1, y2k_cd: 2 },
+    name: 'Y2K', glow: 0, noGlow: true, lw: 0.0034,
+    small: { y2k_glitter: 1.4, y2k_bolt: 1, y2k_cherry: 1, y2k_daisy: 1, y2k_cursor: 0.8, y2k_heartlock: 0.8, y2k_lipgloss: 0.8, y2k_orbit: 0.8 },
+    medium: {
+      y2k_flip: 1, y2k_cd: 1, y2k_planet: 1, y2k_butterfly: 1, y2k_chromestar: 1, y2k_chromeheart: 1, y2k_checkheart: 1, y2k_mp3: 1,
+      y2k_headphones: 1, y2k_digicam: 1, y2k_gamepad: 1, y2k_pager: 1, y2k_hairclip: 0.8, y2k_disco: 1, y2k_globe: 0.8, y2k_window: 1, y2k_dice: 1,
+    },
+    large: { y2k_chromestar: 1, y2k_chromeheart: 1, y2k_checkheart: 0.8, y2k_butterfly: 1, y2k_cd: 0.8, y2k_disco: 0.8, y2k_window: 0.6 },
+    max: { y2k_flip: 1, y2k_cd: 2, y2k_mp3: 1, y2k_digicam: 1, y2k_pager: 1, y2k_gamepad: 1 },
   },
   // 顏文字：用字畫出來的表情（不是使用者輸入的文字）
   kao: {
-    name: '顏文字', glow: 0, kao: true,
-    colors: ['#ff6fae', '#ff8a3d', '#7a5cff', '#2fb6e8', '#3fbf7f', '#ffffff'],
+    // 第八版：顏色換成像鉛筆手寫／印泥的褪色墨色（巧克力、赤陶、炭灰、灰藍、橄欖、灰紫）
+    name: '顏文字', glow: 0, noGlow: true, kao: true,
+    colors: ['#655047', '#B8735F', '#65645D', '#5F7D99', '#7B8A5C', '#8A7BAB'],
     sizes: { small: [0.045, 0.06], medium: [0.06, 0.075], large: [0.08, 0.1] },
     small: { '♡': 2, '☆': 1.5, '✧': 1.5, '♪': 1, '✿': 1.2 },
     medium: {
       '(｡•ᴗ•｡)': 1, '(*^▽^*)': 1, '(◍•ᴗ•◍)': 1, 'ʕ•ᴥ•ʔ': 1, '(≧▽≦)': 1, '(｡>﹏<｡)': 1, '( ˘ω˘ )': 1,
-      '(⁎˃ᴗ˂⁎)': 1, '(＾▽＾)': 1, '(=^･ω･^=)': 1, '(•ө•)♡': 1,
+      '(⁎˃ᴗ˂⁎)': 1, '(＾▽＾)': 1, '(=^･ω･^=)': 1, '(•ө•)♡': 1, '(｡･ω･｡)': 1, '(・∀・)': 1, '(￣▽￣)': 1,
     },
     large: { '♡(ˊᵕˋ)♡': 1, '(つ✧ω✧)つ': 1, 'ヾ(≧▽≦*)o': 1, '(ﾉ◕ヮ◕)ﾉ': 1, '(´｡•ᵕ•｡`)': 1, '☆(ゝω・)v': 1, '(｡♥‿♥｡)': 1 },
   },
@@ -142,24 +174,26 @@ export const PACKS = {
 
 // 一鍵套用（卡片）
 // overlay：覆蓋整張照片的效果（不是一個一個的塗鴉），由 app.js 的 drawOverlay 畫
-// group 'cute'：舊的可愛系列，收在最後面的「可愛系列」
+// section（第八版，取代 group: 'cute'）：卡片依媒材分區
+//   draw 手繪｜print 印刷｜mixed 實驗媒材｜sticker 貼紙｜line 線描
+export const DOODLE_SECTIONS = [['draw', '手繪'], ['print', '印刷'], ['mixed', '實驗媒材'], ['sticker', '貼紙'], ['line', '線描']];
 export const DOODLE_PRESETS = [
   { id: 'none', name: '無' },
-  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 16 },
-  { id: 'stitch', name: '十字繡邊', overlay: 'stitch', count: 6 },
-  { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 2 },
-  { id: 'printgrid', name: '版畫方格', overlay: 'printgrid', count: 4 },
-  { id: 'print', name: '植物版畫', pack: 'print', layout: 'corner', count: 8 },
-  { id: 'crayon', name: '蠟筆夢幻', pack: 'crayon', layout: 'top', count: 10 },
-  { id: 'crayon2', name: '蠟筆滿天', pack: 'crayon', layout: 'edge', count: 14 },
-  { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 20, group: 'cute' },
-  { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16, group: 'cute' },
-  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14, group: 'cute' },
-  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16, group: 'cute' },
-  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16, group: 'cute' },
-  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14, group: 'cute' },
-  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22, group: 'cute' },
-  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24, group: 'cute' },
+  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 16, section: 'draw' },
+  { id: 'crayon', name: '蠟筆天空', pack: 'crayon', layout: 'top', count: 10, section: 'draw' },
+  { id: 'crayon2', name: '蠟筆花園', pack: 'crayon2', layout: 'edge', count: 14, section: 'draw' },
+  { id: 'print', name: '植物版畫', pack: 'print', layout: 'corner', count: 8, section: 'print' },
+  { id: 'printgrid', name: '版畫方格', overlay: 'printgrid', count: 4, section: 'print' },
+  { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16, section: 'print' },
+  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16, section: 'print' },
+  { id: 'stitch', name: '十字繡邊', overlay: 'stitch', count: 6, section: 'mixed' },
+  { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 2, section: 'mixed' },
+  { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 18, section: 'sticker' },
+  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16, section: 'sticker' },
+  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14, section: 'line' },
+  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 20, section: 'line' },
+  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 22, section: 'line' },
+  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14, section: 'line' },
 ];
 export const OVERLAY_COUNT = { stitch: [2, 10], stipple: [1, 3], printgrid: [2, 7] };
 export const COUNT_MIN = 4, COUNT_MAX = 30;
