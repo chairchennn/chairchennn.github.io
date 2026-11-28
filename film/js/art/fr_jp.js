@@ -563,8 +563,8 @@ export const FRENCH_INK = [
     IT('M22 66Q24 72 22 78Q26 76 27 70M74 66Q76 72 74 80Q78 74 78 68M40 31H60', 1),
   ]),
   fi('fi_sign', '街牌', IB, [
-    IF('M8 22H38Q42 10 50 10Q58 10 62 22H92V62H8Z'),
-    IK('M8 22H38Q42 10 50 10Q58 10 62 22H92V62H8Z'),
+    IF('M8 16H92V62H8Z'),
+    IK('M8 16H92V62H8Z'),
     { d: 'M14 28H86V56H14Z', s: 'W', w: 1.2, even: true },
     { d: 'M28 52L30 33Q40 31 40 38Q39 44 30 43M48 41Q42 39 41 45Q41 51 46 50Q49 48 49 41L50 51M54 51L54 41M54 45Q56 40 60 41M64 42L64 51M64 36.5L64.4 37M73 42Q68 40 67 43Q67 46 71 46.5Q74 47.5 73 50Q71 52 66 50', s: 'W', w: 2.6 },
   ], [100, 70]),
@@ -733,3 +733,11 @@ export const FRENCH_INK = [
     IT(bars(10, 90, 34, 40, 4), 0.8),
   ], [100, 76]),
 ];
+// 侵權審查：地標不要連成一排（避免看起來像參考圖的物件清單），和生活小物交錯排
+{
+  const order = ['fi_croissant', 'fi_eiffel', 'fi_coffee', 'fi_bike', 'fi_beret', 'fi_sacre', 'fi_macaron', 'fi_lamp', 'fi_bouquet', 'fi_arc',
+    'fi_umbrella', 'fi_balcony', 'fi_cockade', 'fi_letter', 'fi_baguette', 'fi_pyramid', 'fi_chair', 'fi_mariniere', 'fi_carousel', 'fi_sign',
+    'fi_wine', 'fi_boat', 'fi_car', 'fi_ribbon', 'fi_awning', 'fi_perfume', 'fi_column', 'fi_books', 'fi_paris', 'fi_cafe', 'fi_pigeon', 'fi_bridge'];
+  const rank = (d) => { const i = order.indexOf(d.id); return i < 0 ? 999 : i; };
+  FRENCH_INK.sort((a, b) => rank(a) - rank(b));
+}

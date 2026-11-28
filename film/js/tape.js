@@ -86,7 +86,7 @@ export const TAPE_PATTERNS = [
   pat('tp_berry', '草莓', 'berry', [['#f8eed6', '#cf2f37'], ['#f6d7dc', '#cf2f37'], ['#e9f0dc', '#d6433a'], ['#fbf3e2', '#e26a8d']]),
   pat('tp_stars', '星星', 'stars', [['#cbbfe6', '#fff1a8'], ['#2f3b5c', '#f2d46b'], ['#f4eee0', '#e0a02c'], ['#cfe0ea', '#ffffff']]),
   pat('tp_argyle', '菱格', 'argyle', [['#f2b928', '#df6f9b'], ['#a8c7e6', '#f6f1e4'], ['#a8bf7e', '#f4e2a1'], ['#f3c6c4', '#b8322f']]),
-  pat('tp_stitch', '縫線', 'stitch', [['#f6b7c0', '#3f8a3a', '#f6e39a'], ['#fbf6dc', '#d6433a'], ['#a8bf7e', '#fbf6ee'], ['#4a4b50', '#f3d77a']]),
+  pat('tp_stitch', '縫線', 'stitch', [['#fbf6dc', '#d6433a'], ['#f6e39a', '#5b7fa6'], ['#a8bf7e', '#fbf6ee'], ['#4a4b50', '#f3d77a']]),
   pat('tp_flower', '小碎花', 'flowers', [['#6d8189', '#efe6cf', '#a9b78a'], ['#fff0a6', '#ff9fb8', '#9cc07a'], ['#f4eee0', '#d97a8a', '#8fae6e'], ['#3c4a3a', '#f2d9a8', '#c8705a']]),
   pat('tp_kraft', '牛皮紙', 'kraft', [['#d6b48a', '#9c7650'], ['#c9a275', '#6d4f33'], ['#e6cfa8', '#a98458']]),
   pat('tp_duct', '銀色布膠帶', 'plain', [['#9a9c9e', '#6e7175'], ['#7e8184', '#55585c'], ['#c7c2b4', '#8f8a7c'], ['#3c3d40', '#222']], { material: 'cloth' }),
@@ -381,11 +381,11 @@ function drawPattern(t, kind, x0, y0, W, u, cols, r) {
       }
       break;
     }
-    case 'stitch': { // 參考圖 32：粉紅細格布上的綠色虛線縫線（捲一圈一圈）
+    case 'stitch': { // 素色布上一條起伏的虛線縫線
       if (acc) { t.fillStyle = acc; t.globalAlpha = 0.5; const P = u * 0.09; for (let x = x0; x < x1 + P; x += P) wobBand(t, true, x, P * 0.35, y0, y1, r, wob); for (let y = y0; y < y1 + P; y += P) wobBand(t, false, y, P * 0.35, x0, x1, r, wob); t.globalAlpha = 1; }
       t.strokeStyle = ink; t.lineWidth = u * 0.045; t.lineCap = 'round'; t.setLineDash([u * 0.09, u * 0.07]);
       t.beginPath();
-      const a = u * 0.11, b = u * 0.16; // 擺線：b > a 會打圈（參考圖 32 的捲捲縫線）
+      const a = u * 0.11, b = u * 0.06; // 擺線：b < a 是平緩波浪，不打圈
       for (let th = 0, first = true; x0 + a * th - b < x1 + u; th += 0.08, first = false) {
         const xx = x0 + a * th - b * sin(th), yy = u * 0.04 - b * cos(th) * 0.55 + u * 0.05 * sin(th * 0.21);
         first ? t.moveTo(xx, yy) : t.lineTo(xx, yy);
