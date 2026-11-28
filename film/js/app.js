@@ -496,7 +496,6 @@ function fastPreview(src, crop) {
     const layer = doodleLayer(ow, oh);
     if (layer) cx.drawImage(layer, 0, 0);
     const d = state.date;
-    if (d.on) drawDateStamp(cx, ow, oh, formatDate(d.value, d.format), d.color, d.pos, d.size);
   }
   return c;
 }
@@ -533,7 +532,7 @@ function getPreviewPhoto() {
     if (fxCache.canvas) fxCache.canvas.width = 0;
     fxCache = {
       key: fxKey,
-      canvas: applyFx(baseCache.canvas, { adj: state.adj, date: state.date, original: state.compare }, doodleOverlay()),
+      canvas: applyFx(baseCache.canvas, { adj: state.adj, date: null, original: state.compare }, doodleOverlay()),
     };
   }
   return fxCache.canvas;
@@ -545,7 +544,7 @@ function developCell(i, k, scaleKey, lutN) {
   if (!ph) return null;
   const L = fourLayout(state.four.layout), c = L.cells[i];
   const w = Math.round(c.w * k), h = Math.round(c.h * k);
-  const withDate = state.date.on && i === fourDateCell();
+  const withDate = false; // 日期改在 compose 最後畫（最上層）
   const key = JSON.stringify([ph.ver, ph.t, scaleKey, w, h, state.preset, state.adj, withDate ? state.date : 0, state.compare, lutN]);
   if (scaleKey !== 'export') { const hit = cellCache.get(i); if (hit && hit.key === key) return hit.canvas; }
   const src = scaleKey === 'export' ? ph.full : ph.preview;
@@ -606,6 +605,23 @@ function compose(ctx, photo, L, o) {
     drawFrameFront(ctx, L, id, o);
   }
   for (const st of state.stickers) drawSticker(ctx, st, L);
+  drawDateTop(ctx, L);
+}
+// 相機日期：永遠在最上層，印在照片（四格是最後一張有照片的那一格）的角落
+function drawDateTop(ctx, L) {
+  const d = state.date;
+  if (!d.on || state.compare) return;
+  let x = L.x, y = L.y, w = L.pw, h = L.ph;
+  if (state.mode === 'four') {
+    const i = fourDateCell();
+    if (i < 0) return;
+    const FL = fourLayout(state.four.layout), k = L.pw / FL.W, c = FL.cells[i];
+    x = c.x * k; y = c.y * k; w = c.w * k; h = c.h * k;
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  drawDateStamp(ctx, w, h, formatDate(d.value, d.format), d.color, d.pos, d.size);
+  ctx.restore();
 }
 
 function render() {
@@ -688,15 +704,21 @@ function drawSelection(ctx, st, L) {
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4 * k; ctx.lineCap = 'round';
   const q = r * 0.4;
   ctx.beginPath(); ctx.moveTo(x0 - q, y0 - q); ctx.lineTo(x0 + q, y0 + q); ctx.moveTo(x0 + q, y0 - q); ctx.lineTo(x0 - q, y0 + q); ctx.stroke();
-  // 旋轉 / 縮放
+  // 旋轉 / 縮放：白色圓鈕＋一個繞 3/4 圈的箭頭
   ctx.shadowBlur = 4 * k;
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(x1, y1, r, 0, Math.PI * 2); ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.strokeStyle = '#1f1a15'; ctx.lineWidth = 2.2 * k;
-  ctx.beginPath(); ctx.arc(x1, y1, r * 0.5, -Math.PI * 0.1, Math.PI * 1.25); ctx.stroke();
-  const ax = x1 + r * 0.5 * Math.cos(-Math.PI * 0.1), ay = y1 + r * 0.5 * Math.sin(-Math.PI * 0.1);
-  ctx.beginPath(); ctx.moveTo(ax - r * 0.32, ay - r * 0.08); ctx.lineTo(ax + r * 0.02, ay + r * 0.02); ctx.lineTo(ax + r * 0.12, ay - r * 0.34); ctx.stroke();
+  ctx.strokeStyle = '#3d302a'; ctx.lineWidth = 2 * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const rr = r * 0.48, a0 = -Math.PI * 0.35, a1 = Math.PI * 1.15;
+  ctx.beginPath(); ctx.arc(x1, y1, rr, a0, a1); ctx.stroke();
+  // 箭頭（在弧線起點，沿切線方向）
+  const ex = x1 + rr * Math.cos(a0), ey = y1 + rr * Math.sin(a0), tx = -Math.sin(a0), ty = Math.cos(a0), al = r * 0.34;
+  ctx.beginPath();
+  ctx.moveTo(ex + tx * al + ty * al * 0.55, ey + ty * al - tx * al * 0.55);
+  ctx.lineTo(ex, ey);
+  ctx.lineTo(ex + tx * al - ty * al * 0.55, ey + ty * al + tx * al * 0.55);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -2674,7 +2696,7 @@ async function exportImage() {
     const f = Math.min(1, Math.sqrt(MAX_OUT_AREA / (L.W * L.H)), MAX_OUT_SIDE / Math.max(L.W, L.H));
     const pw = Math.round(crop.w * z * f), ph = Math.round(crop.h * z * f);
     photo = applyFx(developBase(src, crop, pw, ph, { preset: state.preset, adj: state.adj, lutN: 33 }),
-      { adj: state.adj, date: state.date }, doodleOverlay(), true);
+      { adj: state.adj, date: null }, doodleOverlay(), true);
     L = layoutFrame(id, pw, ph, o);
     out = makeCanvas(L.W, L.H);
     const ctx = out.getContext('2d');
