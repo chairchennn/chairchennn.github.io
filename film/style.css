@@ -1665,3 +1665,6 @@ details.cute-group summary { color: var(--ink-2); }
 .cut-history > p, .sticker-grid > p.note { grid-column: 1 / -1; }
 .crop-cut-link { margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1.5px dashed var(--line-2, #d9c9b0); }
 .crop-cut-link .chip { min-height: 44px; }
+/* QA：貼圖動作列在小視窗之上；收起鈕 44px */
+.sticker-bar { z-index: 30; }
+@media (min-width: 900px) { .panel-close { min-width: 44px; justify-content: center; } }

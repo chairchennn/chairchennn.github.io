@@ -145,7 +145,7 @@ export const PACKS = {
 // group 'cute'：舊的可愛系列，收在最後面的「可愛系列」
 export const DOODLE_PRESETS = [
   { id: 'none', name: '無' },
-  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 12 },
+  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 16 },
   { id: 'stitch', name: '十字繡邊', overlay: 'stitch', count: 6 },
   { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 2 },
   { id: 'printgrid', name: '版畫方格', overlay: 'printgrid', count: 4 },

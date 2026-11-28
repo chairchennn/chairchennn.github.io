@@ -89,7 +89,7 @@ const state = {
   four: { layout: 'strip', paper: 'white', photos: [null, null, null, null], ver: 0 },
   preset: 'flash',
   adj: defaultAdj('flash'),
-  doodle: { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 12, countTouched: false, scale: 100, seed: 1, glow: null },
+  doodle: { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 16, countTouched: false, scale: 100, seed: 1, glow: null },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', archColor: '#a99bc5', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   cropCell: 0,
   tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame', tapeMat: 'washi',
@@ -142,7 +142,7 @@ function loadPrefs() {
     if (p.mode === 'single' || p.mode === 'four') state.mode = p.mode;
     if (TABS.includes(p.tab)) state.tab = p.tab;
     if (TAPE_MATERIALS.some(([id]) => id === p.tapeMat)) state.tapeMat = p.tapeMat;
-    if (p.ver !== 8 && state.doodle.preset === 'none') Object.assign(state.doodle, { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 12 }); // 文具面板不記，下次打開回到主工具
+    if (p.ver !== 8 && state.doodle.preset === 'none') Object.assign(state.doodle, { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 16 }); // 文具面板不記，下次打開回到主工具
   } catch { /* 無法讀取就用預設值 */ }
 }
 let saveTimer = 0, savePending = null;
