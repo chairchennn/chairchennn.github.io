@@ -1896,3 +1896,26 @@ details.cute-group summary { color: var(--ink-2); }
 .pane[data-pane="tape"] .tape-grid { width: 100%; }
 .tape-go .tape-add { min-height: 48px; padding: 0 16px; font-weight: 700; background: var(--sel, #f3e3b8); border-color: var(--ink-2); }
 @media (max-width: 899px) { .tape-go canvas { max-width: 150px; } .tape-go { padding: 2px 4px 6px; } }
+
+/* 互動審查（v11 膠帶）：修改模式要很明顯；提示固定一行不跳版；手機每一步都是一行橫向滑動 */
+.tape-go-btns { display: flex; flex-direction: column; gap: 6px; }
+.tape-go .hint { min-height: 1.3em; }
+.tape-go[data-editing="true"] { background: #fbe9c8; border-bottom: 2px solid var(--ink-2); border-radius: 12px; }
+.tape-go[data-editing="true"] .hint { font-weight: 700; color: var(--ink); }
+@media (min-width: 900px) {
+  #tapeGrid { max-height: 236px; overflow-y: auto; padding: 2px; scrollbar-width: thin; }
+}
+@media (max-width: 899px) {
+  #panel2[data-pane="tape"] { --pane-h: min(46vh, 330px); }
+  .tape-go { grid-template-columns: 112px 1fr; padding: 2px 0 4px; margin: 0 0 6px; }
+  .tape-go canvas { max-width: 112px; }
+  .tape-go-btns { flex-direction: row; }
+  .tape-go .hint { font-size: 12px; min-height: 0; }
+  .pane[data-pane="tape"] .sub { margin-top: 6px; }
+  .pane[data-pane="tape"] .sub-label { margin-bottom: 4px; }
+  .pane[data-pane="tape"] .tape-grid, .pane[data-pane="tape"] .tape-ways, #tapeMats {
+    display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .pane[data-pane="tape"] .tape-grid::-webkit-scrollbar, .pane[data-pane="tape"] .tape-ways::-webkit-scrollbar, #tapeMats::-webkit-scrollbar { display: none; }
+  .pane[data-pane="tape"] .tape-grid button { flex: none; width: 92px; }
+  .tape-way, #tapeMats .chip { flex: none; }
+}

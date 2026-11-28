@@ -50,7 +50,7 @@ const PANE_INFO = {
   frame: ['相框', '相框樣式、相紙與相機日期'],
   add: ['新增', '照片，以及剪貼：匯入圖片或剪照片做成貼圖'],
   crop: ['裁切', '取景、縮放、角度與比例'],
-  tape: ['紙膠帶', '先選貼法，再選花紋和顏色，最後按「貼上」'],
+  tape: ['紙膠帶', '① 貼法 → ② 花紋 → ③ 配色，再按「貼到照片上」'],
   glue: ['膠水・圖層', '上面的在最上層；黏住的不會被拖動'],
 };
 const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1:1', polaroid: '1:1', square: '1:1', mini: '約 3:4', wide: '約 16:10' };
@@ -732,6 +732,8 @@ const selectedSticker = () => state.stickers.find((s) => s.uid === state.selecte
 
 function select(id) {
   state.selected = id;
+  const sk = state.stickers.find((s) => s.uid === id);
+  tapeEditUid = sk?.kind === 'tape' && !addingTape ? id : null;
   if (state.tool === 'tape') buildTapeUI();
   updateStickerBar();
   syncGlueUI();
@@ -771,8 +773,9 @@ function updateStickerBar() {
   const sw = $('#stickerColors');
   $('#actColor').hidden = !colorable;
   $('#actColorDot').style.background = st.color || '#fff';
-  sw.hidden = !colorable || !showColors;
-  if (colorable && showColors) {
+  sw.hidden = !colorable || !showColors || st.kind === 'tape';
+  $('#actColor').querySelector('span:last-child')?.replaceChildren(st.kind === 'tape' ? '改樣式' : '顏色');
+  if (colorable && showColors && st.kind !== 'tape') {
     buildSwatches(sw, paletteFor(st), st.color, (c) => { st.color = c; updateStickerBar(); requestRender(); });
   }
 }
@@ -808,7 +811,13 @@ $('#stickerBar').addEventListener('click', (e) => {
   if (!btn || !st) return;
   switch (btn.dataset.act) {
     case 'layers': togglePane('glue'); break;
-    case 'color': showColors = !showColors; updateStickerBar(); break;
+    case 'color':
+      if (st.kind === 'tape') {
+        tapeEditUid = st.uid;
+        if (!(state.tool === 'tape' && isOpen('tool'))) togglePane('tape'); else buildTapeUI();
+        break;
+      }
+      showColors = !showColors; updateStickerBar(); break;
     case 'flip': st.flip = !st.flip; requestRender(); break;
     case 'dup': {
       const copy = { ...st, uid: uid++, x: st.x + 0.05, y: st.y + 0.05 };
@@ -2263,10 +2272,15 @@ function tapeOpts(shape = state.tapeShape, pid = state.tapePattern, way = state.
   const cw = tapeWayOf(pid, way);
   return { shape, pattern: pid, color: cw[0], color2: cw[1] || cw[0], material: mat, seed: 5 };
 }
-// 選著的膠帶跟著改
-function applyTapeToSelected() {
+// 修改模式：在照片上點了某一條膠帶 → 面板改的是那一條；剛貼上去的不算（避免想貼第二條時改到第一條）
+let tapeEditUid = null, addingTape = false;
+function tapeEditing() {
   const st = selectedSticker();
-  if (st?.kind !== 'tape') return;
+  return st?.kind === 'tape' && st.uid === tapeEditUid ? st : null;
+}
+function applyTapeToSelected() {
+  const st = tapeEditing();
+  if (!st) return;
   const o = tapeOpts();
   Object.assign(st, { shape: o.shape, id: o.pattern, color: o.color, color2: o.color2, material: o.material });
   updateStickerBar();
@@ -2298,8 +2312,8 @@ function tapeBtn(label, canvas, checked, onClick, extraClass = '') {
 }
 function buildTapeUI() {
   if (!$('#tapeShapes')) return;
-  const sel = selectedSticker();
-  if (sel?.kind === 'tape') syncTapeFromSticker(sel);
+  const sel = tapeEditing();
+  if (sel) syncTapeFromSticker(sel);
   const pick = (fn) => () => { fn(); applyTapeToSelected(); buildTapeUI(); savePrefs(); };
   // ① 貼法與形狀（用目前選的花紋和顏色畫）
   const shapes = $('#tapeShapes');
@@ -2351,9 +2365,11 @@ function buildTapeUI() {
   const prev = tapeThumb(['v', o.shape, o.pattern, o.color, o.color2, o.material].join('|'), 320, 150, o);
   const paint = () => { pc.clearRect(0, 0, pv.width, pv.height); pc.drawImage(prev, 0, 0, pv.width, pv.height); };
   paint(); setTimeout(paint, 60); setTimeout(paint, 400);
-  const editing = sel?.kind === 'tape';
-  $('#tapeEditNote').hidden = !editing;
-  $('#btnTapeAdd').textContent = editing ? '再貼一條一樣的' : '貼到照片上';
+  const editing = !!sel;
+  $('#tapeGo').dataset.editing = String(editing);
+  $('#tapeEditNote').textContent = editing ? '正在修改照片上選著的這條膠帶' : '';
+  $('#btnTapeNew').hidden = !editing;
+  $('#btnTapeAdd').textContent = editing ? '完成修改' : '貼到照片上';
 }
 function addTape() {
   const o = tapeOpts();
@@ -2364,11 +2380,18 @@ function addTape() {
   while (k < n + TAPE_SPOTS.length && near(TAPE_SPOTS[k % TAPE_SPOTS.length])) k++;
   const [x, y, rot, size] = TAPE_SPOTS[k % TAPE_SPOTS.length];
   const sz = o.shape === 'block' ? size * 0.7 : o.shape === 'short' ? size * 0.8 : size;
+  addingTape = true;
   addSticker({ kind: 'tape', id: o.pattern, shape: o.shape, color: o.color, color2: o.color2, material: o.material,
     size: state.mode === 'four' ? sz * 1.15 : sz, x, y, rot: rot + (Math.random() - 0.5) * 0.16 });
+  addingTape = false;
+  tapeEditUid = null;
   buildTapeUI();
 }
-$('#btnTapeAdd')?.addEventListener('click', addTape);
+$('#btnTapeAdd')?.addEventListener('click', () => {
+  if (tapeEditing()) { tapeEditUid = null; select(null); toast('膠帶改好了'); buildTapeUI(); return; }
+  addTape();
+});
+$('#btnTapeNew')?.addEventListener('click', () => { tapeEditUid = null; select(null); buildTapeUI(); });
 
 // ---------------------------------------------------------------- 膠水：把貼圖黏好（點照片不會再選到、拖動）
 function glueState() {
