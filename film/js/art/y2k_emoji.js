@@ -365,6 +365,28 @@ const Y2K_V10 = [
     s(rotE(50, 50, 42, 13, 30) + rotE(50, 50, 42, 13, -30) + rotE(50, 50, 42, 13, 90), 'M', 2.6),
     f(sparkleD(50, 50, 15, 0.22), HOT), f(circ(86, 72, 3.4) + circ(14, 28, 3.4), LIME),
   ]),
+  // 第九版：補到 30
+  y2('y2k_cassette', '錄音帶', BABY, [
+    f(rr(8, 24, 84, 54, 6)), f(rr(18, 32, 64, 26, 4), WH), f(circ(36, 45, 7) + circ(64, 45, 7), INK),
+    f(rr(30, 64, 40, 14, 3), LILAC), s(rr(8, 24, 84, 54, 6), INK, 2.2),
+  ]),
+  y2('y2k_heartglasses', '愛心墨鏡', HOT, [
+    f(heartD(30, 50, 40) + heartD(70, 50, 40)), s('M40 44Q50 38 60 44', INK, 2.6), s('M12 42L4 36M88 42L96 36', INK, 2.6),
+    f(sparkleD(22, 44, 5, 0.22) + sparkleD(62, 44, 5, 0.22), WH),
+  ], [100, 80]),
+  y2('y2k_lavalamp', '熔岩燈', LILAC, [
+    f('M38 14H62L72 72H28Z'), f(ell(48, 34, 6, 8) + ell(56, 56, 8, 9) + ell(44, 62, 5, 4), HOT),
+    f('M30 72H70L76 92H24Z', SILVER), f('M40 6H60L62 14H38Z', SILVER), s('M38 14H62L72 72H28Z', INK, 2),
+  ]),
+  y2('y2k_flowerpower', '復古大花', LIME, [
+    f([0, 1, 2, 3, 4, 5].map((i) => { const a = (i * 60 * Math.PI) / 180; return circ(50 + 24 * Math.cos(a), 50 + 24 * Math.sin(a), 18); }).join('')),
+    f(circ(50, 50, 16), HOT), f(circ(50, 50, 6), BABY),
+  ]),
+  y2('y2k_charm', '手機吊飾', HOT, [
+    s('M50 4Q30 10 34 30Q38 40 50 40', INK, 1.6),
+    f([[46, 12], [40, 20], [37, 28], [42, 36]].map(([x, y]) => circ(x, y, 3.4)).join(''), BABY), f(heartD(52, 58, 40)), f(sparkleD(64, 84, 9, 0.22), LIME),
+    f(sparkleD(46, 52, 6, 0.22), WH),
+  ]),
 ];
 
 export const ART_Y2K_EMOJI = [...Y2K, ...Y2K_V10, ...EMOJI];

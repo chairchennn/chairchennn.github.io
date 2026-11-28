@@ -77,8 +77,11 @@ function inkStroke(ctx, d, w, col, r, nz, even) {
     if (P.length < 2) continue;
     // 閉合的線：有時候故意不接起來（留 1~3 格的缺口），有時候多畫一點點
     if (sp.closed) {
-      const gap = r() < 0.45 ? Math.floor(1 + r() * 3) : -Math.floor(r() * 3);
-      P = gap > 0 ? P.slice(0, Math.max(2, P.length - gap)) : [...P, ...P.slice(1, 1 - gap + 1)];
+      // 先把收尾那一段（Z）補成點，再依長度決定留缺口（1~3 格）或多畫一點點
+      const a = P[P.length - 1], b = P[0], k = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]));
+      P = [...P, ...Array.from({ length: k }, (_, i) => [a[0] + ((b[0] - a[0]) * (i + 1)) / k, a[1] + ((b[1] - a[1]) * (i + 1)) / k])];
+      const gap = r() < 0.45 ? 1 + r() * 2.5 : 0;
+      if (gap) { let g = 0; while (P.length > 3 && g < gap) { const q = P.pop(), e = P[P.length - 1]; g += Math.hypot(q[0] - e[0], q[1] - e[1]); } } else P = [...P, ...P.slice(1, 3)];
     }
     const L = [0];
     for (let i = 1; i < P.length; i++) L.push(L[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
@@ -112,13 +115,58 @@ function inkStroke(ctx, d, w, col, r, nz, even) {
   }
 }
 
+// 剪紙底（參考圖 29 的剪下來貼上去）：外圍凸包往外擴，再用剪刀剪成不規則的直邊多角形
+const paperCache = new WeakMap();
+function paperOutline(def, seed) {
+  const key = paperCache.get(def);
+  if (key && key.seed === seed) return key.pts;
+  const pts = [];
+  for (const p of def.parts) for (const sp of flattenPath(p.d, 3)) pts.push(...sp.pts);
+  pts.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of pts) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of pts.slice().reverse()) { while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  const hull = [...lo.slice(0, -1), ...up.slice(0, -1)];
+  let cx = 0, cy = 0;
+  hull.forEach(([x, y]) => { cx += x; cy += y; });
+  cx /= hull.length; cy /= hull.length;
+  // 每隔一段取一個角（剪刀一刀一刀剪），往外擴 4~7 格
+  const r = rng(seed * 31 + 11), out = [];
+  const step = 12;
+  for (let i = 0; i < hull.length; i++) {
+    const a = hull[i], b = hull[(i + 1) % hull.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]), k = Math.max(1, Math.round(L / step));
+    for (let j = 0; j < k; j++) {
+      if (r() < 0.35 && j) continue;
+      const x = a[0] + ((b[0] - a[0]) * j) / k, y = a[1] + ((b[1] - a[1]) * j) / k, m = Math.hypot(x - cx, y - cy) || 1, e = 4 + r() * 3.5;
+      out.push([x + ((x - cx) / m) * e, y + ((y - cy) / m) * e]);
+    }
+  }
+  paperCache.set(def, { seed, pts: out });
+  return out;
+}
+
 export function drawInkDef(ctx, def, color = INK_RED, strokeScale = 1, seed = 1) {
   const r = rng(seed * 13 + 5), nz = noise1(seed * 7 + 3);
+  if (def.paper !== false) {
+    const P = paperOutline(def, seed), ga0 = ctx.globalAlpha;
+    ctx.save();
+    ctx.shadowColor = 'rgba(40,30,20,0.22)';
+    const m0 = ctx.getTransform(), u0 = Math.hypot(m0.a, m0.b) || 1;
+    ctx.shadowBlur = 3 * u0; ctx.shadowOffsetY = 1.2 * u0;
+    ctx.beginPath();
+    P.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.fillStyle = '#F6F1E6';
+    ctx.globalAlpha = ga0;
+    ctx.fill();
+    ctx.restore();
+  }
   // 每一版（顏色）偏移的方向固定，同一張貼圖裡的紅版都往同一邊偏
   const plates = new Map();
   const offOf = (col) => {
     if (!plates.has(col)) {
-      const a = r() * Math.PI * 2, m = 1.8 + r() * 2.2;
+      const a = r() * Math.PI * 2, m = 2.6 + r() * 2.4;
       plates.set(col, [Math.cos(a) * m, Math.sin(a) * m]);
     }
     return plates.get(col);
@@ -131,7 +179,7 @@ export function drawInkDef(ctx, def, color = INK_RED, strokeScale = 1, seed = 1)
     const col = resolve(p.f, color);
     const off = p.f === 'K' || p.f === 'W' || p.noOff ? [0, 0] : offOf(col);
     let style = col;
-    if (unit > 0.6 && typeof document !== 'undefined') {
+    if (unit > 0.6 && p.f !== 'K' && typeof document !== 'undefined') {
       const pat = ctx.createPattern(grainCanvas(col), 'repeat');
       if (pat?.setTransform && typeof DOMMatrix !== 'undefined') pat.setTransform(new DOMMatrix().translate((seed * 29) % 128, (seed * 53) % 128).scale(0.35));
       if (pat) style = pat;

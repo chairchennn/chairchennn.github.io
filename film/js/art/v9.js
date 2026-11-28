@@ -382,6 +382,43 @@ export const ART_PIXEL = [
     if (x * x + y * y <= 10.5) return (x + 1) ** 2 + (y + 1) ** 2 < 2 ? 'l' : 'M';
     return ring ? 'y' : null;
   })),
+  // 第九版：補到 30
+  pixel('px_pear', '像素西洋梨', PS, [
+    '....c..',
+    '...cgg.',
+    '..MM...',
+    '.MlMM..',
+    '.MMMM..',
+    'MlMMMM.',
+    'MMMMMM.',
+    'MMMMMM.',
+    '.MMMM..',
+  ]),
+  pixel('px_candle', '像素蠟燭', PR, [
+    '...y...',
+    '..yYy..',
+    '...Y...',
+    '...c...',
+    '..MMM..',
+    '..MlM..',
+    '..MlM..',
+    '..MMM..',
+    '..MMM..',
+    '.kkkkk.',
+  ]),
+  pixel('px_umbrella', '像素雨傘', PR, [
+    '....c....',
+    '...MMM...',
+    '.MMlMMMM.',
+    'MMlMMMMMM',
+    'MMMMMMMMM',
+    'M..M.M..M',
+    '....c....',
+    '....c....',
+    '....c....',
+    '....c..c.',
+    '.....cc..',
+  ]),
 ];
 
 // =====================================================================
@@ -467,6 +504,11 @@ function crescentPts(cx, cy, r, ox, oy, r2, N = 60) {
   return [...outer, ...inner];
 }
 const closeLoop = (pts) => [...pts, pts[0]];
+// 稍微不對稱的手繪愛心（點）
+function heartPts(cx, cy, size, N = 64) {
+  const k = size / 34;
+  return Array.from({ length: N }, (_, i) => { const t = (i / N) * 2 * PI; return [cx + k * 16 * sin(t) ** 3 * (1 + 0.04 * sin(t * 3)), cy - k * (13 * cos(t) - 5 * cos(2 * t) - 2 * cos(3 * t) - cos(4 * t) + 2)]; });
+}
 const dot = (id, name, parts, vb, color = DS) => ({ id, name, cat: 'dotstar', style: 'dotstar', color, ...(vb ? { vb } : {}), parts });
 
 export const ART_DOTSTAR = [
@@ -532,6 +574,20 @@ export const ART_DOTSTAR = [
     { d: circle(50, 52, 24), hatch: 40, sp: 2.2, s: 'M', w: 1.2 },
     { d: curve([[30, 60], [8, 70], [20, 76], [50, 66], [84, 46], [92, 34], [72, 38]]), s: 'D', w: 1.3 },
   ]),
+  // 第九版：補到 30（每一顆各自獨立，不排成一串）
+  dot('ds_heart_hatch', '斜線愛心', [{ d: poly(heartPts(50, 52, 80)), hatch: 50, sp: 2.2, s: 'M', w: 1.3 }]),
+  dot('ds_gem_heart', '水鑽愛心', [{ gem: gemsAlong(closeLoop(heartPts(50, 52, 80)), 2.6, 0.9) }]),
+  dot('ds_star8', '八角星', [{ d: poly(starRingPts(50, 50, 42, 21, 8, -90).slice(0, -1)), f: 'M', s: 'D', w: 1.2 }]),
+  dot('ds_gem_star8', '水鑽八角星', [{ gem: gemsAlong(starRingPts(50, 50, 42, 18, 8, -90), 2.6, 0.85) }]),
+  dot('ds_double', '雙線星', [
+    { d: dsStar(50, 54, 42, -92, [0, 0.05, -0.04, 0.06, 0]), s: 'D', w: 1.3 },
+    { d: dsStar(50, 55, 30, -92, [0, 0.05, -0.04, 0.06, 0]), s: 'M', w: 1.1 },
+  ]),
+  dot('ds_cloud', '描邊雲', [
+    { d: blob([[18, 64], [14, 50], [26, 40], [36, 30], [54, 28], [64, 38], [78, 36], [88, 50], [82, 64], [50, 68]]), s: 'D', w: 1.4 },
+    { d: dsStar(80, 22, 10, -80, [0, 0.06, -0.04, 0.05, 0]), f: 'M', s: 'D', w: 0.9 },
+  ], [100, 80]),
+  dot('ds_moon_fill', '藍月亮', [{ d: poly(crescentPts(46, 50, 36, 62, 38, 30)), f: 'M', s: 'D', w: 1.2 }, ...numbered([[84, 74, 9, 3, -3]], 6, 1.8, DS_DOT)]),
 ];
 function starRingPts(cx, cy, ro, ri, k, rot = -90) {
   const pts = Array.from({ length: k * 2 }, (_, i) => { const a = (rot + (i * 180) / k) * RAD, r = i % 2 ? ri : ro; return [cx + r * cos(a), cy + r * sin(a)]; });
@@ -755,6 +811,37 @@ export const ART_CATS = [
     ink(curve([[68, 58], [80, 60], [84, 70]]) + curve([[66, 66], [76, 72], [86, 66]]) + curve([[72, 56], [70, 68], [78, 77]]) + curve([[88, 70], [94, 80], [86, 86]]), 0.5),
     ...head(44, 44, 22, 18, 10, { eyes: 'round', look: 0.12 }),
   ], [100, 88]),
+  // 第九版：補到 30
+  cat('cat_tailup', '翹尾巴散步的貓', C_ORG, [
+    body([[28, 44], [56, 40], [82, 42], [90, 52], [80, 60], [52, 60], [30, 58], [22, 50]]),
+    limb([[82, 56], [84, 70], [86, 82]]), limb([[74, 58], [73, 70], [72, 82]]), limb([[34, 56], [30, 70], [28, 82]]), limb([[44, 58], [46, 70], [46, 82]]),
+    tail([[26, 46], [14, 34], [12, 18], [20, 8]], 5.5, 4),
+    ...head(96, 36, 22, 18, -6, { look: 0.1 }),
+  ], [120, 90]),
+  cat('cat_peer', '趴著看的貓', C_SLATE, [
+    body([[20, 48], [50, 40], [84, 42], [96, 54], [84, 62], [40, 62], [18, 58]]),
+    limb([[84, 58], [98, 62], [108, 62]], 5.5, 5), limb([[78, 60], [92, 65], [102, 66]], 5.5, 5),
+    tail([[20, 54], [8, 60], [4, 50]], 5, 4),
+    ...head(96, 42, 24, 19, 0, { eyes: 'round' }),
+  ], [120, 72]),
+  cat('cat_lick', '舔腳的貓', C_ROSE, [
+    body([[28, 44], [54, 40], [64, 66], [62, 92], [20, 92], [16, 66]]),
+    limb([[50, 82], [62, 62], [70, 42]], 6.5, 5.5),
+    tail([[22, 90], [8, 92], [4, 82]], 5, 4),
+    ...head(56, 30, 26, 21, 22, { eyes: 'closed' }),
+  ], [90, 100]),
+  cat('cat_chase', '追尾巴的貓', C_LIME, [
+    body([[32, 42], [50, 32], [72, 38], [80, 58], [68, 74], [46, 76], [32, 64]]),
+    limb([[62, 72], [66, 86]]), limb([[48, 74], [46, 88]]), limb([[74, 62], [88, 68]]),
+    tail([[42, 74], [26, 82], [14, 70], [18, 56]], 5.5, 4),
+    ...head(30, 40, 24, 19, -36, { eyes: 'round' }),
+  ], [100, 100]),
+  cat('cat_turn', '回頭看的貓', C_MAUVE, [
+    body([[30, 46], [60, 44], [72, 70], [68, 92], [26, 92], [22, 70]]),
+    tail([[66, 90], [84, 90], [90, 78]], 5.5, 4),
+    ink('M36 70L35 91M46 70L47 91', 0.6),
+    ...head(36, 33, 30, 24, -10, { look: -0.15 }),
+  ], [100, 100]),
 ];
 
 // =====================================================================
@@ -805,6 +892,10 @@ export const MOTIF_STITCH2 = [
   stitch2('st_cosmos', '波斯菊', 'ground', [
     '.X..X..X.', '..X.X.X..', 'X..XXX..X', '.XXX.XXX.', 'X..XXX..X', '..X.X.X..', '.X..X..X.', '....X....', '....X....', '.....X...', '.....X.XX', '.XX..XXX.', 'XXXX.X...', '.....X...', '....X....',
   ]),
+  // 第九版：補到 30
+  stitch2('st_acorn', '橡實', 'any', ['...X...', '..XXX..', '.XXXXX.', 'XX.X.XX', '.XXXXX.', '.X...X.', '.X...X.', '..X.X..', '...X...']),
+  stitch2('st_pear', '西洋梨', 'any', ['...X.XX', '...XX..', '..XXX..', '.XX.XX.', '.X...X.', 'XX...XX', 'X.....X', 'X.....X', 'XX...XX', '.XXXXX.']),
+  stitch2('st_sun', '小太陽', 'any', ['X...X...X', '.X..X..X.', '...XXX...', '..XX.XX..', 'XXX...XXX', '..XX.XX..', '...XXX...', '.X..X..X.', 'X...X...X']),
 ];
 
 // =====================================================================
@@ -946,6 +1037,38 @@ export const MOTIF_STIPPLE2 = [
     [0.42, 0.56, 0.7, 0.84, 0.98].forEach((u, i) => { const [p, a] = onStem(st, u), c = at(p, a + (i % 2 ? 1 : -1) * 1.1, 9); st2 += `M${pt(p)}L${pt(c)}`; d += circle(c[0], c[1], 4.5 - i * 0.3); });
     return [{ d: curve(st) + st2 + curve([[42, 118], [28, 104], [22, 86]]) }, { d, accent: true }];
   })()),
+  // 第九版：補到 30
+  sp2('sp_iris', '鳶尾', [
+    { d: curve([[50, 140], [50, 100], [48, 62]]) + leafLine([50, 138], [30, 56], 10, 2) + leafLine([50, 138], [68, 66], 9, -2) },
+    { d: leafLine([48, 58], [40, 28], 10, 2) + leafLine([48, 58], [58, 30], 10, -2) + leafLine([48, 60], [28, 70], 10, -3) + leafLine([48, 60], [68, 72], 10, 3), accent: true },
+  ]),
+  sp2('sp_hydrangea', '繡球', (() => {
+    let d = '';
+    for (let j = -2; j <= 2; j++) for (let i = -3; i <= 3; i++) {
+      const x = 50 + i * 7 + (j % 2) * 3.5, y = 44 + j * 7;
+      if (hypot(x - 50, (y - 44) * 1.3) > 23) continue;
+      d += [0, 1, 2, 3].map((k) => circle(...at([x, y], k * PI / 2 + 0.4, 2.2), 1.7)).join('');
+    }
+    return [{ d: curve([[50, 140], [52, 100], [50, 66]]) + leafLine([51, 112], [24, 96], 16, 4) + leafLine([51, 100], [78, 88], 14, -4) }, { d, accent: true }];
+  })()),
+  sp2('sp_pine', '松枝', (() => {
+    const st = [[38, 140], [44, 100], [56, 62], [72, 24]];
+    let d = '';
+    for (let i = 2; i < 12; i++) { const [p, a] = onStem(st, i / 12); for (const o of [-1.0, -0.6, 0.6, 1.0]) d += `M${pt(p)}L${pt(at(p, a + o, 12 - i * 0.4))}`; }
+    return [{ d: curve(st) + d }, { d: ellR(34, 96, 5, 8, -20) + ellR(78, 60, 4, 7, 20), accent: true }];
+  })()),
+  sp2('sp_oat', '燕麥', (() => {
+    const st = [[50, 140], [50, 90], [46, 44], [40, 16]];
+    let d = '', h = '';
+    [0.5, 0.6, 0.68, 0.76, 0.84, 0.92].forEach((u, i) => { const [p, a] = onStem(st, u), sd = i % 2 ? 1 : -1, q = at(p, a + sd * 1.3, 8); d += `M${pt(p)}L${pt(q)}`; h += leafLine(q, [q[0] + sd * 2, q[1] + 12], 5); });
+    return [{ d: curve(st) + d + leafLine([50, 128], [30, 96], 6, 2) }, { d: h, accent: true }];
+  })()),
+  sp2('sp_rosemary', '迷迭香', (() => {
+    const st = [[52, 140], [50, 100], [46, 60], [44, 18]];
+    let d = '';
+    for (let i = 2; i < 16; i++) { const [p, a] = onStem(st, i / 16); d += leafLine(p, at(p, a - 1.1, 9), 2.6) + leafLine(p, at(p, a + 1.1, 9), 2.6); }
+    return [{ d: curve(st) + d }, { d: circle(40, 40, 2) + circle(54, 56, 2) + circle(38, 70, 1.8), accent: true }];
+  })()),
 ];
 
 // =====================================================================
@@ -961,8 +1084,8 @@ export const PACKS_V9 = {
     name: '8-bit 像素', glow: 0, noGlow: true,
     sizes: { small: [0.06, 0.08], medium: [0.09, 0.12], large: [0.14, 0.18] },
     colors: ['#D9A3A0', '#E9D79A', '#A99BC5', '#9CB9D0', '#A6B58A', '#CB8875'], recolor: 0.35,
-    small: each(['px_sparkle', 'px_heart', 'px_star', 'px_note', 'px_drop', 'px_clover', 'px_cherry', 'px_snow', 'px_gem', 'px_leaf']),
-    medium: each(['px_flower', 'px_daisy', 'px_moon', 'px_mushroom', 'px_bird', 'px_tulip', 'px_butterfly', 'px_cup', 'px_apple', 'px_bow', 'px_letter', 'px_cloud']),
+    small: each(['px_sparkle', 'px_heart', 'px_star', 'px_note', 'px_drop', 'px_clover', 'px_cherry', 'px_snow', 'px_gem', 'px_leaf', 'px_pear']),
+    medium: each(['px_flower', 'px_daisy', 'px_moon', 'px_mushroom', 'px_bird', 'px_tulip', 'px_butterfly', 'px_cup', 'px_apple', 'px_bow', 'px_letter', 'px_cloud', 'px_pear', 'px_candle', 'px_umbrella']),
     large: each(['px_sun', 'px_rainbow', 'px_house', 'px_tree', 'px_planet', 'px_cloud', 'px_flower']),
     max: each(['px_sun', 'px_rainbow', 'px_house', 'px_tree', 'px_planet', 'px_letter', 'px_cup'], 1),
   },
@@ -971,9 +1094,10 @@ export const PACKS_V9 = {
     name: '連連看星星', glow: 0, noGlow: true,
     sizes: { small: [0.07, 0.1], medium: [0.13, 0.18], large: [0.22, 0.3] },
     colors: ['#86ADD5', '#9CB9D0', '#7FA3CC'], recolor: 0.3,
-    small: each(['ds_dot7', 'ds_dot12', 'ds_dot3', 'ds_fill_s', 'ds_hatch_s', 'ds_line_s', 'ds_spark']),
-    medium: each(['ds_twin', 'ds_comet', 'ds_gem_star', 'ds_gem_spark', 'ds_gem_ring', 'ds_moon', 'ds_planet', 'ds_connect2', 'ds_gem_arc', 'ds_gem_moon', 'ds_fill_s', 'ds_hatch_s']),
-    large: each(['ds_star_fill', 'ds_star_hatch', 'ds_star_pattern', 'ds_gem_sun8', 'ds_gem_sun16', 'ds_connect']),
+    small: each(['ds_dot7', 'ds_dot12', 'ds_dot3', 'ds_fill_s', 'ds_hatch_s', 'ds_line_s', 'ds_spark', 'ds_star8', 'ds_heart_hatch']),
+    medium: each(['ds_twin', 'ds_comet', 'ds_gem_star', 'ds_gem_spark', 'ds_gem_ring', 'ds_moon', 'ds_planet', 'ds_connect2', 'ds_gem_arc', 'ds_gem_moon', 'ds_fill_s', 'ds_hatch_s',
+      'ds_heart_hatch', 'ds_gem_heart', 'ds_star8', 'ds_gem_star8', 'ds_double', 'ds_cloud', 'ds_moon_fill']),
+    large: each(['ds_star_fill', 'ds_star_hatch', 'ds_star_pattern', 'ds_gem_sun8', 'ds_gem_sun16', 'ds_connect', 'ds_double', 'ds_gem_star8']),
     // ds_shoot（流星）只當單張貼圖、不進塗鴉框：避免和編號點排在一起（侵權審查）
     max: { ...once(ART_DOTSTAR), ds_fill_s: 3, ds_hatch_s: 3, ds_line_s: 3, ds_spark: 2 },
   },
@@ -984,8 +1108,9 @@ export const PACKS_V9 = {
     colors: [C_TEAL, C_BRICK, C_YEL, C_GRN, C_ORG, C_GRAY, C_PINK, C_PURP, C_LIME, C_BRN, C_BLUE, C_SAND, C_ROSE, C_SLATE, C_MAUVE], recolor: 0.6,
     keepColor: ['cat_walk', 'cat_long', 'cat_hang', 'cat_stand'], // 這幾隻固定顏色（換色可能撞到參考圖的配色）
     anchors: { cat_peek: 'bottom' },
-    small: each(['cat_kitten', 'cat_face', 'cat_loaf', 'cat_sleep', 'cat_back']),
-    medium: each(['cat_walk', 'cat_sitfront', 'cat_jump', 'cat_crouch', 'cat_roll', 'cat_peek', 'cat_stand', 'cat_arch', 'cat_run', 'cat_sitside', 'cat_box', 'cat_yarn', 'cat_star', 'cat_dance', 'cat_tiptoe']),
+    small: each(['cat_kitten', 'cat_face', 'cat_loaf', 'cat_sleep', 'cat_back', 'cat_lick']),
+    medium: each(['cat_walk', 'cat_sitfront', 'cat_jump', 'cat_crouch', 'cat_roll', 'cat_peek', 'cat_stand', 'cat_arch', 'cat_run', 'cat_sitside', 'cat_box', 'cat_yarn', 'cat_star', 'cat_dance', 'cat_tiptoe',
+      'cat_tailup', 'cat_peer', 'cat_lick', 'cat_chase', 'cat_turn']),
     large: each(['cat_long', 'cat_stretch', 'cat_sunbathe', 'cat_flop', 'cat_hang', 'cat_jump', 'cat_walk']),
     max: once(ART_CATS),
   },

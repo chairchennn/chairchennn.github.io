@@ -2,7 +2,8 @@
 // 每個貼圖都是一組 SVG path（座標 0–100），用 Path2D 直接畫在 canvas 上，
 // 放多大都不會糊。顏色 'M' 代表「主色」，使用者可以替換。
 
-import { ART_FR_JP } from './art/fr_jp.js';
+import { ART_FR_JP, FRENCH_INK } from './art/fr_jp.js';
+import { drawInkDef } from './inkbrush.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
 import { ART_CRAYON } from './art/crayon.js';
 import { ART_PENCIL, ART_PRINT, ART_TOOLS, MOTIF_STITCH, MOTIF_STIPPLE } from './art/v8.js';
@@ -684,7 +685,7 @@ const CUTE = [
 // ===========================================================================
 const IV = '#F4EEDF', CRY = '#E9D79A', LIL = '#A99BC5', SKB = '#9CB9D0', SGE = '#A6B58A', TER = '#CB8875',
   CHO = '#655047', CHA = '#65645D', ROS = '#D69C98', RLINE = '#C48A82';
-const RAD = Math.PI / 180;
+const RAD = Math.PI / 180, { PI, cos, sin } = Math;
 // Catmull-Rom：穿過各點的平滑線（v10 新圖案用）
 function crD(pts, closed) {
   const N = pts.length, at = (i) => (closed ? pts[(i + N) % N] : pts[Math.max(0, Math.min(N - 1, i))]);
@@ -790,6 +791,17 @@ const CREAM_V10 = [
   crm('cr_sun', '奶油太陽', scallop(50, 50, 12, 32, 46, -Math.PI / 2, 0.1), [f(circ(50, 50, 19)), s(circ(50, 50, 19), RLINE, 2.4)], CRY),
   crm('cr_drop', '奶油水滴', CR_DROP, [f('M50 34C56 46 64 54 64 64A14 14 0 0 1 36 64C36 54 44 46 50 34Z')], SKB),
   crm('cr_cutheart', '奶油心形', CR_CUT, [s(heartD(50, 52, 46), 'M', 2.6), f(circ(50, 52, 4))]),
+  // 第九版：補到 30
+  {
+    id: 'cr_lemon', name: '奶油檸檬', cat: 'cream', color: CRY, parts: [
+      f(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]])),
+      s(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]]), RLINE, 3.4),
+      s('M30 54Q50 46 72 52', IV, 2.6), f(petalD(76, 30, 0, 18, 6, -0.6), SGE), s(petalD(76, 30, 0, 18, 6, -0.6), RLINE, 2.4),
+    ]
+  },
+  crm('cr_teacup', '奶油茶杯', 'M18 38H74Q74 72 46 74Q18 72 18 38Z',
+    [s('M74 44Q90 44 88 56Q86 66 70 64', RLINE, 3.4), s(ell(46, 82, 34, 6), RLINE, 3), f(heartD(46, 54, 18))]),
+  crm('cr_planet', '奶油星球', circ(50, 52, 26), [s(rellD(50, 52, 44, 11, -16), 'M', 3.2), f(circ(16, 18, 3) + circ(86, 84, 3.6)), f(sparkleD(84, 18, 8, 0.24))], LIL),
 ];
 
 // ---------- 花花世界：版畫色塊（新圖案；'M' = 花的顏色） ----------
@@ -863,6 +875,28 @@ const FLORA_V10 = [
     f(blobD([[50, 12], [64, 28], [64, 46], [50, 56], [36, 46], [36, 28]])),
     f(petalD(50, 56, 0, 18, 6, -2.0) + petalD(50, 56, 0, 18, 6, -1.14), SGE),
   ]),
+  // 第九版：補到 30
+  fl('fl_cornflower', '矢車菊', SKB, [
+    s('M50 58Q46 78 50 96', SGE, 2.6), f(petalD(49, 80, 0, 16, 4, -2.4), SGE),
+    f([...Array(9)].map((_, i) => { const a = -PI / 2 + (i - 4) * 0.36; return petalD(50, 46, 4, 26, 7, a); }).join('')), f(circ(50, 46, 6), LIL),
+  ]),
+  fl('fl_peony', '牡丹', ROS, [
+    f(petalD(50, 70, 0, 26, 10, 2.6) + petalD(50, 70, 0, 26, 10, 0.5), SGE),
+    f(blobD([[50, 14], [72, 22], [84, 44], [74, 64], [50, 72], [26, 64], [16, 44], [28, 22]])),
+    f(blobD([[50, 30], [64, 36], [66, 50], [50, 58], [34, 50], [36, 36]]), IV), f(blobD([[50, 38], [58, 42], [58, 50], [50, 52], [42, 50], [42, 42]])),
+  ]),
+  fl('fl_magnolia', '木蘭', IV, [
+    s('M18 96Q36 70 50 56', CHO, 2.6), f(petalD(34, 78, 0, 16, 6, -2.4), SGE),
+    f(petalD(52, 58, 0, 40, 16, -1.9) + petalD(52, 58, 0, 40, 16, -1.2)), f(petalD(52, 58, 0, 34, 14, -0.6), ROS), f(petalD(52, 58, 0, 34, 14, -2.5), ROS),
+  ]),
+  fl('fl_clematis', '鐵線蓮', LIL, [
+    s('M10 90Q30 70 50 52', SGE, 2.2), f([0, 1, 2, 3, 4, 5].map((i) => petalD(50, 46, 4, 34, 13, -PI / 2 + i * PI / 3)).join('')),
+    f(circ(50, 46, 7), CRY), f([0, 1, 2, 3, 4, 5].map((i) => circ(50 + 10 * cos(i * PI / 3), 46 + 10 * sin(i * PI / 3), 1.4)).join(''), CRY),
+  ]),
+  fl('fl_daffodil', '水仙', CRY, [
+    s('M50 60Q48 80 50 96', SGE, 3), f(petalD(50, 96, 0, 40, 6, -1.75) + petalD(50, 96, 0, 34, 6, -1.35), SGE),
+    f([0, 1, 2, 3, 4, 5].map((i) => petalD(50, 40, 2, 24, 12, -PI / 2 + i * PI / 3)).join(''), IV), f(circ(50, 40, 10)), f(circ(50, 40, 4), TER),
+  ]),
 ];
 
 // ---------- 夢幻粉彩：細色鉛筆線（新圖案） ----------
@@ -885,6 +919,11 @@ const PASTEL_V10 = [
   pl('pl_saturn', '線條星球', LIL, [s(circ(50, 50, 20), 'M', 3), s(rellD(50, 50, 40, 10, -18), PCRM, 2.6), f(circ(16, 18, 2) + circ(84, 84, 2.4) + circ(86, 20, 1.6), PCRM)]),
   pl('pl_wave', '雙波浪', PBLUE, [s('M6 22q11 -14 22 0t22 0t22 0t22 0', 'M', 3), s('M6 36q11 -14 22 0t22 0t22 0t22 0', PSAGE, 2.6)], [100, 50]),
   pl('pl_bow', '線條蝴蝶結', PROSE, [s(BOW_LOOP + BOW_TAIL, 'M', 2.8), s(ell(50, 48, 6, 7), 'M', 2.6)]),
+  // 第九版：補到 30
+  pl('pl_twostar', '雙線星', PCRM, [s(softStar(50, 54, [44, 44, 44, 44, 44], 21), 'M', 3), s(softStar(50, 55, [30, 30, 30, 30, 30], 14), PROSE, 2.2)]),
+  pl('pl_shell', '線條貝殼', PROSE, [s(CR_SHELL, 'M', 3), s([[-30, 22], [-18, 14], [-6, 12], [6, 12], [18, 14], [30, 22]].map(([x, y]) => `M50 84L${50 + x} ${y + 6}`).join(''), 'M', 2, 0.8)]),
+  pl('pl_teacup', '線條茶杯', PBLUE, [s('M18 38H74Q74 72 46 74Q18 72 18 38Z', 'M', 3), s('M74 44Q90 44 88 56Q86 66 70 64', 'M', 2.6), s(ell(46, 82, 34, 6), PROSE, 2.4), s('M36 28Q32 20 38 14M52 28Q48 20 54 12', LIL, 2)]),
+  pl('pl_clover', '線條四葉草', PSAGE, [s([0, 90, 180, 270].map((r) => heartD(50 + 17 * Math.sin(r * RAD), 46 - 17 * Math.cos(r * RAD), 34, r)).join(''), 'M', 2.8), s('M50 60Q56 80 50 96', 'M', 2.6)]),
 ];
 
 CUTE.push(...CREAM_V10, ...FLORA_V10, ...PASTEL_V10);
@@ -903,6 +942,7 @@ restyle(CUTE.filter((d) => d.cat === 'pastel' || d.id === 'nc_scratch'), 'pencil
   '#ffd7e6': PROSE, '#ffb36b': '#E8B896', '#ffc79e': '#E8B896', '#a8ecd2': PSAGE, '#ff8fc0': PROSE, '#3d3332': CHO, '#ff9ec7': null, '#ff8fb0': null,
 }).forEach((d) => { d.parts = d.parts.map((p) => (p.s ? { ...p, w: p.w * 1.5 } : p)); }); // 色鉛筆線比向量線細，加粗一點才看得到
 // 最早的一批貼圖（螢光塗鴉、表情、動物、旅行、裝飾、線條）→ 蠟筆
+STICKERS.forEach((d) => { d.glowable = true; }); // 最早的螢光塗鴉那一批：可以開霓虹光暈
 restyle(STICKERS, 'crayon', {
   '#ff8fc0': '#F2A7C3', '#ff5f6d': '#EE8C86', '#ff9a3c': '#F2AE6E', '#ffd23c': '#F1D06A', '#6fdc7f': '#A3D49B',
   '#46d2f0': '#8FCFE0', '#3f7bff': '#8DA6E6', '#b48cff': '#BFA4E8', '#2a2433': '#5A4E52', '#ff9ec7': '#F2B3C6', '#ffb020': '#F1C064',
@@ -931,7 +971,7 @@ restyle(ART_Y2K_EMOJI.filter((d) => d.cat === 'y2k'), 'print', {
   // 反光線（白色的線）和白色小亮點拿掉；其餘不透明，像一次印上去
   d.parts = d.parts.filter((p) => !(p.s === IV)).map((p) => ({ ...p, a: p.a != null && p.a < 1 ? 1 : p.a }));
 });
-STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS, ...ART_PIXEL, ...ART_DOTSTAR, ...ART_CATS,
+STICKERS.push(...CUTE, ...ART_FR_JP, ...FRENCH_INK, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS, ...ART_PIXEL, ...ART_DOTSTAR, ...ART_CATS,
   // 十字繡、點描的圖案也可以當單張貼圖用
   ...[...MOTIF_STITCH, ...MOTIF_STITCH2].map((d) => ({ ...d, id: d.id.startsWith('stx_') ? d.id : `stx_${d.id}`, cat: 'stitch', style: 'stitch', color: d.color || '#ffffff' })),
   ...[...MOTIF_STIPPLE, ...MOTIF_STIPPLE2].map((d) => ({ ...d, id: d.id.startsWith('spx_') ? d.id : `spx_${d.id}`, cat: 'stipple', style: 'stipple', color: d.color || '#ffffff' })));
@@ -939,7 +979,9 @@ STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PEN
 // 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框
 export const HIDDEN_CATS = new Set(['kitty', 'emoji', 'tool']); // tool＝文具工具列的圖，不是貼圖
 // 個別不再出現的貼圖（和貓咪小魚、表情臉同一種畫風）
-export const HIDDEN_IDS = new Set(['jp_maneki', 'jp_koi', 'jp_onigiri']);
+export const HIDDEN_IDS = new Set(['jp_maneki', 'jp_koi', 'jp_onigiri',
+  // 第九版：法式手繪改成墨線套色（fi_*）；舊的色鉛筆法式（fr_*）留定義、不再出現
+  ...ART_FR_JP.filter((d) => d.cat === 'french').map((d) => d.id)]);
 export const CATEGORIES = [
   ['all', '全部'], ['crayon', '蠟筆'], ['cream', '奶油'], ['flora', '花草'], ['pastel', '粉彩'],
   ['french', '法式'], ['japan', '日式'], ['y2k', 'Y2K'],
@@ -955,7 +997,50 @@ function hexToRgba(hex, a) {
 }
 
 // 在 (0,0)-(vbW,vbH) 座標系畫貼圖；pxPerUnit 用來把光暈換算成像素（shadowBlur 不吃 transform）
+// 第九版：霓虹光暈（螢光塗鴉、貼圖面板的「霓虹光暈」開關）
+// 筆刷畫的貼圖（蠟筆等）是很多細筆觸組成的，直接加 shadow 會一筆一筆疊出髒髒的光；
+// 所以先把本體畫到暫存畫布，再用「位移陰影」只畫出一層柔和的外光（兩層：大範圍＋貼近的亮邊），最後才畫本體。
+let glowCanvas = null;
+function drawGlowUnder(ctx, def, color, glow, strokeScale, seed) {
+  if (typeof document === 'undefined') return;
+  const [vw, vh] = def.vb || [100, 100], m = ctx.getTransform(), unit = Math.hypot(m.a, m.b) || 1;
+  const blur = glow * 12 * unit, P = 8 + glow * 6; // P：暫存畫布四周留的邊（貼圖座標）
+  const cs = [[-P, -P], [vw + P, -P], [-P, vh + P], [vw + P, vh + P]].map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]);
+  const x0 = Math.floor(Math.min(...cs.map((q) => q[0]))), y0 = Math.floor(Math.min(...cs.map((q) => q[1])));
+  const W = Math.min(2048, Math.ceil(Math.max(...cs.map((q) => q[0]))) - x0), H = Math.min(2048, Math.ceil(Math.max(...cs.map((q) => q[1]))) - y0);
+  if (W < 2 || H < 2) return;
+  glowCanvas = glowCanvas || document.createElement('canvas');
+  const c = glowCanvas;
+  const E = Math.ceil(blur * 2.6 + 4), WE = W + E; // 右邊多留一段空白（見下面）
+  if (c.width < WE || c.height < H) { c.width = Math.max(c.width, WE); c.height = Math.max(c.height, H); }
+  const g = c.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, c.width, c.height);
+  g.setTransform(m.a, m.b, m.c, m.d, m.e - x0, m.f - y0);
+  drawStickerDef(g, def, color, 1, 0, strokeScale * 1.8, seed); // 光的來源用粗一點的線（細蠟筆線模糊後會太淡）；glow = 0，不會再進來
+  const base = typeof color === 'string' && color[0] === '#' ? color : (typeof def.color === 'string' ? def.color : '#ffffff');
+  // 只畫光、不畫暫存圖本身：圖往左移到只剩右邊的空白跟光的範圍重疊（瀏覽器才不會整張略過），
+  // 陰影再往右移回原位；外面再剪一個框，左移的圖不會蓋到旁邊的東西
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const R = blur * 2.5;
+  ctx.beginPath();
+  ctx.rect(x0 - R, y0 - R, W + 2 * R, H + 2 * R);
+  ctx.clip();
+  ctx.globalAlpha *= 0.9;
+  ctx.shadowOffsetX = WE - 1;
+  ctx.shadowOffsetY = 0;
+  for (const [b, a] of [[blur * 1.2, 1], [blur * 0.7, 0.9], [blur * 0.3, 0.6]]) {
+    ctx.shadowColor = hexToRgba(base, a);
+    ctx.shadowBlur = Math.max(1, b);
+    ctx.drawImage(c, 0, 0, WE, H, x0 - WE + 1, y0, WE, H);
+  }
+  ctx.restore();
+}
+
 export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeScale = 1, seed = 1) {
+  // 筆刷貼圖的光暈：只對「可以發光」的貼圖（螢光塗鴉那一批）畫
+  if (glow > 0 && def.style && def.glowable) drawGlowUnder(ctx, def, color, glow, strokeScale, seed);
   // 蠟筆風：手抖＋顆粒（不加霓虹光暈，保持粉彩筆的質感）
   if (def.style === 'crayon') { drawCrayonDef(ctx, def, color, strokeScale, seed); return; }
   // 色鉛筆：斜向筆觸＋顆粒、外框描兩三次；版畫：單色實心＋印壓顆粒＋粗糙邊（第六版）
@@ -967,6 +1052,8 @@ export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeS
   if (def.style === 'scribble') { drawScribbleDef(ctx, def, color, strokeScale, seed); return; }
   if (def.style === 'stitch') { drawStitchDef(ctx, def, color, strokeScale, seed); return; }
   if (def.style === 'stipple') { drawStippleDef(ctx, def, color, strokeScale, seed); return; }
+  // 第九版：法式手繪＝墨線＋套色（js/inkbrush.js）
+  if (def.style === 'ink') { drawInkDef(ctx, def, color, strokeScale, seed); return; }
   if (!def._paths) def._paths = def.parts.map((p) => new Path2D(p.d));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';

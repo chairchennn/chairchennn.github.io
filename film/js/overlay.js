@@ -2,7 +2,7 @@
 // 規則：主角留白——只放在照片邊緣；避開相機日期；同一組亂數種子，預覽和匯出一模一樣。
 
 import { drawCrossStitch, drawStipple, drawPrintDef, PAPER } from './print.js';
-import { MOTIF_STITCH, MOTIF_STIPPLE, ART_PRINT } from './art/v8.js';
+import { MOTIF_STITCH, MOTIF_STIPPLE, ART_PRINTTILE } from './art/v8.js';
 import { MOTIF_STITCH2, MOTIF_STIPPLE2 } from './art/v9.js';
 
 const rng = (seed) => { let s = (seed * 2654435761) >>> 0 || 3; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; };
@@ -136,78 +136,70 @@ export function drawOverlay(kind, ctx, W, H, o, date) {
     });
     drawStipple(ctx, W, H, { seed: o.seed, motifs });
   } else if (kind === 'printgrid') {
-    // 版畫方格：奶油色紙條貼在照片一側（避開日期），上面一格一格交錯印——
-    // 墨色格挖出植物（露出紙色）、紙色格印上墨色植物；格與格之間留一條細細的紙縫（參考圖 11、13 的印法）
-    // 數量沒有上限：先排滿一側，再排另一側；還放不下就把格子縮小（最小約 0.14 短邊）、再往內多一排
+    // 版畫方格（第九版）：奶油紙上一格一格交錯印——墨色格挖出植物、紙色格印上植物，格與格之間留細紙縫（參考圖 11、13、32）。
+    // 排成「方格牆」：直式照片貼在一側（2–4 欄），橫式照片排成上下兩條帶（1–3 列）；數量多就真的多排、再多就換另一側、最後才縮小格子。
+    // 避開相機日期；主角（中間）留白。
     const n = Math.max(1, Math.min(60, o.count || 4)), ink = INKS[Math.floor((o.seed || 1) % INKS.length)];
     const vertical = W <= H * 1.15;
-    const gap = S * 0.008, pad = S * 0.012, margin = S * 0.03;
-    const startLeft = date ? date.x0 > 0.5 : (o.seed || 1) % 2 === 0;
-    const startTop = !(date && !vertical && date.y1 < 0.5);
-    const len = vertical ? H : W;
-    const cap = (t) => Math.max(0, Math.floor((len - 2 * margin - 2 * pad + gap) / (t + gap)));
-    let tile = S * 0.2 * sc;
-    if (n > 2 * cap(tile)) { let t = tile; while (t > S * 0.14 && 2 * cap(t) < n) t *= 0.96; tile = Math.max(S * 0.14, t); }
-    const plants = []; while (plants.length < n) plants.push(...ART_PRINT.slice().sort(() => r() - 0.5));
-    // 排：A 側第 1 排、B 側第 1 排、A 側第 2 排、B 側第 2 排…（每排是一張紙條）
-    const lanes = [];
-    for (let k = 0; k < 3; k++) for (const sideA of [true, false]) lanes.push({ k, a: sideA });
-    const segs = [];
-    let placed = 0;
-    for (const ln of lanes) {
-      if (placed >= n) break;
-      const off = margin + pad + ln.k * (tile + pad * 2 + gap * 2);
-      if (off + tile > (vertical ? W : H) * 0.4 + margin) break; // 不要蓋到中間
-      let seg = null;
-      for (let i = 0; i < cap(tile) && placed < n; i++) {
-        let x, y;
-        const along = margin + pad + i * (tile + gap);
-        if (vertical) { x = (ln.a === startLeft) ? off : W - off - tile; y = along; }
-        else { y = (ln.a === startTop) ? off : H - off - tile; x = (ln.a === startLeft) ? along : W - along - tile; }
-        if (dateRect && x < dateRect[0] + dateRect[2] + pad && x + tile > dateRect[0] - pad && y < dateRect[1] + dateRect[3] + pad && y + tile > dateRect[1] - pad) { seg = null; continue; }
-        if (!seg) segs.push(seg = { pos: [], lane: ln.k });
-        seg.pos.push([x, y, i + ln.k]);
-        placed++;
+    const margin = S * 0.03;
+    const dateRight = date ? date.x0 > 0.5 : (o.seed || 1) % 2 === 1, dateBottom = date ? date.y0 > 0.5 : true;
+    // 方向：along＝沿著邊排的方向，depth＝往照片中間長的方向
+    const lenAlong = vertical ? H : W, lenDepth = vertical ? W : H, depthMax = vertical ? 0.42 : 0.44;
+    let tile = S * 0.17 * sc, gap = tile * 0.06;
+    const fit = (t) => {
+      const g = t * 0.06, along = Math.floor((lenAlong - 2 * margin + g) / (t + g)), depth = Math.max(1, Math.min(vertical ? 4 : 3, Math.floor((lenDepth * depthMax - margin + g) / (t + g))));
+      return { along, depth, cap: along * depth };
+    };
+    let F = fit(tile);
+    while (n > 2 * F.cap && tile > S * 0.07) { tile *= 0.94; F = fit(tile); }
+    gap = tile * 0.06;
+    // 一面牆放幾格：少的時候一面（排成 2×2、2×3…），多了兩面平分
+    const walls = n <= Math.max(4, F.cap * 0.75) ? [Math.min(n, F.cap)] : [Math.ceil(n / 2), Math.floor(n / 2)].map((m) => Math.min(m, F.cap));
+    const cells = [];
+    walls.forEach((m, wi) => {
+      // 這面牆的深度（欄數）：大約是方的，至少兩排（4 格以上）
+      let d = Math.round(Math.sqrt(m * 0.55));
+      d = Math.max(m >= 4 ? 2 : 1, d, Math.ceil(m / F.along));
+      d = Math.min(d, F.depth);
+      const sideA = wi === 0; // 第一面牆在沒有日期的那側
+      const farSide = vertical ? (sideA ? dateRight : !dateRight) : (sideA ? dateBottom : !dateBottom); // true＝靠左／靠上
+      const fromStart = vertical ? (sideA ? dateBottom : !dateBottom) : (sideA ? dateRight : !dateRight); // 沿邊從上（左）開始排
+      let k = 0;
+      for (let a = 0; a < F.along && k < m; a++) for (let j = 0; j < d && k < m; j++) {
+        const alongPos = margin + a * (tile + gap), depthPos = margin + j * (tile + gap);
+        const ap = fromStart ? alongPos : lenAlong - alongPos - tile, dp = farSide ? depthPos : lenDepth - depthPos - tile;
+        const x = vertical ? dp : ap, y = vertical ? ap : dp;
+        if (dateRect && x < dateRect[0] + dateRect[2] + gap && x + tile > dateRect[0] - gap && y < dateRect[1] + dateRect[3] + gap && y + tile > dateRect[1] - gap) continue;
+        cells.push({ x, y, par: (a + j + wi) % 2 });
+        k++;
       }
-    }
-    const pos = segs.flatMap((sg) => sg.pos);
-    if (pos.length) {
-      // 紙條：奶油紙＋一點紙纖維＋淡淡的投影（像一張印好的小紙條貼在照片上）；每一段一張
-      for (const sg of segs) {
-        const xs = sg.pos.map((p) => p[0]), ys = sg.pos.map((p) => p[1]);
-        const sx = Math.min(...xs) - pad, sy = Math.min(...ys) - pad, sw = Math.max(...xs) + tile + pad - sx, sh = Math.max(...ys) + tile + pad - sy;
+    });
+    if (cells.length) {
+      // 紙：每格外擴一點，連起來變成一整張奶油紙（只畫一次投影）
+      const pad = gap * 1.4;
+      ctx.save();
+      ctx.shadowColor = 'rgba(60,45,30,.26)'; ctx.shadowBlur = S * 0.012; ctx.shadowOffsetY = S * 0.004;
+      ctx.fillStyle = PAPER;
+      ctx.beginPath();
+      cells.forEach((c) => ctx.rect(c.x - pad, c.y - pad, tile + pad * 2, tile + pad * 2));
+      ctx.fill();
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      cells.forEach((c) => ctx.rect(c.x - pad, c.y - pad, tile + pad * 2, tile + pad * 2));
+      ctx.clip();
+      ctx.fillStyle = ctx.createPattern(paperFiber(), 'repeat');
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+      const inkDeck = deck(r, ART_PRINTTILE.filter((d) => d.tile === 'ink')), paperDeck = deck(r, ART_PRINTTILE.filter((d) => d.tile === 'paper'));
+      cells.forEach((c, i) => {
+        const def = (c.par === 0 ? inkDeck : paperDeck)();
+        if (!def) return;
         ctx.save();
-        ctx.shadowColor = 'rgba(60,45,30,.28)'; ctx.shadowBlur = S * 0.012; ctx.shadowOffsetY = S * 0.004;
-        ctx.fillStyle = PAPER;
-        ctx.fillRect(sx, sy, sw, sh);
+        ctx.translate(Math.round(c.x), Math.round(c.y));
+        ctx.scale(tile / 100, tile / 100);
+        drawPrintDef(ctx, def, ink, 1, (o.seed || 1) * 7 + i);
         ctx.restore();
-        ctx.save();
-        ctx.beginPath(); ctx.rect(sx, sy, sw, sh); ctx.clip();
-        ctx.fillStyle = ctx.createPattern(paperFiber(), 'repeat');
-        ctx.fillRect(sx, sy, sw, sh);
-        ctx.restore();
-      }
-      const T = document.createElement('canvas'), Tw = Math.ceil(tile);
-      T.width = T.height = Tw;
-      pos.forEach(([x, y, par], i) => {
-        const inkTile = par % 2 === 0, def = plants[i % plants.length], k = Tw / 100;
-        const [vw, vh] = def.vb || [100, 100], kk = 118 / Math.max(vw, vh); // 植物比格子大一點、超出去的切掉（像參考圖那樣滿版）
-        const plant = (g, color, sd) => {
-          g.save(); g.translate(50 - (vw * kk) / 2, 50 - (vh * kk) / 2 + 6); g.scale(kk, kk);
-          drawPrintDef(g, { ...def, parts: def.parts.map((p) => ({ ...p, f: p.f ? 'M' : null, s: p.s ? 'M' : null })) }, color, 1, sd);
-          g.restore();
-        };
-        const tx = T.getContext('2d');
-        tx.setTransform(1, 0, 0, 1, 0, 0); tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, Tw, Tw);
-        tx.scale(k, k);
-        if (inkTile) {
-          // 整格上墨，再把植物「刻掉」（刻兩次，挖得乾淨）
-          drawPrintDef(tx, { parts: [{ d: 'M1 1H99V99H1Z', f: 'M' }] }, ink, 1, i + 7);
-          tx.globalCompositeOperation = 'destination-out';
-          plant(tx, '#000', i + 11); plant(tx, '#000', i + 11);
-          tx.globalCompositeOperation = 'source-over';
-        } else plant(tx, ink, i + 11);
-        ctx.drawImage(T, Math.round(x), Math.round(y), Tw, Tw);
       });
     }
   }

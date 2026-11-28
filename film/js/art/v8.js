@@ -319,6 +319,33 @@ export const ART_PENCIL = [
     S('M12 76L40 51M89 76L61 51', 'D', 1.3, 0.6),
     F(circle(50, 56, 6.2), TERRA, 'D', 1.6),
   ]),
+  // 第九版：補到 30
+  pencil('pc_beanie', '毛線帽', BLUE, [
+    F(blob([[18, 68], [20, 46], [32, 30], [50, 25], [68, 30], [80, 46], [82, 68]])),
+    F(soft([[14, 64], [86, 63], [87, 83], [13, 84]], 4), CREAM, 'D', 1.8),
+    S(Array.from({ length: 11 }, (_, i) => { const x = 20 + i * 6; return `M${x} 67L${x + 0.4} 80`; }).join(''), 'D', 1.1, 0.7),
+    F(blob(ring(50, 20, 10, 9, 10, [0, 0.06, -0.04, 0.05, -0.02])), IVORY, 'D', 1.6),
+  ]),
+  pencil('pc_orange', '橘子切片', TERRA, [
+    F(blob(ring(50, 50, 38, 37, 12, [0, 0.02, -0.02, 0.01]))),
+    F(blob(ring(50, 50, 31, 30, 12, [0, 0.02, -0.01, 0.01])), CREAM, 'D', 1.4),
+    S(Array.from({ length: 8 }, (_, i) => { const a = (i * 45 + 10) * RAD; return `M${n(50 + 3 * cos(a))} ${n(50 + 3 * sin(a))}L${n(50 + 28 * cos(a))} ${n(50 + 28 * sin(a))}`; }).join(''), 'D', 1.4, 0.8),
+  ]),
+  pencil('pc_cookie', '餅乾', '#C99A63', [
+    F(blob(ring(50, 52, 36, 34, 12, [0, 0.04, -0.03, 0.02, 0.05, -0.02, 0.01, -0.04, 0.03, 0, -0.02, 0.02]))),
+    F([[38, 40], [60, 36], [66, 58], [42, 64], [52, 52], [30, 56], [56, 74]].map(([x, y], i) => ellR(x, y, 3.6, 2.8, i * 40)).join(''), CHOC, CHOC, 0.8),
+  ]),
+  pencil('pc_vase', '小花瓶', BLUE, [
+    S(curve([[46, 54], [42, 36], [30, 22]]) + curve([[50, 54], [52, 32], [56, 16]]) + curve([[54, 54], [62, 40], [74, 30]]), SAGE, 2.2),
+    F(blob(ring(30, 20, 6.5, 6, 8)), TERRA, 'D', 1.6), F(blob(ring(56, 14, 6, 6, 8)), CREAM, 'D', 1.6), F(blob(ring(75, 28, 5.5, 5.5, 8)), TERRA, 'D', 1.6),
+    F(soft([[40, 52], [60, 52], [58, 60], [70, 76], [64, 92], [36, 92], [30, 76], [42, 60]], [2, 2, 3, 8, 4, 4, 8, 3])),
+    S('M34 74Q50 79 66 74', 'D', 1.3, 0.8),
+  ]),
+  pencil('pc_scarf', '圍巾', LILAC, [
+    F(ribbon([[16, 22], [46, 24], [62, 40], [56, 66], [44, 84]], 17, 15)),
+    S([0.2, 0.4, 0.6, 0.8].map((u) => { const S0 = crSample([[16, 22], [46, 24], [62, 40], [56, 66], [44, 84]], 8), p = S0[Math.floor(u * (S0.length - 1))], q = S0[Math.floor(u * (S0.length - 1)) + 1], a = atan2(q[1] - p[1], q[0] - p[0]) + PI / 2; return `M${pt([p[0] + 8 * cos(a), p[1] + 8 * sin(a)])}L${pt([p[0] - 8 * cos(a), p[1] - 8 * sin(a)])}`; }).join(''), CREAM, 3.2, 0.9),
+    S('M37 88L35 96M41 89L40 97M45 90L45 98M49 89L50 97', 'D', 1.4),
+  ]),
 ];
 
 // =====================================================================
@@ -545,6 +572,31 @@ export const ART_PRINT = [
     [0.2, 0.34, 0.48, 0.62, 0.76].forEach((u) => [-1, 1].forEach((sd) => { const [x, y, nx, ny] = ax(u); const L = 26 * Math.sin(Math.PI * u); carve += ribbon([[x + sd * nx * 2, y + sd * ny * 2], [x + sd * nx * L + (t[0] - b[0]) * 0.12, y + sd * ny * L + (t[1] - b[1]) * 0.12]], 1, 0.3, 2); }));
     return [P(ribbon([[42, 99], [43, 94], [44, 88]], 2.6, 2.2)), P(leaf(b, t, 58, { bend: 6, round: 0.7 }) + carve)];
   })()),
+  // 第九版：補到 30
+  print('pr_palm', '扇葉', [
+    P(ribbon([[50, 96], [50, 76], [50, 62]], 3.2, 2.4)),
+    ...Array.from({ length: 9 }, (_, i) => { const a = (-165 + i * 18.75) * RAD, t = [50 + 40 * cos(a), 60 + 40 * sin(a)]; return P(leafS([50, 60], t, 8, { round: 0.6 })); }),
+  ]),
+  print('pr_pinecone', '松果', [
+    P(ribbon([[50, 22], [52, 14], [58, 8]], 2.6, 1.6)),
+    ...[[50, 28, 4], [44, 38, 5], [56, 38, 5], [40, 50, 6], [50, 50, 6], [60, 50, 6], [44, 62, 6], [56, 62, 6], [42, 74, 5], [58, 74, 5], [50, 82, 5]].map(([x, y, w]) => P(leafS([x, y - 4], [x, y + 8], w * 1.6, { round: 0.6 }))),
+  ]),
+  print('pr_iris', '鳶尾', [
+    P(ribbon([[50, 96], [50, 70], [49, 46]], 3, 2.4)),
+    P(leaf([50, 96], [28, 40], 9, { bend: 3 })), P(leaf([50, 96], [72, 50], 8, { bend: -3 })),
+    P(leafS([49, 46], [40, 16], 11) + leafS([49, 46], [60, 18], 11)),
+    P(leafS([48, 48], [26, 56], 11, { bend: -3 }) + leafS([50, 48], [72, 58], 11, { bend: 3 })),
+  ]),
+  print('pr_hydrangea', '繡球花', [
+    P(ribbon([[50, 96], [51, 76], [50, 58]], 3.2, 2.6)),
+    P(leaf([51, 84], [22, 70], 14, { bend: 3 }) + vein([51, 84], [22, 70], { bend: 3, w0: 1.2 })),
+    P(leaf([51, 76], [80, 66], 12, { bend: -3 }) + vein([51, 76], [80, 66], { bend: -3, w0: 1.2 })),
+    P([[50, 38], [38, 32], [62, 32], [32, 44], [44, 46], [56, 46], [68, 44], [42, 22], [58, 22], [50, 28], [40, 56], [60, 56], [50, 56]].map(([x, y]) => [0, 1, 2, 3].map((k) => { const a = k * PI / 2 + 0.5; return ellR(x + 3.4 * cos(a), y + 3.4 * sin(a), 3.4, 2.8, k * 90 + 30); }).join('')).join('')),
+  ]),
+  print('pr_rosemary', '迷迭香', [
+    P(ribbon([[48, 96], [50, 60], [54, 12]], 2.6, 1.4)),
+    ...Array.from({ length: 13 }, (_, i) => { const u = 0.1 + i * 0.065, b = along([48, 96], [54, 12], u), sd = i % 2 ? 1 : -1; return P(leafS(b, [b[0] + sd * 14, b[1] - 9], 4, { round: 0.7 })); }),
+  ]),
 ];
 
 // =====================================================================
@@ -804,3 +856,46 @@ export const ART_TOOLS = [
     F(circle(100, 24.5, 3.6), CREAM, null),
   ]),
 ];
+
+// =====================================================================
+// 版畫方格（單張）：一格一格印好的小方塊，像參考圖 11、13、32 的印法——
+// 墨色格：整格上墨，植物「刻掉」露出紙色（f:'P'）；紙色格：紙底上印墨色植物。
+// 和「植物版畫」的單株剪影不同：每張都是一個完整的方格（有底），可以排成方格牆；有的格多一圈刻線框或散點。
+// 只學印法，不照搬參考圖 13 的 2×4 棋盤與那組植物。
+// =====================================================================
+// 把 path 縮放＋平移（大寫＝絕對座標；小寫只縮放）
+function xfPath(d, k, dx, dy) {
+  const tok = d.match(/[A-Za-z]|-?\d*\.?\d+(?:e[-+]?\d+)?/g) || [];
+  let out = '', cmd = '', idx = 0;
+  for (const t of tok) {
+    if (/[A-Za-z]/.test(t)) { cmd = t; idx = 0; out += t; continue; }
+    const v = +t, up = cmd === cmd.toUpperCase(), C = cmd.toUpperCase();
+    let r;
+    if (C === 'A') { const j = idx % 7; r = j === 2 || j === 3 || j === 4 ? v : j === 5 ? v * k + (up ? dx : 0) : j === 6 ? v * k + (up ? dy : 0) : v * k; }
+    else if (C === 'H') r = v * k + (up ? dx : 0);
+    else if (C === 'V') r = v * k + (up ? dy : 0);
+    else r = v * k + (up ? (idx % 2 ? dy : dx) : 0);
+    out += (idx ? ' ' : '') + n(r);
+    idx++;
+  }
+  return out;
+}
+const TILE_INKS = [LIME, '#8FB0C9', TERRA, SAGE, LILAC, '#7FA9A0'];
+const tileSq = soft([[2, 2.6], [98, 1.8], [98.4, 98], [1.6, 98.4]], 1.6);
+const tileFrame = poly([[7, 7], [93, 7], [93, 93], [7, 93]]) + poly([[9, 9], [9, 91], [91, 91], [91, 9]]);
+const tileDots = (seed) => [[12, 14], [86, 12], [88, 86], [13, 87], [80, 20], [20, 80]].filter((_, i) => (i + seed) % 3 !== 1).map(([x, y], i) => circle(x, y, 1.4 + ((i + seed) % 3) * 0.5)).join('');
+export const ART_PRINTTILE = Array.from({ length: 30 }, (_, i) => {
+  const N = ART_PRINT.length, pl = ART_PRINT[(i * 7) % N], inkTile = (i + (i >= N ? 1 : 0)) % 2 === 0, extra = i % 3;
+  const [vw, vh] = pl.vb || [100, 100], k = (extra ? 0.8 : 0.96) * (100 / max(vw, vh));
+  const dx = 50 - (vw * k) / 2, dy = 50 - (vh * k) / 2 + 2;
+  const plantF = inkTile ? 'P' : 'M', bgF = inkTile ? 'M' : 'P';
+  const parts = [{ d: tileSq, f: bgF }];
+  if (extra === 1) parts.push({ d: tileFrame, f: plantF });
+  if (extra === 2) parts.push({ d: tileDots(i), f: plantF });
+  pl.parts.forEach((p) => parts.push({ d: xfPath(p.d, k, dx, dy), f: plantF }));
+  return {
+    id: `pt_${pl.id.replace(/^pr_/, '')}_${inkTile ? 'ink' : 'paper'}${i >= N ? 2 : ''}`,
+    name: `${pl.name}${inkTile ? '墨格' : '紙格'}`,
+    cat: 'printtile', style: 'print', color: TILE_INKS[i % TILE_INKS.length], tile: inkTile ? 'ink' : 'paper', parts,
+  };
+});
