@@ -5,6 +5,7 @@
 
 import { rng, makeCanvas } from './film.js';
 import { drawPaper } from './fourcut.js';
+import { pencilPaper, pencilFill } from './paperfx.js';
 
 export const FRAMES = [
   { id: 'none', name: '無邊框' },
@@ -19,6 +20,8 @@ export const FRAMES = [
   { id: 'square', name: '方形相紙', colors: true, caption: true },
   { id: 'wide', name: '寬幅相紙', colors: true, caption: true },
   { id: 'paper', name: '手帳紙', paper: true },
+  // 復古繪本風：彩色鉛筆塗的紙、拱形窗、上方是夜空（星星集中在天空，不繞一圈）
+  { id: 'archnight', name: '夜空拱窗', colors: ['#a99bc5', '#a6b58a', '#9cb9d0', '#655047', '#cb8875'], colorKey: 'archColor' },
 ];
 
 export const FRAME_COLORS = ['#fbfaf6', '#f3ead8', '#1e1d1c', '#f9cdd9', '#c7e6f5', '#cdeedd', '#fde59a', '#d9ccf5'];
@@ -29,7 +32,7 @@ const HAND_FONT = '"Caveat", "LXGW WenKai TC", cursive';
 
 // 需要的畫面比例（寬/高），null = 保留原比例
 // ratio：使用者用剪刀選的比例（長邊／短邊，0 = 原比例），只用在沒有固定比例的相框
-export const FREE_RATIO_FRAMES = new Set(['none', 'white', 'filed', 'paper']);
+export const FREE_RATIO_FRAMES = new Set(['none', 'white', 'filed', 'paper', 'archnight']);
 export function cropAspect(id, w, h, ratio = 0) {
   const land = w >= h;
   switch (id) {
@@ -100,6 +103,10 @@ export function layoutFrame(id, pw, ph, o = {}) {
     case 'wide': {
       const u = pw / 99;
       return { W: 108 * u, H: 86 * u, x: 4.5 * u, y: 7 * u, pw, ph, u };
+    }
+    case 'archnight': {
+      const m = S * 0.1;
+      return { W: pw + 2 * m, H: ph + m * 3.2, x: m, y: m * 2.1, pw, ph, m, ar: Math.min(pw / 2, ph * 0.42) };
     }
     case 'paper': {
       // 手帳紙：照片像印出來貼在紙上（白色細邊），下方留多一點
@@ -186,6 +193,9 @@ export function drawFrameBack(ctx, L, id, o = {}) {
       ctx.fillStyle = id === 'film35neg' ? '#c4692f' : '#0e0d0c';
       ctx.fillRect(0, 0, W, H);
       break;
+    case 'archnight':
+      pencilPaper(ctx, W, H, o.archColor || '#a99bc5', o.seed || 7);
+      break;
     case 'paper': {
       drawPaper(ctx, { W, H }, o.paper || 'dots', Math.min(W, H) / 640);
       if (o.cut) break; // 剪成形狀的照片自己畫白邊（見 cutout.js）
@@ -203,7 +213,17 @@ export function drawFrameBack(ctx, L, id, o = {}) {
 }
 
 // 照片要不要裁成圓角（幻燈片、120）
+function archPath(x, y, w, h, r) {
+  const p = new Path2D();
+  p.moveTo(x, y + h);
+  p.lineTo(x, y + r);
+  p.ellipse(x + w / 2, y + r, w / 2, r, 0, Math.PI, Math.PI * 2);
+  p.lineTo(x + w, y + h);
+  p.closePath();
+  return p;
+}
 export function photoClip(ctx, L, id) {
+  if (id === 'archnight') { ctx.clip(archPath(L.x, L.y, L.pw, L.ph, L.ar)); return true; }
   if (id === 'slide' || id === 'film120') {
     const r = (id === 'slide' ? 1.1 : 0.9) * L.u;
     ctx.beginPath();
@@ -215,9 +235,69 @@ export function photoClip(ctx, L, id) {
 }
 
 // ---------- 畫在照片「上面」的部分 ----------
+// 四角閃光星（不是一圈平均分布：集中在上方的天空）
+function sparkPath(cx, cy, r) {
+  const p = new Path2D(), q = r * 0.2;
+  p.moveTo(cx, cy - r);
+  p.quadraticCurveTo(cx + q, cy - q, cx + r, cy);
+  p.quadraticCurveTo(cx + q, cy + q, cx, cy + r);
+  p.quadraticCurveTo(cx - q, cy + q, cx - r, cy);
+  p.quadraticCurveTo(cx - q, cy - q, cx, cy - r);
+  return p;
+}
+// 八角星（參考圖的技法：奶油色、稚拙、大小不一）
+function star8Path(cx, cy, r) {
+  const p = new Path2D();
+  for (let i = 0; i < 16; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 8, rr = i % 2 ? r * 0.45 : r * (0.9 + ((i * 37) % 7) * 0.03);
+    i ? p.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)) : p.moveTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a));
+  }
+  p.closePath();
+  return p;
+}
+function drawArchNight(ctx, L, o) {
+  const { W, x, y, pw, ph, ar, m } = L, S = Math.min(pw, ph), cell = Math.max(0.6, S / 700);
+  const dark = (o.archColor || '#a99bc5') === '#655047';
+  const cream = '#f4eedf', butter = '#e9d79a';
+  // 窗框：一圈奶油色的鉛筆線
+  ctx.save();
+  ctx.strokeStyle = cream;
+  ctx.globalAlpha = dark ? 0.85 : 0.75;
+  ctx.lineWidth = Math.max(1, S * 0.006);
+  const g = S * 0.018;
+  ctx.stroke(archPath(x - g, y - g, pw + g * 2, ph + g * 2, ar + g));
+  ctx.restore();
+  // 天空：星星、小點、一彎月亮，集中在窗頂上方與上半部兩側
+  const r = rng((o.seed || 7) * 31 + 5), sky = [];
+  const n = 11;
+  for (let i = 0; i < n * 6 && sky.length < n; i++) {
+    const sx = r() * W, sy = r() * (y + ph * 0.45);
+    const inWin = sx > x - g * 2 && sx < x + pw + g * 2 && sy > y + ar * 0.15 - g * 2;
+    const nearArch = sy < y + ar && sx > x && sx < x + pw && Math.hypot((sx - x - pw / 2) / (pw / 2), (sy - y - ar) / ar) < 1.12;
+    if (inWin || nearArch) continue;
+    if (sky.some((s) => Math.hypot(s[0] - sx, s[1] - sy) < m * 0.75)) continue;
+    sky.push([sx, sy, r()]);
+  }
+  sky.forEach(([sx, sy, t], i) => {
+    if (i === 0) { // 月亮
+      const R = m * 0.42, p = new Path2D();
+      p.arc(sx, sy, R, 0, Math.PI * 2);
+      p.arc(sx + R * 0.45, sy - R * 0.2, R * 0.85, 0, Math.PI * 2, true);
+      pencilFill(ctx, p, butter, cell, 3);
+    } else if (t < 0.55) {
+      pencilFill(ctx, star8Path(sx, sy, m * (0.2 + t * 0.3)), t < 0.25 ? butter : cream, cell, i);
+    } else if (t < 0.8) {
+      pencilFill(ctx, sparkPath(sx, sy, m * (0.14 + (t - 0.55) * 0.5)), cream, cell, i);
+    } else {
+      const p = new Path2D(); p.arc(sx, sy, m * 0.06, 0, Math.PI * 2);
+      pencilFill(ctx, p, cream, cell, i);
+    }
+  });
+}
 export function drawFrameFront(ctx, L, id, o = {}) {
   const { W, H, x, y, pw, ph } = L;
   const no = o.filmNo || 12, seed = o.seed || 7;
+  if (id === 'archnight') { drawArchNight(ctx, L, o); return; }
   switch (id) {
     case 'white': case 'polaroid': case 'mini': case 'square': case 'wide': {
       // 相紙邊緣一點點陰影，讓照片像是嵌在裡面

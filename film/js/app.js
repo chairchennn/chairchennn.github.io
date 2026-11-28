@@ -89,7 +89,7 @@ const state = {
   preset: 'flash',
   adj: defaultAdj('flash'),
   doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, glow: null },
-  frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
+  frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', archColor: '#a99bc5', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   cropCell: 0,
   tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame',
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
@@ -114,6 +114,7 @@ function loadPrefs() {
       state.frame.id = p.frame.id;
       if (typeof p.frame.color === 'string') state.frame.color = p.frame.color;
       if (typeof p.frame.slideColor === 'string') state.frame.slideColor = p.frame.slideColor;
+      if (typeof p.frame.archColor === 'string') state.frame.archColor = p.frame.archColor;
       if (RATIOS.some(([r]) => r === p.frame.ratio)) state.frame.ratio = p.frame.ratio;
       if (PAPERS.some((x) => x.id === p.frame.paper)) state.frame.paper = p.frame.paper;
     }
@@ -151,7 +152,7 @@ function savePrefs() {
       const f = state.frame, d = state.date;
       localStorage.setItem(STORE_KEY, JSON.stringify({
         preset: state.preset, adj: state.adj, mode: state.mode,
-        frame: { id: f.id, color: f.color, slideColor: f.slideColor, ratio: f.ratio, paper: f.paper },
+        frame: { id: f.id, color: f.color, slideColor: f.slideColor, archColor: f.archColor, ratio: f.ratio, paper: f.paper },
         tools: state.tools,
         date: { on: d.on, format: d.format, color: d.color, pos: d.pos, size: d.size },
         glow: state.glow, tab: TABS.includes(state.tab) ? state.tab : 'film',
@@ -419,7 +420,7 @@ const requestRender = () => { if (!raf) raf = requestAnimationFrame(() => { raf 
 function frameOpts() {
   const f = state.frame, [Y, M] = (state.date.value || todayISO()).split('-');
   return {
-    color: f.color, slideColor: f.slideColor, caption: '', filmNo: f.filmNo, seed: f.seed, paper: f.paper,
+    color: f.color, slideColor: f.slideColor, archColor: f.archColor, caption: '', filmNo: f.filmNo, seed: f.seed, paper: f.paper,
     cut: f.id === 'paper' ? f.cut : null,
     dateText: `${MONTHS[(+M || 1) - 1]} ${Y}`,
   };
@@ -1392,7 +1393,7 @@ function renderFrameThumb(c, id, src) {
   const pw = Math.max(1, Math.round(cr.w * k)), ph = Math.max(1, Math.round(cr.h * k));
   const photo = makeCanvas(pw, ph);
   photo.getContext('2d').drawImage(src, cr.x, cr.y, cr.w, cr.h, 0, 0, pw, ph);
-  const o = { color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, seed: 7, dateText: '', paper: state.frame.paper };
+  const o = { color: FRAME_COLORS[0], slideColor: '#f4f1ea', archColor: state.frame.archColor, caption: '', filmNo: 12, seed: 7, dateText: '', paper: state.frame.paper };
   const L = layoutFrame(id, pw, ph, o);
   const tmp = makeCanvas(L.W, L.H), t = tmp.getContext('2d');
   drawFrameBack(t, L, id, o);
@@ -1433,8 +1434,10 @@ function updateFrameOpts() {
   $('#optColor').hidden = !f.colors;
   if (f.colors) {
     const slide = f.id === 'slide';
-    buildSwatches($('#frameColors'), Array.isArray(f.colors) ? f.colors : FRAME_COLORS, slide ? state.frame.slideColor : state.frame.color, (c) => {
-      if (slide) state.frame.slideColor = c; else state.frame.color = c;
+    const key = f.colorKey || (slide ? 'slideColor' : 'color');
+    buildSwatches($('#frameColors'), Array.isArray(f.colors) ? f.colors : FRAME_COLORS, state.frame[key], (c) => {
+      state.frame[key] = c;
+      if (f.colorKey) refreshFrameThumbs();
       updateFrameOpts(); requestRender(); savePrefs();
     });
   }
@@ -2092,7 +2095,7 @@ function snapshot() {
   const all = {
     preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
     stickers: state.stickers.map((st) => (st.img ? { ...st, img: ref(st.img) } : st)),
-    frame: { id: f.id, color: f.color, slideColor: f.slideColor, crop: f.crop, ratio: f.ratio, paper: f.paper, cut: f.cut || null },
+    frame: { id: f.id, color: f.color, slideColor: f.slideColor, archColor: f.archColor, crop: f.crop, ratio: f.ratio, paper: f.paper, cut: f.cut || null },
     rotation: state.rotation, photoDate: state.photoDate,
     four: { layout: state.four.layout, paper: state.four.paper, xf: state.four.photos.map((x) => x?.t || null) },
   };
