@@ -2233,7 +2233,7 @@ function applySnapshot(snap, keys) {
   $$('#presetList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.preset)));
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === state.frame.id)));
   $('#glow').checked = state.glow;
-  syncSliders(); syncDoodleUI(); updateFrameOpts(); syncDateUI(); syncFourUI(); syncCropUI(); syncGlueUI();
+  syncSliders(); syncDoodleUI(); updateFrameOpts(); syncDateUI(); syncFourUI(); syncCropUI(); syncGlueUI(); syncCutUI();
   refreshFrameThumbs();
   refreshWorkspace();
   savePrefs();
