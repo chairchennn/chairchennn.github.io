@@ -3,7 +3,8 @@ import {
   PRESETS, developBase, applyFx, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, DATE_SIZES,
   formatDate, dateStampBox, drawDateStamp,
 } from './film.js';
-import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, generateDoodles } from './doodles.js';
+import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, OVERLAY_COUNT, generateDoodles } from './doodles.js';
+import { drawOverlay } from './overlay.js';
 import {
   FRAMES, FRAME_COLORS, FREE_RATIO_FRAMES, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
@@ -88,7 +89,7 @@ const state = {
   four: { layout: 'strip', paper: 'white', photos: [null, null, null, null], ver: 0 },
   preset: 'flash',
   adj: defaultAdj('flash'),
-  doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, glow: null },
+  doodle: { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 12, countTouched: false, scale: 100, seed: 1, glow: null },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', archColor: '#a99bc5', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   cropCell: 0,
   tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame',
@@ -404,7 +405,13 @@ function doodleItems() {
   if (doodleCache.key !== key) doodleCache = { key, items: generateDoodles(d, aspect, avoid) };
   return doodleCache.items;
 }
+const overlayKind = () => DOODLE_PRESETS.find((p) => p.id === state.doodle.preset)?.overlay || null;
 function doodleOverlay() {
+  const kind = overlayKind();
+  if (kind && hasContent()) {
+    const d = { ...state.doodle }, date = dateBoxNorm();
+    return (ctx, w, h) => drawOverlay(kind, ctx, w, h, d, date);
+  }
   const items = doodleItems();
   if (!items.length) return null;
   return (ctx, w, h) => {
@@ -1546,8 +1553,13 @@ function syncPaperUI() {
 
 // ---------------------------------------------------------------- doodle frames（塗鴉框）
 function buildDoodlePane() {
-  const box = $('#doodleList');
+  const main = $('#doodleList');
+  const cute = document.createElement('details');
+  cute.className = 'more cute-group';
+  cute.innerHTML = '<summary>可愛系列（奶油、花花、法式、日式、Y2K…）</summary><div class="cards wrap" id="doodleCute"></div>';
+  main.after(cute);
   for (const p of DOODLE_PRESETS) {
+    const box = p.group === 'cute' ? $('#doodleCute') : main;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'card';
@@ -1620,8 +1632,13 @@ async function ensureKao() {
 
 function syncDoodleUI() {
   const d = state.doodle;
-  $$('#doodleList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.preset)));
+  $$('#doodleList .card, #doodleCute .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.preset)));
   $('#doodleOpts').hidden = d.preset === 'none';
+  // 整體畫面款式：沒有排列、風格包、光暈、轉成貼圖；數量是圖案多少
+  const ov = overlayKind();
+  $('#doodleOpts').dataset.overlay = String(!!ov);
+  $('#doodleAdvanced').hidden = !!ov;
+  if (ov) { const [mn, mx] = OVERLAY_COUNT[ov]; d.count = Math.min(mx, Math.max(mn, d.count)); }
   $$('#doodleLayouts .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.layout)));
   $$('#doodlePacks .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === d.pack)));
   $('#doodleCountOut').textContent = `${d.count} 個`;
@@ -1638,7 +1655,7 @@ function syncDoodleUI() {
 let doodleThumbJob = 0;
 function refreshDoodleThumbs() {
   const job = ++doodleThumbJob, src = thumbSrc() || SAMPLE;
-  const cards = $$('#doodleList .card');
+  const cards = $$('#doodleList .card, #doodleCute .card');
   let i = 0;
   const step = () => {
     if (job !== doodleThumbJob || i >= cards.length) return;
@@ -1650,6 +1667,8 @@ function refreshDoodleThumbs() {
       const items = generateDoodles({ ...p, preset: p.id, seed: state.doodle.seed, scale: 115 }, 1);
       const L = { x: 0, y: 0, pw: c.width, ph: c.height, W: c.width, H: c.height };
       for (const it of items) drawSticker(ctx, { ...it, lw: it.lw * 2.2 }, L);
+    } else if (p.overlay) {
+      drawOverlay(p.overlay, ctx, c.width, c.height, { count: p.count, scale: 100, seed: state.doodle.seed }, null);
     }
     setTimeout(step, 0);
   };
@@ -1988,13 +2007,26 @@ function syncGlueUI() {
   const g = glueState();
   b.setAttribute('aria-pressed', String(g.all));
   b.classList.toggle('glued', g.all);
-  b.querySelector('.tool-badge').hidden = !g.all;
+  b.querySelector('.tool-name').textContent = g.all ? '已黏' : TOOL_INFO.glue.name;
   const label = g.all ? '膠水：全部已黏好，按一下全部撕開（長按單一貼圖可以只撕那一張）' : TOOL_INFO.glue.tip;
   b.setAttribute('aria-label', label);
   b.dataset.tip = label;
 }
 
 // ---------------------------------------------------------------- 文具工具列（順序可以自己調）
+// 文具：用色鉛筆筆刷畫在 canvas 上（和貼圖同一種質感），一根一根橫躺
+function toolArt(id) {
+  const def = STICKERS.find((d) => d.id === id), c = document.createElement('canvas');
+  c.className = 'tool-art';
+  c.setAttribute('aria-hidden', 'true');
+  if (!def) return c;
+  const [vw, vh] = stickerBox(def), dpr = Math.min(3, window.devicePixelRatio || 1), cssW = 76, cssH = (cssW * vh) / vw;
+  c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
+  const ctx = c.getContext('2d'), k = c.width / vw;
+  ctx.scale(k, k);
+  drawStickerDef(ctx, def, def.color, k, 0, 1, 5);
+  return c;
+}
 function buildStationery() {
   const bar = $('#stationery');
   bar.innerHTML = '';
@@ -2007,12 +2039,8 @@ function buildStationery() {
     b.dataset.tip = TOOL_INFO[t].tip;
     b.setAttribute('aria-label', TOOL_INFO[t].tip);
     if (t !== 'glue') b.setAttribute('aria-pressed', String(state.tab === t));
-    const img = document.createElement('img');
-    img.src = `icons/tools/${TOOL_INFO[t].icon}.svg`;
-    img.alt = ''; img.width = 48; img.height = 48; img.draggable = false;
     const n = document.createElement('span'); n.className = 'tool-name'; n.textContent = TOOL_INFO[t].name;
-    b.append(img, n);
-    if (t === 'glue') { const bd = document.createElement('span'); bd.className = 'tool-badge'; bd.textContent = '已黏'; bd.hidden = true; b.append(bd); }
+    b.append(toolArt(`tl_${t}`), n);
     b.addEventListener('click', () => useTool(t));
     bar.append(b);
   }
@@ -2021,7 +2049,8 @@ function buildStationery() {
   edit.className = 'tool tool-edit';
   edit.dataset.tip = '整理工具列：調整順序、收起不常用的';
   edit.setAttribute('aria-label', '整理文具工具列（收起來的工具也在這裡）');
-  edit.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.6" class="fill"/><circle cx="12" cy="12" r="1.6" class="fill"/><circle cx="18.5" cy="12" r="1.6" class="fill"/></svg><span class="tool-name">整理</span>';
+  edit.append(toolArt('tl_more'));
+  edit.insertAdjacentHTML('beforeend', '<span class="tool-name">整理</span>');
   edit.addEventListener('click', openToolsDialog);
   bar.append(edit);
   syncGlueUI();
@@ -2042,12 +2071,13 @@ function renderToolOrder() {
     const li = document.createElement('li');
     const shown = !state.tools.hidden.includes(t);
     li.className = shown ? '' : 'off';
-    li.innerHTML = `<img src="icons/tools/${TOOL_INFO[t].icon}.svg" alt="" width="36" height="36"><span class="t-name"></span>
+    li.innerHTML = `<span class="t-art"></span><span class="t-name"></span>
       <button type="button" class="round-btn" data-move="-1" aria-label="往前移">↑</button>
       <button type="button" class="round-btn" data-move="1" aria-label="往後移">↓</button>
       <label class="toggle"><input type="checkbox" ${shown ? 'checked' : ''}><span>顯示</span></label>
       <button type="button" class="chip use-btn">用</button>`;
     li.querySelector('.t-name').textContent = TOOL_INFO[t].name;
+    li.querySelector('.t-art').append(toolArt(`tl_${t}`));
     const use = li.querySelector('.use-btn');
     use.hidden = shown;
     use.setAttribute('aria-label', `使用${TOOL_INFO[t].name}`);

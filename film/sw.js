@@ -5,8 +5,7 @@ const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/film.js', './js/frames.js', './js/stickers.js', './js/exif.js', './js/doodles.js', './js/fourcut.js',
   './js/art/shapes.js', './js/art/fr_jp.js', './js/art/y2k_emoji.js', './js/art/crayon.js', './js/crayon.js',
-  './js/tape.js', './js/photoxf.js', './js/print.js', './js/cutout.js', './js/paperfx.js',
-  './icons/tools/add.svg', './icons/tools/scissors.svg', './icons/tools/tape.svg', './icons/tools/glue.svg',
+  './js/tape.js', './js/photoxf.js', './js/print.js', './js/cutout.js', './js/paperfx.js', './js/overlay.js', './js/art/v8.js',
   './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
 ];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];

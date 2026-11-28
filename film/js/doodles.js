@@ -27,6 +27,24 @@ const SIZES = { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.18, 0.26] 
 
 // 風格包：每一包參考一種使用者提供的範例「風格」，圖案全部是原創
 export const PACKS = {
+  // 第六版：A 色鉛筆小物（參考圖 14 的彩鉛顆粒；保持原本配色，不換色）
+  pencil: {
+    name: '色鉛筆小物', glow: 0, noGlow: true, lw: 0.0034,
+    sizes: { small: [0.06, 0.085], medium: [0.1, 0.14], large: [0.17, 0.23] },
+    small: { pc_star8: 2, pc_button: 1, pc_cherry: 1.2, pc_flower: 1.5, pc_moon: 0.6 },
+    medium: { pc_cherry: 1, pc_bow: 1, pc_flower: 1, pc_cutlery: 0.8, pc_teacup: 1, pc_bread: 0.8, pc_mitten: 0.8, pc_star8: 1, pc_moon: 0.8 },
+    large: { pc_sweater: 1, pc_teacup: 1, pc_cake: 1, pc_bow: 0.8 },
+    max: { pc_sweater: 1, pc_cake: 1, pc_cutlery: 1 },
+  },
+  // 第六版：B 植物版畫（參考圖 13 的印壓顆粒、挖空）
+  print: {
+    name: '植物版畫', glow: 0, noGlow: true, lw: 0.0034,
+    sizes: { small: [0.08, 0.11], medium: [0.13, 0.18], large: [0.22, 0.3] },
+    colors: ['#9dc044', '#8fb0c9', '#cb8875', '#a99bc5'], recolor: 0.25,
+    small: { pr_clover: 1.5, pr_daisy: 1, pr_oak: 1 },
+    medium: { pr_wheat: 1, pr_daisy: 1, pr_clover: 1, pr_olive: 1, pr_dandelion: 1, pr_oak: 0.8 },
+    large: { pr_fern: 1, pr_pine: 1, pr_wheat: 1, pr_olive: 1 },
+  },
   cream: {
     name: '奶油貼紙', glow: 0, lw: 0.0034,
     colors: ['#f7a8bb', '#f49ab0', '#ffb5c5', '#f6b38f', '#f4b6a6'],
@@ -123,19 +141,27 @@ export const PACKS = {
 };
 
 // 一鍵套用（卡片）
+// overlay：覆蓋整張照片的效果（不是一個一個的塗鴉），由 app.js 的 drawOverlay 畫
+// group 'cute'：舊的可愛系列，收在最後面的「可愛系列」
 export const DOODLE_PRESETS = [
   { id: 'none', name: '無' },
+  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 12 },
+  { id: 'stitch', name: '十字繡邊', overlay: 'stitch', count: 6 },
+  { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 2 },
+  { id: 'printgrid', name: '版畫方格', overlay: 'printgrid', count: 4 },
+  { id: 'print', name: '植物版畫', pack: 'print', layout: 'corner', count: 8 },
   { id: 'crayon', name: '蠟筆夢幻', pack: 'crayon', layout: 'top', count: 10 },
   { id: 'crayon2', name: '蠟筆滿天', pack: 'crayon', layout: 'edge', count: 14 },
-  { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 20 },
-  { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16 },
-  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14 },
-  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16 },
-  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16 },
-  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14 },
-  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22 },
-  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24 },
+  { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 20, group: 'cute' },
+  { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16, group: 'cute' },
+  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14, group: 'cute' },
+  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16, group: 'cute' },
+  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16, group: 'cute' },
+  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14, group: 'cute' },
+  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 22, group: 'cute' },
+  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 24, group: 'cute' },
 ];
+export const OVERLAY_COUNT = { stitch: [2, 10], stipple: [1, 3], printgrid: [2, 7] };
 export const COUNT_MIN = 4, COUNT_MAX = 30;
 
 const byId = new Map(STICKERS.map((d) => [d.id, d]));
@@ -166,7 +192,7 @@ function colorFor(r, def, pack) {
 // 分兩步：①先當作沒有日期排好（所以開關日期時，大部分塗鴉位置不變）；
 //         ②再把壓到日期的塗鴉移到別處。
 export function generateDoodles(o, aspect, avoidBox = null) {
-  if (!o || o.preset === 'none') return [];
+  if (!o || o.preset === 'none' || DOODLE_PRESETS.find((p) => p.id === o.preset)?.overlay) return [];
   const pack = PACKS[o.pack] || PACKS.cream;
   const fn = LAYOUT_FN[o.layout] || LAYOUT_FN.edge;
   const r = rng((o.seed || 1) * 7907 + 3);

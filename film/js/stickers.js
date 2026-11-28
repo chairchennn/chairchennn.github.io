@@ -5,6 +5,7 @@
 import { ART_FR_JP } from './art/fr_jp.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
 import { ART_CRAYON } from './art/crayon.js';
+import { ART_PENCIL, ART_PRINT, ART_TOOLS } from './art/v8.js';
 import { drawCrayonDef } from './crayon.js';
 import { drawPencilDef, drawPrintDef } from './print.js';
 
@@ -673,10 +674,10 @@ const CUTE = [
     ]
   },
 ];
-STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON);
+STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS);
 
 // 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框
-export const HIDDEN_CATS = new Set(['kitty', 'emoji']);
+export const HIDDEN_CATS = new Set(['kitty', 'emoji', 'tool']); // tool＝文具工具列的圖，不是貼圖
 // 個別不再出現的貼圖（和貓咪小魚、表情臉同一種畫風）
 export const HIDDEN_IDS = new Set(['jp_maneki', 'jp_koi', 'jp_onigiri']);
 export const CATEGORIES = [
