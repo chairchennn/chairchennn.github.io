@@ -3,7 +3,7 @@ import {
   PRESETS, developBase, applyFx, previewThumb, makeCanvas, LEAK_STYLES, DATE_FORMATS, DATE_COLORS, DATE_SIZES,
   formatDate, dateStampBox, drawDateStamp,
 } from './film.js';
-import { DOODLE_PRESETS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, OVERLAY_COUNT, generateDoodles } from './doodles.js';
+import { DOODLE_PRESETS, DOODLE_SECTIONS, LAYOUTS, PACKS, COUNT_MIN, COUNT_MAX, OVERLAY_COUNT, generateDoodles } from './doodles.js';
 import { drawOverlay } from './overlay.js';
 import {
   FRAMES, FRAME_COLORS, FREE_RATIO_FRAMES, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
@@ -142,6 +142,7 @@ function loadPrefs() {
     }
     if (p.mode === 'single' || p.mode === 'four') state.mode = p.mode;
     if (TABS.includes(p.tab)) state.tab = p.tab;
+    { const dp = DOODLE_PRESETS.find((x) => x.id === state.doodle.preset); if (dp?.pack) state.doodle.pack = dp.pack; }
     if (TAPE_MATERIALS.some(([id]) => id === p.tapeMat)) state.tapeMat = p.tapeMat;
     if (p.ver !== 8 && state.doodle.preset === 'none') Object.assign(state.doodle, { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 16 }); // 文具面板不記，下次打開回到主工具
   } catch { /* 無法讀取就用預設值 */ }
@@ -1660,14 +1661,21 @@ function syncPaperUI() {
 // ---------------------------------------------------------------- doodle frames（塗鴉框）
 function buildDoodlePane() {
   const box = $('#doodleList');
-  let cuteLabel = false;
-  for (const p of DOODLE_PRESETS) {
-    if (p.group === 'cute' && !cuteLabel) {
-      cuteLabel = true;
+  // 依分區排：無 → 手繪 → 印刷 → 實驗媒材 → 貼紙 → 線描（每區一條小標題，不用另外點開）
+  const ordered = [DOODLE_PRESETS.find((p) => p.id === 'none')];
+  for (const [sec, label] of DOODLE_SECTIONS) {
+    const list = DOODLE_PRESETS.filter((p) => p.section === sec);
+    if (list.length) ordered.push({ divider: label }, ...list);
+  }
+  const rest = DOODLE_PRESETS.filter((p) => p.id !== 'none' && !DOODLE_SECTIONS.some(([s2]) => s2 === p.section));
+  if (rest.length) ordered.push({ divider: '其他' }, ...rest);
+  for (const p of ordered) {
+    if (p.divider) {
       const h = document.createElement('p');
       h.className = 'cards-divider';
-      h.textContent = '可愛系列';
+      h.textContent = p.divider;
       box.append(h);
+      continue;
     }
     const b = document.createElement('button');
     b.type = 'button';
