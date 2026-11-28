@@ -55,7 +55,8 @@ film/
 ├── js/exif.js            讀取拍攝日期
 ├── sw.js                 離線快取
 ├── manifest.webmanifest  PWA 設定
-└── TEAM.md               團隊角色、審查流程與決策紀錄
+├── TEAM.md               團隊角色、審查流程與決策紀錄
+└── STYLE.md              美術風格資料庫（使用者參考圖的文字整理）
 ```
 
 本機測試：在 repo 根目錄執行 `python3 -m http.server`，打開 http://localhost:8000/film/ 。
