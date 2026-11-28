@@ -5,6 +5,7 @@
 
 import { rng } from './film.js';
 import { STICKERS, stickerBox, isRecolorable } from './stickers.js';
+import { PACKS_V9, PRESETS_V9 } from './art/v9.js';
 
 // 排列：回傳 0~1，越大越適合放塗鴉。sx/sy = 寬/高 除以短邊（短邊 = 1）
 export const LAYOUTS = [
@@ -195,7 +196,7 @@ export const DOODLE_PRESETS = [
   { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 22, section: 'line' },
   { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14, section: 'line' },
 ];
-export const OVERLAY_COUNT = { stitch: [2, 10], stipple: [1, 3], printgrid: [2, 7] };
+export const OVERLAY_COUNT = { stitch: [2, 30], stipple: [1, 9], printgrid: [2, 24] };
 export const COUNT_MIN = 4, COUNT_MAX = 30;
 
 const byId = new Map(STICKERS.map((d) => [d.id, d]));
@@ -340,4 +341,11 @@ export function generateDoodles(o, aspect, avoidBox = null) {
   const items = slots.filter((sl) => !sl.drop).map((sl) => sl.item);
   // 畫的順序：大的在下、小的在上、文字最上面
   return items.sort((p, q) => (p.kind === 'text') - (q.kind === 'text') || q.size - p.size);
+}
+
+// 第八版：8-bit 像素、連連看星星、蠟筆貓咪（素材在 art/v9.js）
+Object.assign(PACKS, PACKS_V9);
+{
+  const SEC = { pixel: 'mixed', dotstar: 'draw', cats: 'draw' };
+  for (const p of PRESETS_V9) if (!DOODLE_PRESETS.some((x) => x.id === p.id)) DOODLE_PRESETS.push({ ...p, section: p.section || SEC[p.id] || 'draw' });
 }

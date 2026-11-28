@@ -1693,3 +1693,4 @@ details.cute-group summary { color: var(--ink-2); }
 .app[data-zoomed="true"] .view { margin: auto; flex: none; }
 @media (max-width: 899px) { .zoom-bar { top: 8px; right: 8px; } .zoom-bar button { min-height: 44px; } }
 @media (min-width: 900px) { .zoom-bar { top: auto; bottom: 22px; right: 18px; z-index: 25; } }
+.sticker-grid .kao-btn { aspect-ratio: auto; min-height: 56px; grid-column: span 2; font: 700 15px/1.2 var(--round); background: #fffdf6; border-radius: 12px; border: 1px solid var(--line); }

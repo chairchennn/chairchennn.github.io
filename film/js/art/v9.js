@@ -413,7 +413,7 @@ function numD(str, x, y, h, tilt = 0) {
 const DS = '#86ADD5', DS_DOT = '#AFC3DE';
 const dsStar = (cx, cy, ro, rot, arms, ri = 0.55) => handStar(cx, cy, ro, ro * ri, rot, arms, 5, ro * 0.11);
 // 連連看的點＋號碼（號碼放在點的外側）
-function numbered(list, h = 6, dotR = 1.5, color = 'K') {
+function numbered(list, h = 4.6, dotR = 1.5, color = 'K') {
   return [
     { d: list.map(([x, y]) => circle(x, y, dotR)).join(''), dot: color },
     { d: list.map(([x, y, num, dx = 3, dy = -3]) => numD(num, x + dx, y + dy - h / 2, h, 8)).join(''), s: 'K', w: 0.55, ink: true },
@@ -472,17 +472,17 @@ const dot = (id, name, parts, vb, color = DS) => ({ id, name, cat: 'dotstar', st
 export const ART_DOTSTAR = [
   // 實心塗的大星：每個角與凹處有連連看的點和號碼
   dot('ds_star_fill', '藍星連連看', (() => {
-    const arms = [0, 0.08, -0.06, 0.1, -0.03], st = dsStar(50, 54, 40, -84, arms), { tips, inner } = tipsAndInner(50, 54, 40, 20, -84, arms);
+    const arms = [0, 0.16, -0.12, 0.2, -0.06], st = dsStar(50, 54, 40, -84, arms), { tips, inner } = tipsAndInner(50, 54, 40, 20, -84, arms);
     return [{ d: st, f: 'M', s: 'D', w: 1.1 }, ...numbered([[...tips[0], 1, 3, -2], [...inner[0], 2, 3, -4], [...tips[1], 3, 2, -3], [...tips[3], 5, -8, 4], [...inner[2], 4, 2, 7]])];
   })()),
   // 斜線塗的星
   dot('ds_star_hatch', '斜線星連連看', (() => {
-    const arms = [0.04, -0.05, 0.1, 0, 0.06], st = dsStar(50, 53, 40, -98, arms), { tips, inner } = tipsAndInner(50, 53, 40, 20, -98, arms);
+    const arms = [0.08, -0.12, 0.18, 0, 0.12], st = dsStar(50, 53, 40, -98, arms), { tips, inner } = tipsAndInner(50, 53, 40, 20, -98, arms);
     return [{ d: st, hatch: 58, sp: 2.1, s: 'M', w: 1.2 }, ...numbered([[...tips[0], 6, 3, -3], [...tips[2], 8, 2, 6], [...inner[1], 7, 3, 2], [...tips[4], 10, -11, -2], [...inner[3], 9, -9, 5]])];
   })()),
   // 空心描邊＋裡面幾顆深藍小星
   dot('ds_star_pattern', '小星花紋星', (() => {
-    const arms = [0, -0.06, 0.08, 0.04, -0.04], st = dsStar(50, 54, 40, -80, arms), { tips } = tipsAndInner(50, 54, 40, 20, -80, arms);
+    const arms = [0, -0.12, 0.15, 0.08, -0.1], st = dsStar(50, 54, 40, -80, arms), { tips } = tipsAndInner(50, 54, 40, 20, -80, arms);
     const small = [[44, 42, 6, -10], [58, 48, 5.5, 14], [42, 60, 5, 6], [57, 66, 6, -20], [70, 54, 4.5, 0]];
     return [{ d: st, s: 'M', w: 1.2 }, { d: small.map(([x, y, r, rot]) => handStar(x, y, r, r * 0.45, -90 + rot, [0], 5, 0.4)).join(''), f: '#5F8CC4', s: '#5F8CC4', w: 0.4 },
       ...numbered([[...tips[0], 11, 3, -3], [...tips[1], 12, 2, -2], [...tips[4], 13, -14, -2]])];
@@ -942,4 +942,50 @@ export const MOTIF_STIPPLE2 = [
     [0.42, 0.56, 0.7, 0.84, 0.98].forEach((u, i) => { const [p, a] = onStem(st, u), c = at(p, a + (i % 2 ? 1 : -1) * 1.1, 9); st2 += `M${pt(p)}L${pt(c)}`; d += circle(c[0], c[1], 4.5 - i * 0.3); });
     return [{ d: curve(st) + st2 + curve([[42, 118], [28, 104], [22, 86]]) }, { d, accent: true }];
   })()),
+];
+
+// =====================================================================
+// 風格包與一鍵套用（主開發併進 doodles.js 的 PACKS / DOODLE_PRESETS）
+// 每包約 25 種圖案、權重平均；max 讓同一張照片裡少重複（編號點、貓每隻最多一次）
+// 沒有 lw：線條粗細跟著圖案大小（像真的用筆畫在一張張小圖上）
+// =====================================================================
+const each = (ids, w = 1) => Object.fromEntries(ids.map((id) => [id, w]));
+const once = (list) => Object.fromEntries(list.map((d) => [d.id, 1]));
+export const PACKS_V9 = {
+  // 8-bit 像素：色票的低飽和色；像素格看得到
+  pixel: {
+    name: '8-bit 像素', glow: 0, noGlow: true,
+    sizes: { small: [0.06, 0.08], medium: [0.09, 0.12], large: [0.14, 0.18] },
+    colors: ['#D9A3A0', '#E9D79A', '#A99BC5', '#9CB9D0', '#A6B58A', '#CB8875'], recolor: 0.35,
+    small: each(['px_sparkle', 'px_heart', 'px_star', 'px_note', 'px_drop', 'px_clover', 'px_cherry', 'px_snow', 'px_gem', 'px_leaf']),
+    medium: each(['px_flower', 'px_daisy', 'px_moon', 'px_mushroom', 'px_bird', 'px_tulip', 'px_butterfly', 'px_cup', 'px_apple', 'px_bow', 'px_letter', 'px_cloud']),
+    large: each(['px_sun', 'px_rainbow', 'px_house', 'px_tree', 'px_planet', 'px_cloud', 'px_flower']),
+    max: each(['px_sun', 'px_rainbow', 'px_house', 'px_tree', 'px_planet', 'px_letter', 'px_cup'], 1),
+  },
+  // 連連看星星：淡藍色鉛筆、編號點、水鑽
+  dotstar: {
+    name: '連連看星星', glow: 0, noGlow: true,
+    sizes: { small: [0.07, 0.1], medium: [0.13, 0.18], large: [0.22, 0.3] },
+    colors: ['#86ADD5', '#9CB9D0', '#7FA3CC'], recolor: 0.3,
+    small: each(['ds_dot7', 'ds_dot12', 'ds_dot3', 'ds_fill_s', 'ds_hatch_s', 'ds_line_s', 'ds_spark']),
+    medium: each(['ds_twin', 'ds_shoot', 'ds_comet', 'ds_gem_star', 'ds_gem_spark', 'ds_gem_ring', 'ds_moon', 'ds_planet', 'ds_connect2', 'ds_loop', 'ds_gem_arc', 'ds_gem_moon', 'ds_fill_s', 'ds_hatch_s']),
+    large: each(['ds_star_fill', 'ds_star_hatch', 'ds_star_pattern', 'ds_gem_sun8', 'ds_gem_sun16', 'ds_connect']),
+    max: { ...once(ART_DOTSTAR), ds_fill_s: 3, ds_hatch_s: 3, ds_line_s: 3, ds_spark: 2 },
+  },
+  // 蠟筆貓咪：每隻顏色不同、姿勢不同（同一張照片每隻最多一次）
+  cats: {
+    name: '蠟筆貓咪', glow: 0, noGlow: true,
+    sizes: { small: [0.12, 0.15], medium: [0.17, 0.22], large: [0.26, 0.34] },
+    colors: [C_TEAL, C_BRICK, C_YEL, C_GRN, C_ORG, C_GRAY, C_PINK, C_PURP, C_LIME, C_BRN, C_BLUE], recolor: 0.6,
+    anchors: { cat_peek: 'bottom' },
+    small: each(['cat_kitten', 'cat_face', 'cat_loaf', 'cat_sleep', 'cat_back']),
+    medium: each(['cat_walk', 'cat_sitfront', 'cat_jump', 'cat_crouch', 'cat_roll', 'cat_peek', 'cat_stand', 'cat_arch', 'cat_run', 'cat_sitside', 'cat_box', 'cat_yarn', 'cat_star', 'cat_dance', 'cat_tiptoe']),
+    large: each(['cat_long', 'cat_stretch', 'cat_sunbathe', 'cat_flop', 'cat_hang', 'cat_jump', 'cat_walk']),
+    max: once(ART_CATS),
+  },
+};
+export const PRESETS_V9 = [
+  { id: 'pixel', name: '8-bit 像素', pack: 'pixel', layout: 'edge', count: 16 },
+  { id: 'dotstar', name: '連連看星星', pack: 'dotstar', layout: 'top', count: 12 },
+  { id: 'cats', name: '蠟筆貓咪', pack: 'cats', layout: 'edge', count: 9 },
 ];

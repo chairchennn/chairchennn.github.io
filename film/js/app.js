@@ -59,9 +59,23 @@ const TAPE_SPOTS = [[0.5, 0.02, 0, 0.42], [0.5, 0.98, 0, 0.42], [0.07, 0.05, -0.
 // 剪刀的比例（長邊／短邊；0 = 原比例），方向跟著照片
 const RATIOS = [[0, '原比例'], [1, '1:1'], [5 / 4, '4:5'], [3 / 2, '2:3'], [16 / 9, '9:16']];
 // 貼圖分類（第六版精簡）：新風格在前，舊的可愛系列收成一類；「我的」是這次上傳或剪下的圖
-const STICKER_GROUPS = [['all', '全部'], ['pencil', '色鉛筆'], ['print', '版畫'], ['crayon', '蠟筆'], ['cute', '可愛'], ['mine', '我的']];
-const groupOf = (def) => (['pencil', 'print', 'crayon'].includes(def.cat) ? def.cat : 'cute');
-const GROUP_ORDER = { pencil: 0, print: 1, crayon: 2, cute: 3 };
+// 貼圖分類＝塗鴉框的名字（每一款塗鴉框裡的圖案都可以單獨當貼圖用）
+const OVERLAY_CAT = { stitch: 'stitch', stipple: 'stipple', printgrid: 'print' };
+let stickerSets = null;
+function stickerGroups() {
+  if (!stickerSets) {
+    stickerSets = new Map();
+    for (const p of DOODLE_PRESETS) {
+      if (p.id === 'none') continue;
+      let ids;
+      if (p.pack && PACKS[p.pack]) { const pk = PACKS[p.pack]; ids = new Set([...Object.keys(pk.small || {}), ...Object.keys(pk.medium || {}), ...Object.keys(pk.large || {})]); }
+      else if (p.overlay) ids = new Set(STICKERS.filter((d) => d.cat === OVERLAY_CAT[p.overlay]).map((d) => d.id));
+      if (p.pack && PACKS[p.pack]?.kao) stickerSets.set(p.id, new Set(['__kao']));
+      else if (ids && ids.size) stickerSets.set(p.id, ids);
+    }
+  }
+  return [['all', '全部'], ...DOODLE_PRESETS.filter((p) => stickerSets.has(p.id)).map((p) => [p.id, p.name]), ['mine', '我的']];
+}
 const finePointer = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 const xfHowTo = () => (finePointer() ? '拖曳移動・滾輪縮放・Shift＋滾輪轉動' : '拖曳移動・兩指縮放和轉動');
 
@@ -1821,7 +1835,7 @@ function refreshDoodleThumbs() {
 // ---------------------------------------------------------------- sticker panel
 function buildStickerPanel() {
   const cats = $('#stickerCats');
-  for (const [id, name] of STICKER_GROUPS) {
+  for (const [id, name] of stickerGroups()) {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
     b.setAttribute('aria-pressed', String(id === state.cat));
@@ -1838,8 +1852,30 @@ function renderStickerGrid() {
   const grid = $('#stickerGrid');
   grid.innerHTML = '';
   if (state.cat === 'mine') { renderMine(grid); return; }
-  const list = STICKERS.filter((def) => !HIDDEN_CATS.has(def.cat) && !HIDDEN_IDS.has(def.id) && (state.cat === 'all' || groupOf(def) === state.cat));
-  list.sort((a, b) => GROUP_ORDER[groupOf(a)] - GROUP_ORDER[groupOf(b)]);
+  stickerGroups();
+  if (state.cat !== 'all' && !stickerSets.has(state.cat)) state.cat = 'all';
+  if (stickerSets.get(state.cat)?.has('__kao')) {
+    const pk = PACKS[DOODLE_PRESETS.find((x) => x.id === state.cat).pack];
+    const texts = [...new Set([...Object.keys(pk.small || {}), ...Object.keys(pk.medium || {}), ...Object.keys(pk.large || {})])];
+    ensureKao();
+    texts.forEach((text, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'kao-btn'; b.textContent = text; b.setAttribute('aria-label', `顏文字 ${text}`);
+      const color = pk.colors[i % pk.colors.length];
+      b.style.color = color;
+      b.addEventListener('click', () => addSticker({ kind: 'text', text, style: 'kao', color, size: 0.3 }));
+      grid.append(b);
+    });
+    return;
+  }
+  const set = state.cat === 'all' ? null : stickerSets.get(state.cat);
+  const list = STICKERS.filter((def) => !HIDDEN_CATS.has(def.cat) && !HIDDEN_IDS.has(def.id) && (!set || set.has(def.id)));
+  if (!set) { // 全部：照塗鴉框的順序排，其他的放最後
+    const rank = new Map();
+    let k = 0;
+    for (const ids of stickerSets.values()) for (const id of ids) if (!rank.has(id)) rank.set(id, k++);
+    list.sort((a, b) => (rank.get(a.id) ?? 1e6) - (rank.get(b.id) ?? 1e6));
+  }
   for (const def of list) {
     const b = document.createElement('button');
     b.type = 'button';

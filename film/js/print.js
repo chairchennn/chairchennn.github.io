@@ -488,6 +488,16 @@ export function drawDotstarDef(ctx, def, color, strokeScale = 1, seed = 1) {
   const ga = ctx.globalAlpha, res = (c) => (c === 'M' ? color : c === 'D' ? mixHex(color, '#2e4a6e', 0.45) : c === 'K' ? DS_INK : c);
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // 先墊一層紙白（參考圖是畫在白紙上的；貼在照片上時像剪下來的紙片，淡藍鉛筆才看得清楚）
+  if (def.paper !== false) {
+    ctx.fillStyle = '#fbfaf6'; ctx.strokeStyle = '#fbfaf6';
+    def.parts.forEach((p, i) => {
+      if (p.gem) { ctx.globalAlpha = ga * 0.75; ctx.beginPath(); for (const [x, y, rr] of p.gem) { ctx.moveTo(x + rr * 1.7, y); ctx.arc(x, y, rr * 1.7, 0, Math.PI * 2); } ctx.fill(); return; }
+      const path = wobblePath(p.d, 0.5, seed + i * 17, 0.08);
+      if (p.f || p.hatch != null || p.dot) { ctx.globalAlpha = ga * 0.88; ctx.fill(path, 'evenodd'); ctx.lineWidth = 2.4; ctx.stroke(path); }
+      else if (p.s) { ctx.globalAlpha = ga * 0.7; ctx.lineWidth = (p.w || 1.2) * strokeScale + (p.ink ? 1.6 : 2.2); ctx.stroke(path); }
+    });
+  }
   def.parts.forEach((p, i) => {
     const sd = seed + i * 17, a = (p.a ?? 1) * ga, r = rng(sd * 5 + 2);
     if (p.gem) {
@@ -529,7 +539,7 @@ export function drawDotstarDef(ctx, def, color, strokeScale = 1, seed = 1) {
     if (fc) {
       // 淡淡塗兩層（不像圖 14 那樣塗滿）：主要方向一層＋另一個方向很淡一層，紙白透得出來
       const cell = 0.2;
-      ctx.globalAlpha = a * 0.95;
+      ctx.globalAlpha = a * 0.78;
       ctx.fillStyle = pencilStyle(ctx, fc, -1.05, cell, sd);
       ctx.fill(path, 'evenodd');
       ctx.globalAlpha = a * 0.55;
@@ -639,7 +649,7 @@ export function drawScribbleDef(ctx, def, color, strokeScale = 1, seed = 1) {
     g.lineCap = 'round'; g.lineJoin = 'round';
     const outl = gr.parts.map(([p, i]) => wobblePath(p.d, 0.9, seed + i * 19 + 5, 0.09));
     g.strokeStyle = CAT_INK; g.globalAlpha = 0.85;
-    g.lineWidth = 1.3 * strokeScale;
+    g.lineWidth = 1.05 * strokeScale;
     outl.forEach((path) => g.stroke(path));
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'destination-out';

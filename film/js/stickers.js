@@ -5,9 +5,10 @@
 import { ART_FR_JP } from './art/fr_jp.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
 import { ART_CRAYON } from './art/crayon.js';
-import { ART_PENCIL, ART_PRINT, ART_TOOLS } from './art/v8.js';
+import { ART_PENCIL, ART_PRINT, ART_TOOLS, MOTIF_STITCH, MOTIF_STIPPLE } from './art/v8.js';
+import { ART_PIXEL, ART_DOTSTAR, ART_CATS, MOTIF_STITCH2, MOTIF_STIPPLE2 } from './art/v9.js';
 import { drawCrayonDef } from './crayon.js';
-import { drawPencilDef, drawPrintDef } from './print.js';
+import { drawPencilDef, drawPrintDef, drawPixelDef, drawStitchDef, drawStippleDef, drawDotstarDef, drawScribbleDef } from './print.js';
 
 export const PALETTE = [
   '#ff8fc0', // 粉紅
@@ -930,7 +931,10 @@ restyle(ART_Y2K_EMOJI.filter((d) => d.cat === 'y2k'), 'print', {
   // 反光線（白色的線）和白色小亮點拿掉；其餘不透明，像一次印上去
   d.parts = d.parts.filter((p) => !(p.s === IV)).map((p) => ({ ...p, a: p.a != null && p.a < 1 ? 1 : p.a }));
 });
-STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS);
+STICKERS.push(...CUTE, ...ART_FR_JP, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS, ...ART_PIXEL, ...ART_DOTSTAR, ...ART_CATS,
+  // 十字繡、點描的圖案也可以當單張貼圖用
+  ...[...MOTIF_STITCH, ...MOTIF_STITCH2].map((d) => ({ ...d, id: d.id.startsWith('stx_') ? d.id : `stx_${d.id}`, cat: 'stitch', style: 'stitch', color: d.color || '#ffffff' })),
+  ...[...MOTIF_STIPPLE, ...MOTIF_STIPPLE2].map((d) => ({ ...d, id: d.id.startsWith('spx_') ? d.id : `spx_${d.id}`, cat: 'stipple', style: 'stipple', color: d.color || '#ffffff' })));
 
 // 使用者不想再看到的風格：定義留著（舊的貼圖不會壞），但不出現在貼圖面板和塗鴉框
 export const HIDDEN_CATS = new Set(['kitty', 'emoji', 'tool']); // tool＝文具工具列的圖，不是貼圖
@@ -957,6 +961,12 @@ export function drawStickerDef(ctx, def, color, pxPerUnit = 1, glow = 0, strokeS
   // 色鉛筆：斜向筆觸＋顆粒、外框描兩三次；版畫：單色實心＋印壓顆粒＋粗糙邊（第六版）
   if (def.style === 'pencil') { drawPencilDef(ctx, def, color, strokeScale, seed); return; }
   if (def.style === 'print') { drawPrintDef(ctx, def, color, strokeScale, seed); return; }
+  // 第八版：8-bit 像素、連連看星星、蠟筆貓、單張十字繡／點描
+  if (def.style === 'pixel') { drawPixelDef(ctx, def, color, strokeScale, seed); return; }
+  if (def.style === 'dotstar') { drawDotstarDef(ctx, def, color, strokeScale, seed); return; }
+  if (def.style === 'scribble') { drawScribbleDef(ctx, def, color, strokeScale, seed); return; }
+  if (def.style === 'stitch') { drawStitchDef(ctx, def, color, strokeScale, seed); return; }
+  if (def.style === 'stipple') { drawStippleDef(ctx, def, color, strokeScale, seed); return; }
   if (!def._paths) def._paths = def.parts.map((p) => new Path2D(p.d));
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
