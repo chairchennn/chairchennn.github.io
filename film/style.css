@@ -1663,3 +1663,5 @@ details.cute-group summary { color: var(--ink-2); }
 #tapeMats .chip[aria-checked="true"] { background: var(--sel, #f3e3b8); border-color: var(--ink-2); font-weight: 700; }
 .seg button[aria-checked="true"] { background: #fffdf8; color: var(--ink); box-shadow: 0 1px 3px rgba(110, 72, 46, .18); }
 .cut-history > p, .sticker-grid > p.note { grid-column: 1 / -1; }
+.crop-cut-link { margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1.5px dashed var(--line-2, #d9c9b0); }
+.crop-cut-link .chip { min-height: 44px; }

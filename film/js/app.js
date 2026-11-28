@@ -1247,8 +1247,9 @@ function setTab(t) {
   if (!PANES.includes(t)) t = 'film';
   if (t === 'crop') $('#xfHint').textContent = `直接在照片上${xfHowTo()}；也可以用下面的滑桿。`;
   state.tab = t;
-  $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
-  $$('#stationery .tool[data-tool]').forEach((b) => { if (b.dataset.tool !== 'glue') b.setAttribute('aria-pressed', String(b.dataset.tool === t)); });
+  const shown = $('#app').dataset.panel !== 'closed';
+  $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(shown && b.dataset.tab === t)));
+  $$('#stationery .tool[data-tool]').forEach((b) => { if (b.dataset.tool !== 'glue') b.setAttribute('aria-pressed', String(shown && b.dataset.tool === t)); });
   $$('.pane').forEach((p) => { p.hidden = p.dataset.pane !== t; });
   const [title, hint] = PANE_INFO[t];
   $('#panelTitle').textContent = title;
@@ -1266,14 +1267,30 @@ function loadWin() {
   try { const w = JSON.parse(localStorage.getItem(WIN_KEY) || 'null'); if (w && [w.x, w.y, w.w, w.h].every(Number.isFinite)) return w; } catch { /* ignore */ }
   return null;
 }
+// 小視窗下緣不能超過底部工具列（工具列永遠點得到）
+function winBottom() {
+  const ws = $('.workspace').getBoundingClientRect(), dock = $('.stationery-dock').getBoundingClientRect();
+  const tray = [...$('.stationery-dock').children].map((c) => c.getBoundingClientRect()).filter((r) => r.height);
+  const top = tray.length ? Math.min(...tray.map((r) => r.top)) : dock.top;
+  return Math.max(200, top - ws.top - 10);
+}
 function placeWin() {
   const p = $('#panel'), ws = $('.workspace');
   if (isPhone()) { p.style.left = p.style.top = p.style.width = p.style.height = ''; return; }
-  const W = ws.clientWidth, H = ws.clientHeight, saved = loadWin();
-  let w = saved?.w ?? 380, h = saved?.h ?? Math.min(620, H - 150);
-  w = Math.min(Math.max(300, w), W - 24); h = Math.min(Math.max(240, h), H - 24);
-  let x = saved?.x ?? 24, y = saved?.y ?? 16;
-  x = Math.min(Math.max(8, x), W - w - 8); y = Math.min(Math.max(8, y), H - h - 8);
+  const W = ws.clientWidth, B = winBottom(), saved = loadWin();
+  let w = saved?.w ?? 380, h = saved?.h ?? Math.min(620, B - 16);
+  w = Math.min(Math.max(300, w), W - 24); h = Math.min(Math.max(220, h), B - 16);
+  let x = saved?.x, y = saved?.y ?? 16;
+  if (x == null) {
+    // 第一次：放在照片左右比較寬的那一側的空白處
+    const wr = ws.getBoundingClientRect(), vr = view.hidden ? null : view.getBoundingClientRect();
+    if (vr && vr.width) {
+      const left = vr.left - wr.left, right = wr.right - vr.right;
+      x = right >= left ? Math.max(vr.right - wr.left + 16, W - w - 16) : Math.max(8, Math.min(16, left - w - 16));
+      if (right >= left && right < w + 24) x = W - w - 16;
+    } else x = 24;
+  }
+  x = Math.min(Math.max(8, x), W - w - 8); y = Math.min(Math.max(8, y), B - h);
   Object.assign(p.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
 }
 function saveWin() {
@@ -1294,14 +1311,19 @@ function saveWin() {
     if (!drag || e.pointerId !== drag.id) return;
     const p = $('#panel'), ws = $('.workspace');
     const x = Math.min(Math.max(0, drag.x + e.clientX - drag.sx), ws.clientWidth - 80);
-    const y = Math.min(Math.max(0, drag.y + e.clientY - drag.sy), ws.clientHeight - 60);
+    const y = Math.min(Math.max(0, drag.y + e.clientY - drag.sy), winBottom() - p.offsetHeight);
     p.style.left = x + 'px'; p.style.top = y + 'px';
   });
   const end = () => { if (drag) { drag = null; head.classList.remove('dragging'); saveWin(); } };
   head.addEventListener('pointerup', end);
   head.addEventListener('pointercancel', end);
   // 拖右下角改大小（CSS resize）之後記住
-  new ResizeObserver(() => { if (!isPhone() && $('#app').dataset.panel !== 'closed') saveWin(); }).observe($('#panel'));
+  new ResizeObserver(() => {
+    if (isPhone() || $('#app').dataset.panel === 'closed') return;
+    const p = $('#panel'), B = winBottom();
+    if (p.offsetTop + p.offsetHeight > B) p.style.height = Math.max(220, B - p.offsetTop) + 'px';
+    saveWin();
+  }).observe($('#panel'));
   addEventListener('resize', () => { if ($('#app').dataset.panel !== 'closed') placeWin(); });
 })();
 function setPanel(open) {
@@ -2043,7 +2065,11 @@ function buildCutUI() {
   }, { passive: false });
   $('#btnCutUndo').addEventListener('click', () => { const h = cut.hist.pop(); if (h) { cut.ctrl = h.ctrl; cut.closed = h.closed; } openCutSync(); });
   $('#btnCutRedo').addEventListener('click', () => { pushCutHist(); cut.ctrl = []; cut.closed = false; cut.view = { k: 1, x: 0, y: 0 }; openCutSync(); });
-  $$('[data-cutmode]').forEach((b) => b.addEventListener('click', () => { cut.mode = b.dataset.cutmode; openCutSync(); }));
+  $$('[data-cutmode]').forEach((b) => b.addEventListener('click', () => {
+    if (cut.mode === b.dataset.cutmode) return;
+    if (cut.ctrl.length) { pushCutHist(); cut.ctrl = []; cut.closed = false; }
+    cut.mode = b.dataset.cutmode; openCutSync();
+  }));
   $('#btnCutClose').addEventListener('click', () => { if (cut.ctrl.length >= 3) { pushCutHist(); cut.closed = true; openCutSync(); } });
   $('#btnCutWhole').addEventListener('click', () => {
     const img = cut.src;
@@ -2078,6 +2104,8 @@ function buildCutUI() {
   window.addEventListener('resize', () => { if ($('#cutDialog').open) { fitCutCanvas(); drawCut(); } });
   // 裁切面板：取景／剪下形狀
   $('#btnCutStart').addEventListener('click', () => openCut());
+  $('#btnCropCut').addEventListener('click', () => openCut());
+  $('#btnCropImport').addEventListener('click', () => $('#btnUploadSticker').click());
   $('#btnCutCell').addEventListener('click', () => openCut());
   $('#btnCutClear').addEventListener('click', () => { commitHistory(); state.frame.cut = null; syncCutUI(); requestRender(); toast('已恢復方形照片', { label: '復原', run: undo }); });
 }
@@ -2120,6 +2148,8 @@ function buildTapeUI() {
     b.setAttribute('aria-label', `${t.name}紙膠帶`);
     b.title = t.name;
     const c = makeCanvas(200, 80), ctx = c.getContext('2d');
+    ctx.fillStyle = '#e9ddc8';
+    for (let x = -80; x < 200; x += 16) { ctx.beginPath(); ctx.moveTo(x, 80); ctx.lineTo(x + 8, 80); ctx.lineTo(x + 88, 0); ctx.lineTo(x + 80, 0); ctx.fill(); }
     ctx.translate(100, 40);
     ctx.rotate(-0.06);
     drawTape(ctx, 180, 180 * TAPE_RATIO, t, t.color, 5, state.tapeMat);

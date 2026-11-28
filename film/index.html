@@ -299,6 +299,12 @@
 
         <!-- 文具：剪刀 -->
         <section class="pane" data-pane="crop" role="tabpanel" hidden>
+          <div class="sub crop-cut-link">
+            <span class="sub-label">剪下形狀</span>
+            <button class="chip" type="button" id="btnCropCut">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 18M8.5 15.5L20 6"/></svg>剪這張照片</button>
+            <button class="chip" type="button" id="btnCropImport">匯入圖片來剪</button>
+          </div>
           <div id="cropFrame">
           <p class="note first" id="xfHint">直接在照片上<b>拖曳移動</b>、<b>兩指縮放和轉動</b>；也可以用下面的滑桿。</p>
           <div data-only="single">
