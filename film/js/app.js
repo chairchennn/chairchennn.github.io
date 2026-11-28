@@ -1617,8 +1617,10 @@ function selectDoodle(id) {
   if (p.pack) {
     Object.assign(state.doodle, { pack: p.pack, layout: p.layout });
     // 使用者自己調過數量就保留那個數字，沒調過就用這一款的預設
-    if (!state.doodle.countTouched || p.overlay) state.doodle.count = p.count;
+    if (!state.doodle.countTouched) state.doodle.count = p.count;
   }
+  // 整體畫面款式一律用自己的預設數量（主角才會留白）
+  if (p.overlay) state.doodle.count = p.count;
   syncDoodleUI();
   requestRender();
   savePrefs();
