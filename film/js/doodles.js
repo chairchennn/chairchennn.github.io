@@ -190,7 +190,7 @@ export const DOODLE_PRESETS = [
   { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16, section: 'print' },
   { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16, section: 'print' },
   { id: 'stitch', name: '十字繡邊', overlay: 'stitch', count: 6, section: 'mixed' },
-  { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 2, section: 'mixed' },
+  { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 4, section: 'mixed' },
   { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 18, section: 'sticker' },
   { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16, section: 'sticker' },
   { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14, section: 'line' },
@@ -198,7 +198,7 @@ export const DOODLE_PRESETS = [
   { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 22, section: 'line' },
   { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14, section: 'line' },
 ];
-export const OVERLAY_COUNT = { stitch: [2, 30], stipple: [1, 9], printgrid: [2, 24] };
+export const OVERLAY_COUNT = { stitch: [2, 40], stipple: [1, 14], printgrid: [2, 60] }; // 版畫方格放到排滿為止
 export const COUNT_MIN = 4, COUNT_MAX = 30;
 
 const byId = new Map(STICKERS.map((d) => [d.id, d]));

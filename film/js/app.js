@@ -77,7 +77,7 @@ function stickerGroups() {
   return [['all', '全部'], ...DOODLE_PRESETS.filter((p) => stickerSets.has(p.id)).map((p) => [p.id, p.name]), ['mine', '我的']];
 }
 const finePointer = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
-const xfHowTo = () => (finePointer() ? '拖曳移動・滾輪縮放・Shift＋滾輪轉動' : '拖曳移動・兩指縮放和轉動');
+const xfHowTo = () => (finePointer() ? '拖曳移動・滾輪縮放照片・Shift＋滾輪轉動（Ctrl＋滾輪是放大畫面）' : '拖曳移動・兩指縮放和轉動');
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -659,7 +659,7 @@ $('#zoomOut').addEventListener('click', () => setZoom(1, false));
 $('#stage').addEventListener('wheel', (e) => {
   if (!(e.ctrlKey || e.metaKey)) return; // Ctrl／⌘＋滾輪（觸控板捏合）縮放工作畫面
   e.preventDefault();
-  setZoom((state.zoom || 1) * Math.exp(-e.deltaY * 0.01));
+  setZoom((state.zoom || 1) * Math.exp(-e.deltaY * 0.0015));
 }, { passive: false });
 
 const pxPerCss = () => {
@@ -780,6 +780,7 @@ $('#stickerBar').addEventListener('click', (e) => {
   const st = selectedSticker();
   if (!btn || !st) return;
   switch (btn.dataset.act) {
+    case 'layers': togglePane('glue'); break;
     case 'color': showColors = !showColors; updateStickerBar(); break;
     case 'flip': st.flip = !st.flip; requestRender(); break;
     case 'dup': {
@@ -2301,7 +2302,11 @@ function renderLayers() {
     };
     const up = mk('往上一層', '↑', () => { const a = state.stickers; [a[i], a[i + 1]] = [a[i + 1], a[i]]; }, i === n - 1);
     const down = mk('往下一層', '↓', () => { const a = state.stickers; [a[i], a[i - 1]] = [a[i - 1], a[i]]; }, i === 0);
-    const glue = mk(st.glued ? '撕開' : '黏住', st.glued ? '撕' : '黏', () => { st.glued = !st.glued; if (st.glued && state.selected === st.uid) select(null); }, false, !!st.glued);
+    const glue = mk(st.glued ? '撕開（現在已黏住）' : '黏住', st.glued ? '撕開' : '黏住', () => {
+      st.glued = !st.glued;
+      if (st.glued && state.selected === st.uid) select(null);
+      toast(st.glued ? `「${stickerName(st)}」黏住了，不會被拖動` : `「${stickerName(st)}」撕開了，可以移動`);
+    });
     glue.classList.add('l-glue');
     const del = mk('刪除', '×', () => removeSticker(st));
     li.append(c, name, up, down, glue, del);
