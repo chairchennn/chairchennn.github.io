@@ -2766,6 +2766,12 @@ function init() {
   buildCutUI();
   syncCutUI();
   buildStationery();
+  // 主要編輯也畫成實物文具（和右邊的文具同一種畫法）：底片、蠟筆、貼紙、拍立得
+  for (const btn of $$('.tabs button')) {
+    const art = toolArt(`tl_${btn.dataset.tab}`);
+    const icon = btn.querySelector('svg');
+    if (icon && art.width) icon.replaceWith(art);
+  }
   placeRail();
   // 兩個視窗的面板搬到各自的位置
   for (const id of ['add', 'crop', 'tape', 'glue']) $('#panel2 .tab-body').append($(`.pane[data-pane="${id}"]`));
