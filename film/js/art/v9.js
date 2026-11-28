@@ -478,14 +478,14 @@ export const ART_DOTSTAR = [
   // 斜線塗的星
   dot('ds_star_hatch', '斜線星連連看', (() => {
     const arms = [0.08, -0.12, 0.18, 0, 0.12], st = dsStar(50, 53, 40, -98, arms), { tips, inner } = tipsAndInner(50, 53, 40, 20, -98, arms);
-    return [{ d: st, hatch: 58, sp: 2.1, s: 'M', w: 1.2 }, ...numbered([[...tips[0], 6, 3, -3], [...tips[2], 8, 2, 6], [...inner[1], 7, 3, 2], [...tips[4], 10, -11, -2], [...inner[3], 9, -9, 5]])];
+    return [{ d: st, hatch: 58, sp: 2.1, s: 'M', w: 1.2 }, ...numbered([[...tips[0], 1, 3, -3], [...inner[1], 2, 3, 2], [...tips[2], 3, 2, 6], [...inner[3], 4, -9, 5], [...tips[4], 5, -11, -2]])];
   })()),
-  // 空心描邊＋裡面幾顆深藍小星
-  dot('ds_star_pattern', '小星花紋星', (() => {
+  // 空心描邊＋裡面一顆顆鉛筆點點（像點點布）
+  dot('ds_star_pattern', '點點星', (() => {
     const arms = [0, -0.12, 0.15, 0.08, -0.1], st = dsStar(50, 54, 40, -80, arms), { tips } = tipsAndInner(50, 54, 40, 20, -80, arms);
-    const small = [[44, 42, 6, -10], [58, 48, 5.5, 14], [42, 60, 5, 6], [57, 66, 6, -20], [70, 54, 4.5, 0]];
-    return [{ d: st, s: 'M', w: 1.2 }, { d: small.map(([x, y, r, rot]) => handStar(x, y, r, r * 0.45, -90 + rot, [0], 5, 0.4)).join(''), f: '#5F8CC4', s: '#5F8CC4', w: 0.4 },
-      ...numbered([[...tips[0], 11, 3, -3], [...tips[1], 12, 2, -2], [...tips[4], 13, -14, -2]])];
+    const dots = [[42, 40], [56, 40], [36, 52], [50, 52], [64, 52], [43, 64], [57, 64], [50, 30], [76, 50], [26, 50], [50, 76]].filter(([x, y]) => hypot(x - 50, y - 54) < 24 || (y < 45 && abs(x - 50) < 8));
+    return [{ d: st, s: 'M', w: 1.2 }, { d: dots.map(([x, y]) => circle(x, y, 2.6)).join(''), f: '#5F8CC4', s: '#5F8CC4', w: 0.4 },
+      ...numbered([[...tips[0], 1, 3, -3], [...tips[1], 2, 2, -2], [...tips[4], 3, -10, -2]])];
   })()),
   dot('ds_fill_s', '藍色小星', [{ d: dsStar(50, 52, 34, -72, [0.05, -0.08, 0.06, 0, -0.05], 0.48), f: 'M', s: 'D', w: 1.3 }]),
   dot('ds_hatch_s', '斜線小星', [{ d: dsStar(50, 52, 34, -106, [0, 0.07, -0.04, 0.05, -0.06], 0.5), hatch: 64, sp: 2.4, s: 'M', w: 1.3 }]),
@@ -507,24 +507,24 @@ export const ART_DOTSTAR = [
   ], [140, 90]),
   // 水鑽：8 道放射
   dot('ds_gem_sun8', '水鑽太陽', [{ gem: gemBurst(50, 50, 8, 9, 46, 5.2, 0.8, -90) }]),
-  // 水鑽：16 道長短交錯
-  dot('ds_gem_sun16', '水鑽光芒', [{ gem: [...gemBurst(50, 50, 16, 14, 47, 3.2, 0.72, -90, 0.35), ...gemsAlong(ringPts(50, 50, 7, 7, 16), 2.4, 0.7)] }]),
+  // 水鑽：12 道，粗的長、細的短，交錯
+  dot('ds_gem_sun16', '水鑽光芒', [{ gem: [...gemBurst(50, 50, 6, 12, 47, 5.6, 0.82, -90), ...gemBurst(50, 50, 6, 12, 34, 2.2, 0.62, -60), ...gemsAlong(ringPts(50, 50, 6, 6, 16), 2.4, 0.7)] }]),
   dot('ds_gem_ring', '水鑽圓圈', [{ gem: [...gemsAlong(ringPts(50, 50, 38, 38, 90), 2.6, 0.95), ...gemsAlong(ringPts(50, 50, 31, 31, 90), 5, 0.7)] }, ...numbered([[86, 22, 1, 3, -3]], 6, 1.8, DS_DOT)]),
   dot('ds_gem_star', '水鑽星', [{ gem: gemsAlong([...starRingPts(50, 54, 42, 19, 5)], 2.6, 0.9) }]),
   dot('ds_gem_moon', '水鑽月亮', [{ gem: gemsAlong(closeLoop(crescentPts(46, 52, 38, 64, 40, 32)), 2.6, 0.9) }, { d: dsStar(80, 74, 9, -90, [0]), f: 'M', s: 'D', w: 0.9 }]),
   dot('ds_gem_spark', '水鑽閃光', [{ gem: gemsAlong(closeLoop(sparkPts(50, 50, 44, 9)), 2.6, 0.9) }, { gem: gemsAlong(closeLoop(sparkPts(82, 20, 12, 3)), 2.4, 0.7) }]),
   dot('ds_gem_arc', '水鑽小徑', [{ gem: gemsAlong(crSample([[8, 82], [34, 58], [62, 54], [92, 30]], 10), 3.6, 1.05) }, { d: dsStar(108, 22, 13, -80, [0, 0.06, -0.05, 0.04, 0]), hatch: 56, sp: 2, s: 'M', w: 1 }], [124, 90]),
-  // 連連看：一組編號的點，前幾點已經用淡鉛筆連起來
+  // 連連看：五個編號點排成一個 M 字形，前兩段已經用淡鉛筆連起來
   dot('ds_connect', '連連看', (() => {
-    const P = [[12, 60, 1], [32, 28, 2], [56, 46, 3], [80, 18, 4], [104, 40, 5], [92, 70, 6], [60, 76, 7]];
+    const P = [[14, 78, 1], [34, 20, 2], [60, 58, 3], [86, 16, 4], [106, 76, 5]];
     return [{ d: `M${pt(P[0])}L${pt(P[1])}L${pt(P[2])}`, s: 'D', w: 0.9, a: 0.7 }, ...numbered(P.map(([x, y, k]) => [x, y, k, 3, -4]), 7, 2.2, DS_DOT)];
   })(), [120, 90]),
   dot('ds_connect2', '連連看圈圈', (() => {
-    const P = ringPts(50, 50, 34, 30, 5, -PI / 2 + 0.3, 1.5 * PI + 0.3).slice(0, 5).map(([x, y], i) => [x, y, i + 8, 3, -4]);
+    const P = ringPts(50, 50, 34, 30, 5, -PI / 2 + 0.3, 1.5 * PI + 0.3).slice(0, 5).map(([x, y], i) => [x, y, i + 1, 3, -4]);
     return numbered(P, 7, 2.2, DS_DOT);
   })()),
   dot('ds_dot7', '編號點 7', numbered([[40, 56, 7, 5, -10]], 14, 4.5, DS_DOT)),
-  dot('ds_dot12', '編號點 12', numbered([[34, 60, 12, 6, -12]], 13, 4.5, DS_DOT)),
+  dot('ds_dot12', '編號點 2', numbered([[40, 60, 2, 6, -12]], 13, 4.5, DS_DOT)),
   dot('ds_dot3', '編號點 3', numbered([[42, 50, 3, -14, 10]], 14, 4.5, DS_DOT)),
   dot('ds_moon', '斜線月亮', [{ d: poly(crescentPts(50, 50, 38, 66, 38, 32)), hatch: 52, sp: 2.3, s: 'M', w: 1.3 }]),
   dot('ds_spark', '藍色閃光', [{ d: poly(sparkPts(50, 50, 42, 10)), f: 'M', s: 'D', w: 1.2 }, { d: poly(sparkPts(84, 18, 11, 3)), s: 'M', w: 1 }]),
@@ -532,8 +532,6 @@ export const ART_DOTSTAR = [
     { d: circle(50, 52, 24), hatch: 40, sp: 2.2, s: 'M', w: 1.2 },
     { d: curve([[30, 60], [8, 70], [20, 76], [50, 66], [84, 46], [92, 34], [72, 38]]), s: 'D', w: 1.3 },
   ]),
-  // 雙線描的圈圈（像參考圖那種描邊的小結）——這裡是一條繞一圈的緞帶
-  dot('ds_loop', '描邊圈圈', [{ d: ribbon([[12, 70], [34, 66], [52, 40], [40, 22], [26, 36], [44, 58], [70, 66], [90, 46]], 5.5, 5.5, 10, false), f: '#F4F6FA', s: 'D', w: 1.1 }]),
 ];
 function starRingPts(cx, cy, ro, ri, k, rot = -90) {
   const pts = Array.from({ length: k * 2 }, (_, i) => { const a = (rot + (i * 180) / k) * RAD, r = i % 2 ? ri : ro; return [cx + r * cos(a), cy + r * sin(a)]; });
@@ -591,16 +589,17 @@ const cat = (id, name, color, parts0, vb) => {
   const bodyParts = parts.filter((p) => p.body), rest = parts.filter((p) => !p.body);
   return { id, name, cat: 'cats', style: 'scribble', color, ...(vb ? { vb } : {}), parts: [...bodyParts, ...rest] };
 };
-const C_TEAL = '#7CBFCC', C_BRICK = '#B4594F', C_YEL = '#EBC350', C_GRN = '#8FCB8A', C_ORG = '#E28C45', C_GRAY = '#5A5A62',
+const C_SAND = '#C9AE7C', C_ROSE = '#D98F8C', C_SLATE = '#7D8EA3', C_MAUVE = '#C48DB6', C_TEAL = '#7CBFCC', C_BRICK = '#B4594F', C_YEL = '#EBC350', C_GRN = '#8FCB8A', C_ORG = '#E28C45', C_GRAY = '#5A5A62',
   C_PINK = '#E6A6B5', C_PURP = '#9A78C2', C_LIME = '#B7D35A', C_BRN = '#8B5B3F', C_BLUE = '#6191C4';
 
 export const ART_CATS = [
-  cat('cat_walk', '散步的貓', C_ORG, [
-    body([[30, 36], [58, 32], [84, 33], [92, 44], [84, 52], [56, 53], [32, 52], [25, 44]]),
-    limb([[84, 48], [86, 60], [89, 72]]), limb([[78, 49], [77, 61], [74, 72]]), limb([[38, 48], [34, 60], [30, 72]]), limb([[46, 50], [46, 62], [48, 72]]),
-    tail([[28, 40], [16, 32], [12, 18], [20, 8]]),
-    ...head(97, 30, 22, 18, 4, { look: 0.14 }),
-  ], [120, 80]),
+  // 低頭聞地上的貓：尾巴平平往後、頭低低的（沙色）
+  cat('cat_walk', '低頭聞聞的貓', C_SAND, [
+    body([[26, 34], [52, 30], [80, 34], [88, 46], [80, 54], [52, 54], [28, 52], [20, 43]]),
+    limb([[80, 50], [84, 61], [90, 71]]), limb([[73, 51], [72, 62], [70, 72]]), limb([[32, 48], [30, 60], [26, 72]]), limb([[42, 50], [44, 61], [42, 72]]),
+    tail([[22, 40], [10, 42], [2, 38]], 5.5, 4),
+    ...head(97, 52, 21, 17, 28, { look: 0.12 }),
+  ], [118, 78]),
   cat('cat_loaf', '吐司貓', C_YEL, [
     body([[16, 52], [22, 36], [50, 31], [80, 36], [86, 54], [80, 67], [50, 69], [20, 67]]),
     tail([[84, 62], [92, 68], [76, 73], [54, 72]], 5, 4),
@@ -649,19 +648,24 @@ export const ART_CATS = [
     ink('M27 64L27 68M31 64L31 68M67 64L67 68M71 64L71 68', 0.45),
     ...head(50, 38, 48, 36, 0, { eyes: 'round', whisk: 3 }),
   ], [100, 72]),
-  cat('cat_long', '好長的貓', C_PURP, [
-    capped([[22, 42], [60, 43], [100, 41], [128, 43]], 19, 19),
-    limb([[16, 48], [6, 52]], 5, 4.5), limb([[24, 50], [14, 54]], 5, 4.5), limb([[128, 48], [140, 53]], 5.5, 4.5),
-    tail([[134, 40], [146, 30], [148, 16]], 5.5, 4),
-    ...head(17, 36, 24, 20, -6, { eyes: 'closed' }),
-  ], [150, 60]),
-  cat('cat_stand', '站著揮手的貓', C_GRN, [
-    body([[24, 36], [46, 36], [51, 60], [48, 82], [23, 82], [19, 60]]),
-    limb([[46, 41], [57, 30], [62, 14]], 5, 4.5), limb([[24, 42], [16, 55], [16, 68]], 5, 4.5),
-    limb([[28, 78], [27, 104]], 6, 5.5), limb([[42, 78], [44, 104]], 6, 5.5),
-    tail([[22, 78], [9, 84], [5, 98]], 5, 4),
-    ...head(35, 25, 30, 24, 4, { mouth: true }),
-  ], [70, 108]),
+  // 好長的貓：身體像波浪一樣彎著躺、頭在右邊抬起來（玫瑰色）
+  cat('cat_long', '波浪長貓', C_ROSE, [
+    capped([[24, 46], [50, 34], [80, 46], [112, 36]], 17, 16),
+    limb([[28, 52], [22, 58]], 4.5, 4), limb([[40, 46], [38, 56]], 4.5, 4), limb([[100, 42], [104, 52]], 4.5, 4), limb([[112, 40], [118, 50]], 4.5, 4),
+    tail([[20, 46], [8, 40], [6, 28], [14, 24]], 5, 4),
+    ...head(126, 28, 22, 18, 10, { eyes: 'round', look: 0.1 }),
+  ], [144, 62]),
+  // 站著捧一朵小花的貓：身體矮胖、兩手在胸前（藕紫色）
+  cat('cat_stand', '捧著花的貓', C_MAUVE, [
+    body([[24, 40], [50, 40], [56, 62], [52, 80], [22, 80], [18, 62]]),
+    limb([[24, 48], [28, 58], [36, 58]], 5, 4.5), limb([[50, 48], [46, 58], [40, 59]], 5, 4.5),
+    limb([[28, 76], [24, 96]], 6.5, 6), limb([[46, 76], [50, 96]], 6.5, 6),
+    tail([[52, 74], [64, 70], [66, 58]], 5, 4),
+    { d: circle(40, 47, 6.5), f: '#EBC350', body: true }, // 花在身體上面（另一色的剪影，後畫）
+    { d: 'M39 53L39 58M41 53L42 58', s: 'K', w: 0.5 },
+    { d: circle(40, 47, 2.2), f: '#CB8875' },
+    ...head(37, 28, 30, 24, -6, { eyes: 'closed', mouth: true }),
+  ], [74, 100]),
   cat('cat_back', '背影的貓', C_BRICK, [
     body([[28, 48], [54, 48], [64, 74], [60, 93], [22, 93], [18, 74]]),
     tail([[56, 90], [72, 92], [82, 82], [76, 72]], 5.5, 4),
@@ -721,15 +725,15 @@ export const ART_CATS = [
     tail([[86, 60], [99, 70], [102, 86]], 5, 4),
     ...head(20, 72, 22, 18, 18, { eyes: 'closed' }),
   ], [110, 92]),
-  cat('cat_hang', '單手吊著的貓', C_BRN, [
+  // 用後腳倒掛在繩上的貓：頭朝下、兩手垂著、尾巴勾回繩子（灰藍色）
+  cat('cat_hang', '倒掛的貓', C_SLATE, [
     { d: 'M4 6Q40 9 76 5', s: 'K', w: 0.8, under: true },
-    limb([[40, 7], [41, 24]], 5, 5),
-    body([[34, 24], [46, 22], [54, 46], [56, 70], [44, 74], [36, 50]]),
-    limb([[36, 32], [26, 44], [22, 56]], 5, 4.5),
-    limb([[47, 70], [44, 94]], 5.5, 5), limb([[54, 68], [60, 92]], 5.5, 5),
-    tail([[54, 66], [64, 80], [62, 102]], 5, 4),
-    ...head(28, 27, 22, 18, -14, { eyes: 'round' }),
-  ], [80, 106]),
+    limb([[34, 7], [36, 26]], 5, 5), limb([[48, 7], [46, 26]], 5, 5),
+    body([[32, 24], [50, 24], [52, 46], [48, 64], [34, 64], [30, 46]]),
+    limb([[34, 58], [27, 72], [24, 86]], 4.5, 4), limb([[48, 58], [55, 72], [58, 86]], 4.5, 4),
+    tail([[50, 30], [62, 24], [64, 12], [58, 7]], 4.5, 3.8),
+    ...head(41, 74, 24, 19, 180, { eyes: 'round' }),
+  ], [80, 92]),
   cat('cat_sitside', '仰頭坐著的貓', C_PURP, [
     body([[30, 42], [46, 38], [60, 56], [64, 84], [56, 92], [26, 92], [24, 70]]),
     tail([[60, 88], [74, 91], [82, 82]], 5, 4),
@@ -968,15 +972,17 @@ export const PACKS_V9 = {
     sizes: { small: [0.07, 0.1], medium: [0.13, 0.18], large: [0.22, 0.3] },
     colors: ['#86ADD5', '#9CB9D0', '#7FA3CC'], recolor: 0.3,
     small: each(['ds_dot7', 'ds_dot12', 'ds_dot3', 'ds_fill_s', 'ds_hatch_s', 'ds_line_s', 'ds_spark']),
-    medium: each(['ds_twin', 'ds_shoot', 'ds_comet', 'ds_gem_star', 'ds_gem_spark', 'ds_gem_ring', 'ds_moon', 'ds_planet', 'ds_connect2', 'ds_loop', 'ds_gem_arc', 'ds_gem_moon', 'ds_fill_s', 'ds_hatch_s']),
+    medium: each(['ds_twin', 'ds_comet', 'ds_gem_star', 'ds_gem_spark', 'ds_gem_ring', 'ds_moon', 'ds_planet', 'ds_connect2', 'ds_gem_arc', 'ds_gem_moon', 'ds_fill_s', 'ds_hatch_s']),
     large: each(['ds_star_fill', 'ds_star_hatch', 'ds_star_pattern', 'ds_gem_sun8', 'ds_gem_sun16', 'ds_connect']),
+    // ds_shoot（流星）只當單張貼圖、不進塗鴉框：避免和編號點排在一起（侵權審查）
     max: { ...once(ART_DOTSTAR), ds_fill_s: 3, ds_hatch_s: 3, ds_line_s: 3, ds_spark: 2 },
   },
   // 蠟筆貓咪：每隻顏色不同、姿勢不同（同一張照片每隻最多一次）
   cats: {
     name: '蠟筆貓咪', glow: 0, noGlow: true,
     sizes: { small: [0.12, 0.15], medium: [0.17, 0.22], large: [0.26, 0.34] },
-    colors: [C_TEAL, C_BRICK, C_YEL, C_GRN, C_ORG, C_GRAY, C_PINK, C_PURP, C_LIME, C_BRN, C_BLUE], recolor: 0.6,
+    colors: [C_TEAL, C_BRICK, C_YEL, C_GRN, C_ORG, C_GRAY, C_PINK, C_PURP, C_LIME, C_BRN, C_BLUE, C_SAND, C_ROSE, C_SLATE, C_MAUVE], recolor: 0.6,
+    keepColor: ['cat_walk', 'cat_long', 'cat_hang', 'cat_stand'], // 這幾隻固定顏色（換色可能撞到參考圖的配色）
     anchors: { cat_peek: 'bottom' },
     small: each(['cat_kitten', 'cat_face', 'cat_loaf', 'cat_sleep', 'cat_back']),
     medium: each(['cat_walk', 'cat_sitfront', 'cat_jump', 'cat_crouch', 'cat_roll', 'cat_peek', 'cat_stand', 'cat_arch', 'cat_run', 'cat_sitside', 'cat_box', 'cat_yarn', 'cat_star', 'cat_dance', 'cat_tiptoe']),
