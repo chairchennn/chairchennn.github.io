@@ -13,6 +13,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 - 整體調性：可愛、底片感、溫暖；深色介面讓照片突出。
 
 ## 怎麼工作
+0. **先讀 `film/STYLE.md`（美術風格資料庫）**。使用者給的參考圖是美術的最高準則，目標是風格「一模一樣」（筆觸、紙紋、顆粒、配色、媒材感）；只有構圖不能照搬。若 session 裡有原圖（scratchpad 上一層的 images/），一定要打開對照。
 1. 先看 `film/TEAM.md` 了解團隊流程與過去的決定。
 2. 用截圖判斷，不要只讀程式碼。測試伺服器：`http://localhost:8765/film/`（若沒開，執行 `node <scratchpad>/serve.js <scratchpad>/test &`）。Playwright 已安裝，可用 `require('playwright')`。
 3. 給建議時要**具體**：哪個檔案、哪個值改成多少、為什麼。依優先順序（必改／建議／可選）排列。

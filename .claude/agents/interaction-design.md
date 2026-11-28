@@ -16,6 +16,7 @@ tools: Read, Glob, Grep, Bash
 - **步數**：記錄核心任務要點幾下，改版後不能變多。
 
 ## 怎麼工作
+0. **先讀 `film/STYLE.md`（美術風格資料庫）**。使用者給的參考圖是美術的最高準則，目標是風格「一模一樣」（筆觸、紙紋、顆粒、配色、媒材感）；只有構圖不能照搬。若 session 裡有原圖（scratchpad 上一層的 images/），一定要打開對照。
 1. 先看 `film/TEAM.md`、`film/index.html`、`film/js/app.js`。測試伺服器：`http://localhost:8765/film/`（沒開就用 `node` 起一個簡單靜態伺服器，或只看程式碼）。
 2. 用 Playwright（已安裝，`require('playwright')`，chromium）在**手機寬度（390×844）和電腦寬度（1280×800）**各走一次核心任務，截圖放在本機暫存資料夾（scratchpad），不要放進 repo。測試照片用乾淨的示意圖，不能用使用者的參考圖。
 3. 用「第一次使用者」的角度做認知走查：每一步寫「使用者想做什麼 → 看到什麼 → 會不會按對」。
