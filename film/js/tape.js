@@ -52,7 +52,7 @@ const MAT = {
   velvet: { alpha: 1, kd: 0.55, ks: 0, sh: 1, noise: 0.006, ns: 0.35, end: 'fray', tex: 'velvet', shadow: 0.3, sheen: 0.75, fuzz: true },
   linen: { alpha: 0.98, kd: 1.0, ks: 0.04, sh: 6, noise: 0.006, ns: 0.4, end: 'fray', tex: 'linen', shadow: 0.24 },
   cotton: { alpha: 0.98, kd: 0.9, ks: 0.03, sh: 6, noise: 0.005, ns: 0.4, end: 'fray', tex: 'cotton', shadow: 0.2, fuzz: true },
-  cloth: { alpha: 1, kd: 1.2, ks: 0.25, sh: 10, metal: 0.1, noise: 0.012, ns: 0.3, end: 'pinked', tex: 'scrim', shadow: 0.28 },
+  cloth: { alpha: 1, kd: 0.85, ks: 0.25, sh: 10, metal: 0.1, noise: 0.012, ns: 0.3, end: 'pinked', tex: 'scrim', shadow: 0.28 },
 };
 export const TAPE_MATERIALS = [
   ['washi', '和紙'], ['paper', '紙'], ['silk', '絲綢'], ['satin', '緞面'], ['plastic', '塑膠'],
@@ -450,7 +450,7 @@ function buildGeom(shape, lw, lh, mat, r, lace) {
     for (let i = 0; i < n; i++) {
       const cx = (r() - 0.5) * lw * 0.9, cy = (r() - 0.5) * lh * 0.6, ang = PI / 2 + (r() - 0.5) * PI * spread, L = lh * (0.7 + r() * 0.9);
       const s = r() < 0.6 ? 1 : -1, p0 = [cx - (cos(ang) * L) / 2, cy - (sin(ang) * L) / 2], p1 = [cx + (cos(ang) * L) / 2, cy + (sin(ang) * L) / 2];
-      if (sharp) C(p0[0], p0[1], p1[0], p1[1], s * amp * (0.5 + r() * 0.7), 0.03 + r() * 0.03, 0.07 + r() * 0.08, 1, 1, true);
+      if (sharp) { const e = 1.5; C(cx + (p0[0] - cx) * e, cy + (p0[1] - cy) * e, cx + (p1[0] - cx) * e, cy + (p1[1] - cy) * e, s * amp * (0.3 + r() * 0.3), 0.03 + r() * 0.03, 0.14 + r() * 0.12, 1, 0.6, true); }
       else C(p0[0], p0[1], p1[0], p1[1], s * amp * (0.5 + r() * 0.7), 0.08 + r() * 0.1, 0.14 + r() * 0.2, 1.25, 1);
     }
   };
@@ -586,7 +586,7 @@ const HV = (() => { const v = [LV[0], LV[1], LV[2] + 1], m = hypot(...v); return
 function lightCanvas(geom, mat, lh, CW, CH, k, seed, rough) {
   const ds = min(1, 800 / CW, 380 / CH), GW = max(2, round(CW * ds)), GH = max(2, round(CH * ds));
   const Hf = new Float32Array(GW * GH), HL = new Float32Array(GW * GH), nz = fbm(lattice(seed * 13 + 5)), ns = mat.ns * lh, na = mat.noise * lh * rough;
-  const wx = lattice(seed * 5 + 1, 32), wy = lattice(seed * 5 + 2, 32), ww = lh * (mat.calm ? 0.04 : 0.13), wsc = lh * 0.5, ua = lh * 0.022 * rough; // 皺褶彎彎的、整條有大片的起伏
+  const wx = lattice(seed * 5 + 1, 32), wy = lattice(seed * 5 + 2, 32), ww = lh * (mat.calm ? 0.03 : 0.07), wsc = lh * 0.5, ua = lh * 0.022 * rough; // 皺褶彎彎的、整條有大片的起伏
   const cr = geom.creases.map((c) => {
     const vx = c.x1 - c.x0, vy = c.y1 - c.y0, L2 = vx * vx + vy * vy || 1, L = sqrt(L2);
     return { ...c, a: c.a * (mat.metal ? 1 : 0.7), vx, vy, L2, nx: -vy / L, ny: vx / L };
@@ -622,7 +622,7 @@ function lightCanvas(geom, mat, lh, CW, CH, k, seed, rough) {
     if (mat.ks) v += max(0, pow(max(0, nx * HV[0] + ny * HV[1] + nzv * HV[2]), mat.sh) - spec0) * mat.ks * 3;
     if (mat.metal) v += sin(nx * 9 + ny * 6 + seed) * min(1, (1 - nzv) * 8) * mat.metal;
     if (mat.sheen) v += pow(1 - nzv, 0.7) * mat.sheen * 0.6 - 0.04;
-    if (HL[i]) v = max(v, 0) + HL[i] * (mat.hl || 0.4);
+    if (HL[i]) v += HL[i] * (mat.hl || 0.2);
     const o = i * 4;
     if (v > 0) { px[o] = 255; px[o + 1] = 253; px[o + 2] = 246; px[o + 3] = min(235, v * 255); } else { px[o] = 28; px[o + 1] = 20; px[o + 2] = 14; px[o + 3] = min(170, -v * 170); }
   }
@@ -673,7 +673,7 @@ function renderLayer(L, k) {
   const ts = clamp((lh * k) / 110, 0.45, 2.2);
   if (mat.tex === 'washi') { overlayTex(t, 'washi', CW, CH, ts, 0.9); overlayTex(t, 'grain', CW, CH, ts * 0.6, 0.5); }
   else if (mat.tex === 'paper') { overlayTex(t, kind === 'kraft' ? 'kraft' : 'paper', CW, CH, ts * 0.8, 1); }
-  else if (mat.tex) overlayTex(t, mat.tex, CW, CH, mat.tex === 'scrim' ? ts * 0.6 : mat.tex === 'linen' || mat.tex === 'cotton' ? ts * 0.75 : ts, mat.tex === 'satin' ? 0.6 : mat.tex === 'scrim' ? 1 : 1);
+  else if (mat.tex) overlayTex(t, mat.tex, CW, CH, mat.tex === 'scrim' ? max(0.9, ts * 0.8) : mat.tex === 'linen' || mat.tex === 'cotton' ? ts * 0.75 : ts, mat.tex === 'satin' ? 0.6 : mat.tex === 'scrim' ? 1 : 1);
   if (kind === 'kraft' && mat.tex !== 'paper') overlayTex(t, 'kraft', CW, CH, ts * 0.8, 0.7);
   if (matId === 'velvet') { // 絨布：顏色比較深沉、飽和
     t.save(); t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-atop'; t.fillStyle = 'rgba(30,10,20,.16)'; t.fillRect(0, 0, CW, CH); t.restore();
@@ -684,7 +684,7 @@ function renderLayer(L, k) {
   // 捏起來的斜折帶：比旁邊暗 15%
   if (geom.band) {
     const { x0, y0, x1, y1, w } = geom.band;
-    toPx(); t.globalCompositeOperation = 'source-atop'; t.fillStyle = 'rgba(25,15,10,.15)';
+    toPx(); t.globalCompositeOperation = 'source-atop'; t.fillStyle = 'rgba(25,15,10,.15)'; // 折帶
     t.beginPath(); t.moveTo(x0 - w / 2, y0); t.lineTo(x0 + w / 2, y0); t.lineTo(x1 + w / 2, y1); t.lineTo(x1 - w / 2, y1); t.closePath(); t.fill();
   }
   // 5. 邊：長邊有一點厚度、撕邊的纖維、布的鬚邊
