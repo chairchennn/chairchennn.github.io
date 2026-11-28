@@ -1872,3 +1872,8 @@ details.cute-group summary { color: var(--ink-2); }
 .layer.glued .l-name::after { content: " 🔒已黏"; }
 .layer .l-name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
 @media (max-width: 899px) { #zoomOut { display: none; } .zoom-bar { opacity: .85; } }
+
+/* QA（v10）：圖層按鈕 44px、手機縮放列不蓋「按住看原圖」、顏文字字色 */
+.layer .round-btn { width: 44px; }
+@media (max-width: 899px) { .zoom-bar { right: auto; left: 8px; top: auto; bottom: calc(var(--dock-h, 64px) + 10px); } }
+.sticker-grid .kao-btn { color: var(--ink); }

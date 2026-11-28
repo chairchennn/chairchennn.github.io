@@ -1379,9 +1379,14 @@ function setPanel(open, w = 'main') {
   // 手機一次只開一個（底部面板）
   if (open && isPhone()) $('#app').dataset[WINS[w === 'main' ? 'tool' : 'main'].attr] = 'closed';
   markSelected();
-  if (open) placeWin(w);
+  if (open) { placeWin(w); raiseWin(w); if (w === 'tool' && state.tool === 'glue') renderLayers(); }
   fitView();
 }
+function raiseWin(w) {
+  $(WINS[w].id).style.zIndex = 22;
+  $(WINS[w === 'main' ? 'tool' : 'main'].id).style.zIndex = 20;
+}
+for (const w of Object.keys(WINS)) $(WINS[w].id).addEventListener('pointerdown', () => raiseWin(w), true);
 function togglePane(t) {
   const w = winOf(t), cur = w === 'tool' ? state.tool : state.tab;
   if (t === cur && isOpen(w)) { setPanel(false, w); return; }
@@ -1863,7 +1868,7 @@ function renderStickerGrid() {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'kao-btn'; b.textContent = text; b.setAttribute('aria-label', `顏文字 ${text}`);
       const color = pk.colors[i % pk.colors.length];
-      b.style.color = color;
+      b.style.borderLeft = `6px solid ${color}`;
       b.addEventListener('click', () => addSticker({ kind: 'text', text, style: 'kao', color, size: 0.3 }));
       grid.append(b);
     });
