@@ -575,7 +575,7 @@ export const ART_DOTSTAR = [
     { d: curve([[30, 60], [8, 70], [20, 76], [50, 66], [84, 46], [92, 34], [72, 38]]), s: 'D', w: 1.3 },
   ]),
   // 第九版：補到 30（每一顆各自獨立，不排成一串）
-  dot('ds_heart_hatch', '斜線愛心', [{ d: poly(heartPts(50, 52, 80)), hatch: 50, sp: 2.2, s: 'M', w: 1.3 }]),
+  dot('ds_heart_hatch', '斜線愛心', [{ d: poly(heartPts(50, 52, 80)), hatch: 50, sp: 2.2, s: 'M', w: 2 }]),
   dot('ds_gem_heart', '水鑽愛心', [{ gem: gemsAlong(closeLoop(heartPts(50, 52, 80)), 2.6, 0.9) }]),
   dot('ds_star8', '八角星', [{ d: poly(starRingPts(50, 50, 42, 21, 8, -90).slice(0, -1)), f: 'M', s: 'D', w: 1.2 }]),
   dot('ds_gem_star8', '水鑽八角星', [{ gem: gemsAlong(starRingPts(50, 50, 42, 18, 8, -90), 2.6, 0.85) }]),
@@ -812,12 +812,13 @@ export const ART_CATS = [
     ...head(44, 44, 22, 18, 10, { eyes: 'round', look: 0.12 }),
   ], [100, 88]),
   // 第九版：補到 30
-  cat('cat_tailup', '翹尾巴散步的貓', C_ORG, [
-    body([[28, 44], [56, 40], [82, 42], [90, 52], [80, 60], [52, 60], [30, 58], [22, 50]]),
-    limb([[82, 56], [84, 70], [86, 82]]), limb([[74, 58], [73, 70], [72, 82]]), limb([[34, 56], [30, 70], [28, 82]]), limb([[44, 58], [46, 70], [46, 82]]),
-    tail([[26, 46], [14, 34], [12, 18], [20, 8]], 5.5, 4),
-    ...head(96, 36, 22, 18, -6, { look: 0.1 }),
-  ], [120, 90]),
+  // 審查後：灰紫色、坐著仰頭看上面（不和參考圖 22 同色同姿勢）
+  cat('cat_lookup', '坐著仰頭的貓', '#A99BC5', [
+    body([[34, 50], [58, 48], [70, 72], [68, 94], [28, 94], [24, 72]]),
+    tail([[30, 92], [14, 94], [8, 84], [12, 74]], 5.5, 4),
+    ink('M44 74L43 93M54 74L55 93', 0.6),
+    ...head(52, 34, 30, 24, -24, { eyes: 'round' }),
+  ], [90, 100]),
   cat('cat_peer', '趴著看的貓', C_SLATE, [
     body([[20, 48], [50, 40], [84, 42], [96, 54], [84, 62], [40, 62], [18, 58]]),
     limb([[84, 58], [98, 62], [108, 62]], 5.5, 5), limb([[78, 60], [92, 65], [102, 66]], 5.5, 5),
@@ -895,7 +896,7 @@ export const MOTIF_STITCH2 = [
   // 第九版：補到 30
   stitch2('st_acorn', '橡實', 'any', ['...X...', '..XXX..', '.XXXXX.', 'XX.X.XX', '.XXXXX.', '.X...X.', '.X...X.', '..X.X..', '...X...']),
   stitch2('st_pear', '西洋梨', 'any', ['...X.XX', '...XX..', '..XXX..', '.XX.XX.', '.X...X.', 'XX...XX', 'X.....X', 'X.....X', 'XX...XX', '.XXXXX.']),
-  stitch2('st_sun', '小太陽', 'any', ['X...X...X', '.X..X..X.', '...XXX...', '..XX.XX..', 'XXX...XXX', '..XX.XX..', '...XXX...', '.X..X..X.', 'X...X...X']),
+  { ...stitch2('st_sun', '小太陽', 'any', ['X...X...X', '.X..X..X.', '...XXX...', '..XX.XX..', 'XXX...XXX', '..XX.XX..', '...XXX...', '.X..X..X.', 'X...X...X']), color: '#CB8875' }, // 白 X 在奶油色上看不到，單張貼圖用赤陶色
 ];
 
 // =====================================================================
@@ -1110,7 +1111,7 @@ export const PACKS_V9 = {
     anchors: { cat_peek: 'bottom' },
     small: each(['cat_kitten', 'cat_face', 'cat_loaf', 'cat_sleep', 'cat_back', 'cat_lick']),
     medium: each(['cat_walk', 'cat_sitfront', 'cat_jump', 'cat_crouch', 'cat_roll', 'cat_peek', 'cat_stand', 'cat_arch', 'cat_run', 'cat_sitside', 'cat_box', 'cat_yarn', 'cat_star', 'cat_dance', 'cat_tiptoe',
-      'cat_tailup', 'cat_peer', 'cat_lick', 'cat_chase', 'cat_turn']),
+      'cat_lookup', 'cat_peer', 'cat_lick', 'cat_chase', 'cat_turn']),
     large: each(['cat_long', 'cat_stretch', 'cat_sunbathe', 'cat_flop', 'cat_hang', 'cat_jump', 'cat_walk']),
     max: once(ART_CATS),
   },

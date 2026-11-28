@@ -794,8 +794,10 @@ const CREAM_V10 = [
   // 第九版：補到 30
   {
     id: 'cr_lemon', name: '奶油檸檬', cat: 'cream', color: CRY, parts: [
-      f(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]])),
-      s(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]]), RLINE, 3.4),
+      // 審查後：奶油黃塗兩層（看得到顆粒但不淡），外框用深一點的黃褐
+      f(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]]), CRY),
+      f(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]]), CRY),
+      s(blobD([[14, 52], [24, 34], [46, 26], [70, 30], [86, 48], [80, 66], [56, 74], [30, 70]]), '#B0924E', 3.4),
       s('M30 54Q50 46 72 52', IV, 2.6), f(petalD(76, 30, 0, 18, 6, -0.6), SGE), s(petalD(76, 30, 0, 18, 6, -0.6), RLINE, 2.4),
     ]
   },
@@ -893,6 +895,11 @@ const FLORA_V10 = [
     s('M10 90Q30 70 50 52', SGE, 2.2), f([0, 1, 2, 3, 4, 5].map((i) => petalD(50, 46, 4, 34, 13, -PI / 2 + i * PI / 3)).join('')),
     f(circ(50, 46, 7), CRY), f([0, 1, 2, 3, 4, 5].map((i) => circ(50 + 10 * cos(i * PI / 3), 46 + 10 * sin(i * PI / 3), 1.4)).join(''), CRY),
   ]),
+  fl('fl_violet', '紫羅蘭', LIL, [
+    s('M50 60Q54 80 50 96', SGE, 2.6), f(petalD(50, 90, 0, 18, 9, -2.5) + petalD(50, 92, 0, 16, 8, -0.6), SGE),
+    f(petalD(50, 44, 2, 24, 16, -2.1) + petalD(50, 44, 2, 24, 16, -1.05)), f(petalD(50, 44, 2, 22, 15, -3.0) + petalD(50, 44, 2, 22, 15, -0.15)),
+    f(petalD(50, 44, 2, 26, 18, 1.57), '#8A7BAB'), f(circ(50, 44, 4), CRY),
+  ]),
   fl('fl_daffodil', '水仙', CRY, [
     s('M50 60Q48 80 50 96', SGE, 3), f(petalD(50, 96, 0, 40, 6, -1.75) + petalD(50, 96, 0, 34, 6, -1.35), SGE),
     f([0, 1, 2, 3, 4, 5].map((i) => petalD(50, 40, 2, 24, 12, -PI / 2 + i * PI / 3)).join(''), IV), f(circ(50, 40, 10)), f(circ(50, 40, 4), TER),
@@ -923,7 +930,7 @@ const PASTEL_V10 = [
   pl('pl_twostar', '雙線星', PCRM, [s(softStar(50, 54, [44, 44, 44, 44, 44], 21), 'M', 3), s(softStar(50, 55, [30, 30, 30, 30, 30], 14), PROSE, 2.2)]),
   pl('pl_shell', '線條貝殼', PROSE, [s(CR_SHELL, 'M', 3), s([[-30, 22], [-18, 14], [-6, 12], [6, 12], [18, 14], [30, 22]].map(([x, y]) => `M50 84L${50 + x} ${y + 6}`).join(''), 'M', 2, 0.8)]),
   pl('pl_teacup', '線條茶杯', PBLUE, [s('M18 38H74Q74 72 46 74Q18 72 18 38Z', 'M', 3), s('M74 44Q90 44 88 56Q86 66 70 64', 'M', 2.6), s(ell(46, 82, 34, 6), PROSE, 2.4), s('M36 28Q32 20 38 14M52 28Q48 20 54 12', LIL, 2)]),
-  pl('pl_clover', '線條四葉草', PSAGE, [s([0, 90, 180, 270].map((r) => heartD(50 + 17 * Math.sin(r * RAD), 46 - 17 * Math.cos(r * RAD), 34, r)).join(''), 'M', 2.8), s('M50 60Q56 80 50 96', 'M', 2.6)]),
+  pl('pl_clover', '線條四葉草', '#85916E', [s([0, 90, 180, 270].map((r) => heartD(50 + 17 * Math.sin(r * RAD), 46 - 17 * Math.cos(r * RAD), 34, r)).join(''), 'M', 2.8), s('M50 60Q56 80 50 96', 'M', 2.6)]),
 ];
 
 CUTE.push(...CREAM_V10, ...FLORA_V10, ...PASTEL_V10);
@@ -980,6 +987,8 @@ STICKERS.push(...CUTE, ...ART_FR_JP, ...FRENCH_INK, ...ART_Y2K_EMOJI, ...ART_CRA
 export const HIDDEN_CATS = new Set(['kitty', 'emoji', 'tool']); // tool＝文具工具列的圖，不是貼圖
 // 個別不再出現的貼圖（和貓咪小魚、表情臉同一種畫風）
 export const HIDDEN_IDS = new Set(['jp_maneki', 'jp_koi', 'jp_onigiri',
+  // 審查後：舊的有臉圖案不再出現在螢光分類
+  'smiley', 'heartbuddy', 'cloudface',
   // 第九版：法式手繪改成墨線套色（fi_*）；舊的色鉛筆法式（fr_*）留定義、不再出現
   ...ART_FR_JP.filter((d) => d.cat === 'french').map((d) => d.id)]);
 export const CATEGORIES = [

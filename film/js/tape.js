@@ -19,6 +19,7 @@ const hexRgb = (hex) => {
 const toHex = (a) => '#' + a.map((x) => clamp(round(x), 0, 255).toString(16).padStart(2, '0')).join('');
 const mix = (a, b, t) => { const A = hexRgb(a), B = hexRgb(b); return toHex(A.map((x, i) => x + (B[i] - x) * t)); };
 const lum = (c) => { const [r, g, b] = hexRgb(c); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+const saturate = (c, k) => { const A = hexRgb(c), l = 0.299 * A[0] + 0.587 * A[1] + 0.114 * A[2]; return toHex(A.map((x) => l + (x - l) * k)); };
 const rgba = (c, a) => { const [r, g, b] = hexRgb(c); return `rgba(${r},${g},${b},${a})`; };
 
 // =====================================================================
@@ -45,13 +46,13 @@ export const TAPE_RATIO = 0.27; // 舊介面：長條的高／寬
 const MAT = {
   washi: { alpha: 0.86, kd: 1.15, ks: 0.22, sh: 16, noise: 0.010, ns: 0.3, end: 'torn', fringe: 'fiber', tex: 'washi', shadow: 0.16, cloud: 0.12 },
   paper: { alpha: 1, kd: 1.25, ks: 0.06, sh: 8, noise: 0.008, ns: 0.35, end: 'torn', fringe: 'paper', tex: 'paper', shadow: 0.26 },
-  silk: { alpha: 0.93, kd: 0.9, ks: 0.55, sh: 9, noise: 0.004, ns: 0.4, end: 'fray', tex: 'silk', shadow: 0.2 },
-  satin: { alpha: 0.98, kd: 0.85, ks: 0.55, sh: 18, noise: 0.003, ns: 0.5, end: 'cut', tex: 'satin', shadow: 0.24 },
-  plastic: { alpha: 0.55, kd: 0.55, ks: 1.2, sh: 70, noise: 0.003, ns: 0.5, end: 'cut', tex: null, shadow: 0.1 },
+  silk: { alpha: 0.93, kd: 0.9, ks: 0.25, sh: 9, calm: true, noise: 0.004, ns: 0.4, end: 'fray', tex: 'silk', shadow: 0.2 },
+  satin: { alpha: 0.98, kd: 0.85, ks: 0.35, sh: 30, calm: true, noise: 0.003, ns: 0.5, end: 'cut', tex: 'satin', shadow: 0.24 },
+  plastic: { alpha: 0.9, kd: 0.55, ks: 0.8, sh: 70, calm: true, long: true, hl: 0.85, sat: 1.25, noise: 0.003, ns: 0.5, end: 'cut', tex: null, shadow: 0.1 },
   velvet: { alpha: 1, kd: 0.55, ks: 0, sh: 1, noise: 0.006, ns: 0.35, end: 'fray', tex: 'velvet', shadow: 0.3, sheen: 0.75, fuzz: true },
   linen: { alpha: 0.98, kd: 1.0, ks: 0.04, sh: 6, noise: 0.006, ns: 0.4, end: 'fray', tex: 'linen', shadow: 0.24 },
   cotton: { alpha: 0.98, kd: 0.9, ks: 0.03, sh: 6, noise: 0.005, ns: 0.4, end: 'fray', tex: 'cotton', shadow: 0.2, fuzz: true },
-  cloth: { alpha: 1, kd: 1.5, ks: 1.1, sh: 22, metal: 0.45, noise: 0.012, ns: 0.3, end: 'pinked', tex: 'scrim', shadow: 0.28 },
+  cloth: { alpha: 1, kd: 1.2, ks: 0.25, sh: 10, metal: 0.1, noise: 0.012, ns: 0.3, end: 'pinked', tex: 'scrim', shadow: 0.28 },
 };
 export const TAPE_MATERIALS = [
   ['washi', '和紙'], ['paper', '紙'], ['silk', '絲綢'], ['satin', '緞面'], ['plastic', '塑膠'],
@@ -71,7 +72,7 @@ export const TAPE_PATTERNS = [
   pat('tp_dots', '大圓點', 'dots', [['#ef7b6d', '#fbf6ee'], ['#f2c94c', '#fbf6ee'], ['#f4a742', '#fbe7a4'], ['#9cb9d0', '#fbf6ee'], ['#a8bf7e', '#fbf6ee'], ['#f4b6c2', '#fbf6ee']]),
   pat('tp_dots_s', '小圓點', 'dots_s', [['#f4eee0', '#2b2622'], ['#f4a9bd', '#fbf6ee'], ['#efe3cb', '#b8322f'], ['#cfe0ea', '#5b7fa6'], ['#2b2622', '#f4eee0']]),
   pat('tp_speckle', '亂點點', 'speckle', [['#fbf6dc', '#5b5752'], ['#f6dc8c', '#c9d4e0'], ['#f6e2e2', '#d4524a'], ['#e3ead3', '#6f7f56']]),
-  pat('tp_diamond', '彩色鑽石點', 'diamond', [['#f8f6f1', '#e4472f', '#f08a24', '#3e9a4a', '#3a8fce', '#f2b928'], ['#f8f6f1', '#ef8fae', '#f2c94c', '#9cc5e0', '#a8cf8e', '#c7a6e0'], ['#f4eee0', '#b8322f', '#2f5f9e']]),
+  pat('tp_diamond', '彩色鑽石點', 'diamond', [['#f4eee0', '#CB8875', '#9CB9D0', '#A6B58A', '#E9D79A'], ['#f8f6f1', '#ef8fae', '#f2c94c', '#9cc5e0', '#a8cf8e', '#c7a6e0'], ['#f4eee0', '#b8322f', '#2f5f9e']]),
   pat('tp_plaid', '格紋', 'plaid', [['#e6dcc4', '#7fb3ae', '#7a5a48'], ['#ecdcd0', '#d98c8c', '#6d4c3d'], ['#f1e6cf', '#9cb9d0', '#c0503f'], ['#e4ddc8', '#a6b58a', '#5f4a3a'], ['#f2e4c6', '#e0b25c', '#7b4a33']]),
   pat('tp_gingham', '千鳥格', 'gingham', [['#f6f1e4', '#93ad6e'], ['#fbf3ee', '#e58f9b'], ['#f6f1e4', '#6f9cc4'], ['#f6f1e4', '#d4a24a'], ['#f6f1e4', '#2e2a26'], ['#fbf3ee', '#d6433a']]),
   pat('tp_finecheck', '細格布', 'finecheck', [['#fbeee9', '#ef9fa6'], ['#f6e0a0', '#a07a52'], ['#eef3f6', '#8fb3d3'], ['#f3f4ea', '#93ad6e'], ['#fbeee9', '#c9356a']]),
@@ -91,7 +92,7 @@ export const TAPE_PATTERNS = [
   pat('tp_kraft', '牛皮紙', 'kraft', [['#d6b48a', '#9c7650'], ['#c9a275', '#6d4f33'], ['#e6cfa8', '#a98458']]),
   pat('tp_duct', '銀色布膠帶', 'plain', [['#9a9c9e', '#6e7175'], ['#7e8184', '#55585c'], ['#c7c2b4', '#8f8a7c'], ['#3c3d40', '#222']], { material: 'cloth' }),
   pat('tp_lace', '蕾絲', 'lace', [['#fbf8f1', '#fbf8f1'], ['#f6e3e6', '#f6e3e6'], ['#efe6d2', '#efe6d2']], { material: 'paper' }),
-  pat('tp_rainbow', '彩虹', 'rainbow', [['#f3b3b8', '#f6cf9f', '#f6e7a1', '#c8e2b9', '#b8d4ea', '#cdbfe6']]),
+  pat('tp_rainbow', '彩虹', 'rainbow', [['#CB8875', '#E9D79A', '#A6B58A', '#9CB9D0', '#A99BC5', '#e0ab92'], ['#e7a3b3', '#f2d58c', '#bcd3a0', '#a9c7dc', '#c9b8de']]),
 ];
 export const TAPES = TAPE_PATTERNS; // 舊介面
 export const TAPE_COLORWAYS = Object.fromEntries(TAPE_PATTERNS.map((p) => [p.id, p.colorways]));
@@ -185,7 +186,7 @@ function tex(name) {
     g.putImageData(id, 0, 0);
   } else if (name === 'scrim') { // 布膠帶裡的布紋：細細的經緯線壓紋
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-      const a = y % 4 === 0 ? 0.16 : y % 4 === 1 ? -0.1 : 0, b = x % 3 === 0 ? 0.1 : x % 3 === 1 ? -0.07 : 0;
+      const a = y % 4 === 0 ? 0.26 : y % 4 === 1 ? -0.18 : 0, b = x % 3 === 0 ? 0.17 : x % 3 === 1 ? -0.12 : 0;
       const v = a + b + (r() - 0.5) * 0.12;
       put(x, y, v > 0, abs(v));
     }
@@ -234,7 +235,7 @@ function wobBand(t, vertical, pos, wd, a0, a1, r, amp) {
   P.forEach(([s, q], i) => (vertical ? (i ? t.lineTo(q, s) : t.moveTo(q, s)) : i ? t.lineTo(s, q) : t.moveTo(s, q)));
   t.closePath(); t.fill();
 }
-function drawPattern(t, kind, x0, y0, W, u, cols, r) {
+function drawPattern(t, kind, x0, y0, W, u, cols, r, k = 4) {
   const [base, ink = base, acc] = cols, x1 = x0 + W, y1 = y0 + u, H = u;
   const wob = u * 0.006;
   t.fillStyle = base; t.fillRect(x0, y0, W, H);
@@ -261,16 +262,26 @@ function drawPattern(t, kind, x0, y0, W, u, cols, r) {
     }
     case 'diamond': { // 參考圖 24：白圓點之間露出彩色四角星
       const sp = u * 0.34, pal = cols.slice(1).filter(Boolean);
-      let k = 0;
-      for (let y = y0 - sp; y < y1 + sp; y += sp) for (let x = x0 - sp; x < x1 + sp; x += sp) {
-        t.fillStyle = pal[(k++ * 3 + floor(r() * 2)) % pal.length];
-        const s = sp * 0.98; t.fillRect(x + sp / 2 - s / 2, y + sp / 2 - s / 2, s, s);
+      // 顏色沿斜線輪替；圓點小一點 → 四角星比較胖、凹得比較淺（和參考圖的商品花紋不同）
+      for (let j = 0, y = y0 - sp; y < y1 + sp; y += sp, j++) for (let i = 0, x = x0 - sp; x < x1 + sp; x += sp, i++) {
+        t.fillStyle = pal[(i + 2 * j) % pal.length];
+        const s = sp * 0.8; t.fillRect(x + sp / 2 - s / 2, y + sp / 2 - s / 2, s, s);
       }
       t.fillStyle = base;
-      for (let y = y0; y < y1 + sp; y += sp) for (let x = x0; x < x1 + sp; x += sp) { t.beginPath(); t.arc(x, y, sp * 0.47, 0, PI * 2); t.fill(); }
+      for (let y = y0; y < y1 + sp; y += sp) for (let x = x0; x < x1 + sp; x += sp) { t.beginPath(); t.arc(x, y, sp * 0.405, 0, PI * 2); t.fill(); }
       break;
     }
     case 'plaid': { // 參考圖 24：米底＋霧綠寬帶＋咖啡色雙細線
+      if (u * k < 24) { // 太細（細長條、縮圖）：細線會疊成摩爾紋 → 改用千鳥格的畫法，線距至少 3px
+        const P = max(u * 0.3, 6 / k);
+        t.globalAlpha = 0.6;
+        for (let x = x0; x < x1 + P; x += P) wobBand(t, true, x, P / 2, y0, y1, r, 0);
+        for (let y = y0; y < y1 + P; y += P) wobBand(t, false, y, P / 2, x0, x1, r, 0);
+        t.globalAlpha = 0.7; t.fillStyle = acc || mix(ink, '#000', 0.4);
+        for (let x = x0 + P * 0.75; x < x1 + P; x += P * 2) wobBand(t, true, x, 1 / k, y0, y1, r, 0);
+        t.globalAlpha = 1;
+        break;
+      }
       const P = u * 0.44;
       t.globalAlpha = 0.72;
       for (let x = x0; x < x1 + P; x += P) wobBand(t, true, x, P * 0.42, y0, y1, r, wob);
@@ -413,9 +424,11 @@ function drawPattern(t, kind, x0, y0, W, u, cols, r) {
       t.globalAlpha = 1;
       break;
     }
-    case 'rainbow': {
-      const pal = cols;
-      pal.forEach((c, i) => { t.fillStyle = c; wobBand(t, false, y0 + (H * i) / pal.length - 0.5, H / pal.length + 1, x0, x1, r, wob); });
+    case 'rainbow': { // 手畫的直色帶，色帶之間留細細的紙色縫，帶一點顆粒
+      const pal = cols, bw = u * 0.3, gp = u * 0.035;
+      t.fillStyle = '#f4eee0'; t.fillRect(x0, y0, W, H);
+      for (let i = 0, x = x0; x < x1 + bw; x += bw + gp, i++) { t.fillStyle = pal[i % pal.length]; wobBand(t, true, x + (r() - 0.5) * gp * 0.5, bw * (0.94 + r() * 0.1), y0 - 1, y1 + 1, r, wob * 2.5); }
+      for (let i = 0; i < (W / u) * 160; i++) { t.fillStyle = r() < 0.5 ? 'rgba(60,40,25,.13)' : 'rgba(255,252,240,.22)'; t.fillRect(x0 + r() * W, y0 + r() * H, u * 0.012, u * 0.012); }
       break;
     }
     default: break;
@@ -429,14 +442,16 @@ function drawPattern(t, kind, x0, y0, W, u, cols, r) {
 function buildGeom(shape, lw, lh, mat, r, lace) {
   const X = lw / 2, Y = lh / 2, cr = [];
   // a：高度（相對 lh，正＝凸、負＝凹）；w1/w2：兩側寬度；pw：1＝尖折、2＝圓鼓
-  const C = (x0, y0, x1, y1, a, w1, w2 = w1, pw = 1, tp = 1) => cr.push({ x0, y0, x1, y1, a: a * lh, w1: w1 * lh, w2: w2 * lh, pw, tp });
-  let pinch = () => 0, waveT = () => 0, waveB = () => 0, step = null, rough = 1, flap = null;
+  const C = (x0, y0, x1, y1, a, w1, w2 = w1, pw = 1, tp = 1, hl = false) => cr.push({ x0, y0, x1, y1, a: a * lh, w1: w1 * lh, w2: w2 * lh, pw, tp, hl });
+  let band = null, pinchT = () => 0, pinchB = () => 0, waveT = () => 0, waveB = () => 0, step = null, rough = 1, flap = null;
   let endType = mat.end, chunk = 0.035, tiltL = (r() - 0.5) * 0.28, tiltR = (r() - 0.5) * 0.28;
-  const randCrease = (n, amp, spread = 0.5) => {
+  // sharp：尖折（窄、pw=1、旁邊一條 1px 亮線），用在揉皺、疊貼上層
+  const randCrease = (n, amp, spread = 0.5, sharp = false) => {
     for (let i = 0; i < n; i++) {
       const cx = (r() - 0.5) * lw * 0.9, cy = (r() - 0.5) * lh * 0.6, ang = PI / 2 + (r() - 0.5) * PI * spread, L = lh * (0.7 + r() * 0.9);
-      const s = r() < 0.6 ? 1 : -1;
-      C(cx - (cos(ang) * L) / 2, cy - (sin(ang) * L) / 2, cx + (cos(ang) * L) / 2, cy + (sin(ang) * L) / 2, s * amp * (0.5 + r() * 0.7), 0.08 + r() * 0.1, 0.14 + r() * 0.2, 1.25, 1);
+      const s = r() < 0.6 ? 1 : -1, p0 = [cx - (cos(ang) * L) / 2, cy - (sin(ang) * L) / 2], p1 = [cx + (cos(ang) * L) / 2, cy + (sin(ang) * L) / 2];
+      if (sharp) C(p0[0], p0[1], p1[0], p1[1], s * amp * (0.5 + r() * 0.7), 0.03 + r() * 0.03, 0.07 + r() * 0.08, 1, 1, true);
+      else C(p0[0], p0[1], p1[0], p1[1], s * amp * (0.5 + r() * 0.7), 0.08 + r() * 0.1, 0.14 + r() * 0.2, 1.25, 1);
     }
   };
   switch (shape) {
@@ -451,19 +466,21 @@ function buildGeom(shape, lw, lh, mat, r, lace) {
       randCrease(1, 0.025);
       break;
     }
-    case 'pinch': { // 參考圖 24 紅色：中間被捏起來，皺褶從捏的地方放射出去
-      const px = (r() - 0.5) * lw * 0.24, g = lw * 0.07 + lh * 0.3, depth = lh * 0.14;
-      pinch = (x) => depth * exp(-(((x - px) / g) ** 2));
+    case 'pinch': { // 參考圖 24 紅色：上緣捏得深、下緣淺（不對稱），一條斜斜的折帶，兩側短而尖的放射皺
+      const px = (r() - 0.5) * lw * 0.24, g = lw * 0.06 + lh * 0.28, dT = lh * 0.16, dB = lh * 0.05;
+      pinchT = (x) => dT * exp(-(((x - px) / g) ** 2));
+      pinchB = (x) => dB * exp(-(((x - px) / (g * 1.3)) ** 2));
       waveT = (x) => lh * 0.02 * sin(x / lw * 9 + 1.3);
-      waveB = (x) => lh * 0.02 * sin(x / lw * 7 + 4.1);
-      C(px - lh * 0.03, -Y, px + lh * 0.06, Y, 0.09, 0.05, 0.13, 1, 0.35);
-      C(px + lh * 0.12, -Y, px - lh * 0.02, Y, -0.05, 0.07, 0.05, 1, 0.4);
+      waveB = (x) => lh * 0.015 * sin(x / lw * 7 + 4.1);
+      band = { x0: px - lh * 0.2, y0: -Y - lh * 0.05, x1: px + lh * 0.3, y1: Y + lh * 0.05, w: lh * 0.08 };
+      C(band.x0 - band.w / 2, band.y0, band.x1 - band.w / 2, band.y1, 0.05, 0.02, 0.06, 1, 0.5, true);
+      C(band.x0 + band.w / 2, band.y0, band.x1 + band.w / 2, band.y1, -0.04, 0.05, 0.02, 1, 0.5);
       for (const sd of [-1, 1]) for (let j = 0; j < 4; j++) {
-        const fromTop = j % 2 === 0, y0 = fromTop ? -Y + depth : Y - depth;
-        const ex = px + sd * (lh * 0.35 + j * lw * 0.09 + r() * lw * 0.05), ey = fromTop ? Y : -Y;
-        C(px + sd * lh * 0.04, y0, ex, ey, (j % 2 ? -1 : 1) * (0.034 - j * 0.005), 0.06, 0.18, 1.3, 0.9);
+        const fromTop = j % 2 === 0, sy = fromTop ? -Y + dT * 0.8 : Y - dB * 0.8;
+        const sx = px + sd * lh * (0.05 + r() * 0.08), L = lh * (0.3 + r() * 0.3), ang = (fromTop ? 1 : -1) * (PI / 2 - sd * (0.5 + r() * 0.6));
+        C(sx, sy, sx + cos(ang) * L, sy + sin(ang) * L, (j % 2 ? -1 : 1) * (0.022 + r() * 0.012), 0.02 + r() * 0.02, 0.05 + r() * 0.04, 1, 0.8, true);
       }
-      randCrease(2, 0.02);
+      randCrease(1, 0.02);
       rough = 1.4;
       break;
     }
@@ -471,8 +488,8 @@ function buildGeom(shape, lw, lh, mat, r, lace) {
       const p1 = r() * 6, p2 = r() * 6;
       waveT = (x) => lh * 0.035 * sin((x / lw) * 2 * PI * 1.4 + p1);
       waveB = (x) => lh * 0.03 * sin((x / lw) * 2 * PI * 1.7 + p2);
-      randCrease(Math.round(6 + (lw / lh) * 2), 0.035, 1.2);
-      C(-lw * 0.1, -Y * 1.1, lw * 0.15, Y * 1.1, 0.06, 0.06, 0.12, 1, 0.4);
+      randCrease(Math.round(6 + (lw / lh) * 2), 0.035, 1.2, true);
+      C(-lw * 0.1, -Y * 1.1, lw * 0.15, Y * 1.1, 0.06, 0.04, 0.12, 1, 0.4, true);
       rough = 2;
       break;
     }
@@ -485,12 +502,13 @@ function buildGeom(shape, lw, lh, mat, r, lace) {
       randCrease(3, 0.03, 1);
       break;
     case 'twist': { // 疊貼的上層：一道斜斜的大折痕（參考圖 24 黃色）
-      const px = (r() - 0.3) * lw * 0.2, g = lw * 0.18, depth = lh * 0.12;
-      pinch = (x) => depth * exp(-(((x - px) / g) ** 2));
+      const px = (r() - 0.3) * lw * 0.2, g = lw * 0.18;
+      pinchT = (x) => lh * 0.12 * exp(-(((x - px) / g) ** 2));
+      pinchB = (x) => lh * 0.03 * exp(-(((x - px - lw * 0.05) / g) ** 2));
       waveT = (x) => lh * 0.03 * sin(x / lw * 8 + 2);
-      C(px - lh * 0.45, -Y, px + lh * 0.25, Y, 0.1, 0.07, 0.16, 1, 0.3);
-      C(px + lh * 0.1, -Y, px + lh * 0.55, Y, -0.06, 0.08, 0.06, 1, 0.4);
-      randCrease(2, 0.03, 1);
+      C(px - lh * 0.45, -Y, px + lh * 0.25, Y, 0.1, 0.04, 0.16, 1, 0.3, true);
+      C(px + lh * 0.1, -Y, px + lh * 0.55, Y, -0.06, 0.08, 0.04, 1, 0.4);
+      randCrease(2, 0.03, 1, true);
       chunk = 0.05; rough = 1.3;
       break;
     }
@@ -503,11 +521,12 @@ function buildGeom(shape, lw, lh, mat, r, lace) {
       randCrease(r() < 0.5 ? 1 : 2, 0.028);
       break;
   }
-  if (mat.metal && shape !== 'crumple' && shape !== 'pinch') randCrease(3, 0.04, 1.2); // 布膠帶本身就很皺
+  if (mat.metal && shape !== 'crumple' && shape !== 'pinch') randCrease(1, 0.04, 1.2); // 布膠帶：一道折痕就好（霧面布，不是鋁箔）
+  if (mat.long) for (let i = 0; i < 1 + (r() < 0.5 ? 1 : 0); i++) { const ya = (r() - 0.5) * lh * 0.6, yb = (r() - 0.5) * lh * 0.6; C(-X * (0.5 + r() * 0.4), ya, X * (0.4 + r() * 0.5), yb, 0.012, 0.015, 0.05, 1, 1, true); } // 塑膠：沿長邊的細亮折
   if (lace) { endType = 'cut'; tiltL = tiltR = 0; }
   const scal = lace ? lh * 0.12 : 0, sp = lh * 0.24;
   const scallop = (x) => { if (!lace) return 0; const m = (((x + X) % sp) + sp) % sp - sp / 2, rr = sp / 2; return scal * (1 - sqrt(max(0, 1 - (m / rr) ** 2))); };
-  const mapTop = (x) => -Y + pinch(x) + waveT(x), mapBot = (x) => Y - pinch(x) + waveB(x);
+  const mapTop = (x) => -Y + pinchT(x) + waveT(x), mapBot = (x) => Y - pinchB(x) + waveB(x);
   const stepOff = (x, top) => (step && step.top === top && x > step.x ? step.jog : 0);
   const topE = (x) => mapTop(x) + stepOff(x, true) + scallop(x), botE = (x) => mapBot(x) - stepOff(x, false) - scallop(x);
 
@@ -550,23 +569,24 @@ function buildGeom(shape, lw, lh, mat, r, lace) {
   xsB.sort((a, b) => b - a).forEach((x) => outline.push([x, botE(x)]));
   L.slice().reverse().forEach((p, i, A) => outline.push([p[0], i === 0 ? botE(p[0]) : i === A.length - 1 ? topE(p[0]) : p[1]]));
 
-  if (flap) {
-    const f = lh * (0.55 + r() * 0.15), tilt = tiltR;
-    const A = [X - lh * 0.05 + tilt * -Y - f * 1.05, topE(X - f)], B = [X - lh * 0.05 + tilt * (-Y + f * 0.95) + lh * 0.02, -Y + f * 0.95];
-    flap = { A, B, Cc: [X - lh * 0.05 + tilt * -Y, -Y] };
-    // 捲起來的地方是一道圓鼓
-    C(A[0] - lh * 0.04, A[1] - lh * 0.02, B[0] - lh * 0.04, B[1] + lh * 0.02, 0.06, 0.18, 0.05, 2, 0.3);
+  if (flap) { // 四個角隨機挑一個捲起來
+    const f = lh * (0.55 + r() * 0.15), sx = r() < 0.5 ? 1 : -1, sy = r() < 0.5 ? -1 : 1, Xc = X - lh * 0.05;
+    const ax = sx * (Xc - f * 1.05), A = [ax, sy < 0 ? topE(ax) : botE(ax)], B = [sx * (Xc + lh * 0.02), sy * (Y - f * 0.95)];
+    flap = { A, B, Cc: [sx * Xc, sy * Y], sx, sy };
+    // 捲起來的地方是一道圓鼓（往膠帶內側偏一點）
+    const ix = -sx * lh * 0.04, iy = -sy * lh * 0.02;
+    C(A[0] + ix, A[1] + iy, B[0] + ix, B[1] + iy, 0.06, 0.12, 0.12, 2, 0.3);
   }
-  return { outline, mapTop, mapBot, creases: cr, ends: [L, R], endType, rough, flap, X, Y };
+  return { band, outline, mapTop, mapBot, creases: cr, ends: [L, R], endType, rough, flap, X, Y };
 }
 
 // 光影：高度場 → 法線 → 漫射＋光澤（＋金屬的環境反射、絨布的掠角柔光）
 const LV = (() => { const v = [-0.45, -0.68, 0.58], m = hypot(...v); return v.map((x) => x / m); })();
 const HV = (() => { const v = [LV[0], LV[1], LV[2] + 1], m = hypot(...v); return v.map((x) => x / m); })();
 function lightCanvas(geom, mat, lh, CW, CH, k, seed, rough) {
-  const ds = min(1, 520 / CW, 260 / CH), GW = max(2, round(CW * ds)), GH = max(2, round(CH * ds));
-  const Hf = new Float32Array(GW * GH), nz = fbm(lattice(seed * 13 + 5)), ns = mat.ns * lh, na = mat.noise * lh * rough;
-  const wx = lattice(seed * 5 + 1, 32), wy = lattice(seed * 5 + 2, 32), ww = lh * 0.13, wsc = lh * 0.5, ua = lh * 0.022 * rough; // 皺褶彎彎的、整條有大片的起伏
+  const ds = min(1, 800 / CW, 380 / CH), GW = max(2, round(CW * ds)), GH = max(2, round(CH * ds));
+  const Hf = new Float32Array(GW * GH), HL = new Float32Array(GW * GH), nz = fbm(lattice(seed * 13 + 5)), ns = mat.ns * lh, na = mat.noise * lh * rough;
+  const wx = lattice(seed * 5 + 1, 32), wy = lattice(seed * 5 + 2, 32), ww = lh * (mat.calm ? 0.04 : 0.13), wsc = lh * 0.5, ua = lh * 0.022 * rough; // 皺褶彎彎的、整條有大片的起伏
   const cr = geom.creases.map((c) => {
     const vx = c.x1 - c.x0, vy = c.y1 - c.y0, L2 = vx * vx + vy * vy || 1, L = sqrt(L2);
     return { ...c, a: c.a * (mat.metal ? 1 : 0.7), vx, vy, L2, nx: -vy / L, ny: vx / L };
@@ -584,6 +604,8 @@ function lightCanvas(geom, mat, lh, CW, CH, k, seed, rough) {
         const env = sin(PI * t), d = (X - c.x0) * c.nx + (Y - c.y0) * c.ny, w = (d < 0 ? c.w1 : c.w2) * (0.35 + 0.65 * env), u = abs(d) / w;
         if (u >= 1) continue;
         h += c.a * pow(env, c.tp) * pow(1 - u, c.pw);
+        // 尖折旁邊一條約 1px 的亮線（在凸起那側的折線上）
+        if (c.hl) { const dp = d / toL + (c.a > 0 ? 0.8 : -0.8), q = env * max(0, 1 - abs(dp)); if (q > HL[gy * GW + gx]) HL[gy * GW + gx] = q; }
       }
       Hf[gy * GW + gx] = h;
     }
@@ -600,6 +622,7 @@ function lightCanvas(geom, mat, lh, CW, CH, k, seed, rough) {
     if (mat.ks) v += max(0, pow(max(0, nx * HV[0] + ny * HV[1] + nzv * HV[2]), mat.sh) - spec0) * mat.ks * 3;
     if (mat.metal) v += sin(nx * 9 + ny * 6 + seed) * min(1, (1 - nzv) * 8) * mat.metal;
     if (mat.sheen) v += pow(1 - nzv, 0.7) * mat.sheen * 0.6 - 0.04;
+    if (HL[i]) v = max(v, 0) + HL[i] * (mat.hl || 0.4);
     const o = i * 4;
     if (v > 0) { px[o] = 255; px[o + 1] = 253; px[o + 2] = 246; px[o + 3] = min(235, v * 255); } else { px[o] = 28; px[o + 1] = 20; px[o + 2] = 14; px[o + 3] = min(170, -v * 170); }
   }
@@ -621,7 +644,7 @@ function renderLayer(L, k) {
   // 1. 花紋畫在攤平的膠帶上，再一欄一欄擠進外形（捏起來的地方花紋跟著擠）
   const P = newCanvas(CW, CH), pt = P.getContext('2d');
   pt.setTransform(k, 0, 0, k, CW / 2, CH / 2);
-  drawPattern(pt, kind, -lw / 2 - mg, -lh / 2, lw + 2 * mg, lh, cols, rng(seed * 11 + 1));
+  drawPattern(pt, kind, -lw / 2 - mg, -lh / 2, lw + 2 * mg, lh, cols, rng(seed * 11 + 1), k);
   const warp = geom.creases && (geom.mapTop(0) !== -lh / 2 || geom.mapTop(lw * 0.3) !== -lh / 2 || geom.mapBot(-lw * 0.2) !== lh / 2);
   if (warp) {
     const sy = CH / 2 - (lh / 2) * k, sh = lh * k;
@@ -650,7 +673,7 @@ function renderLayer(L, k) {
   const ts = clamp((lh * k) / 110, 0.45, 2.2);
   if (mat.tex === 'washi') { overlayTex(t, 'washi', CW, CH, ts, 0.9); overlayTex(t, 'grain', CW, CH, ts * 0.6, 0.5); }
   else if (mat.tex === 'paper') { overlayTex(t, kind === 'kraft' ? 'kraft' : 'paper', CW, CH, ts * 0.8, 1); }
-  else if (mat.tex) overlayTex(t, mat.tex, CW, CH, mat.tex === 'scrim' ? ts * 0.5 : mat.tex === 'linen' || mat.tex === 'cotton' ? ts * 0.75 : ts, mat.tex === 'satin' ? 0.6 : mat.tex === 'scrim' ? 0.55 : 1);
+  else if (mat.tex) overlayTex(t, mat.tex, CW, CH, mat.tex === 'scrim' ? ts * 0.6 : mat.tex === 'linen' || mat.tex === 'cotton' ? ts * 0.75 : ts, mat.tex === 'satin' ? 0.6 : mat.tex === 'scrim' ? 1 : 1);
   if (kind === 'kraft' && mat.tex !== 'paper') overlayTex(t, 'kraft', CW, CH, ts * 0.8, 0.7);
   if (matId === 'velvet') { // 絨布：顏色比較深沉、飽和
     t.save(); t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-atop'; t.fillStyle = 'rgba(30,10,20,.16)'; t.fillRect(0, 0, CW, CH); t.restore();
@@ -658,15 +681,11 @@ function renderLayer(L, k) {
   // 4. 皺褶光影
   const lc = lightCanvas(geom, mat, lh, CW, CH, k, seed, geom.rough);
   t.save(); t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-atop'; t.imageSmoothingEnabled = true; t.drawImage(lc, 0, 0, CW, CH); t.restore();
-  // 塑膠／緞面：一兩道清楚的反光
-  if (matId === 'plastic' || matId === 'satin') {
-    toPx(); t.globalCompositeOperation = 'source-atop';
-    for (let i = 0; i < 2; i++) {
-      const x = (r() - 0.5) * lw * 0.7, bw = lh * (0.06 + r() * 0.1);
-      const g = t.createLinearGradient(x, 0, x + bw, 0);
-      g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, `rgba(255,255,255,${matId === 'plastic' ? 0.45 : 0.18})`); g.addColorStop(1, 'rgba(255,255,255,0)');
-      t.fillStyle = g; t.beginPath(); t.moveTo(x, -lh); t.lineTo(x + bw, -lh); t.lineTo(x + bw - lh * 0.5, lh); t.lineTo(x - lh * 0.5, lh); t.fill();
-    }
+  // 捏起來的斜折帶：比旁邊暗 15%
+  if (geom.band) {
+    const { x0, y0, x1, y1, w } = geom.band;
+    toPx(); t.globalCompositeOperation = 'source-atop'; t.fillStyle = 'rgba(25,15,10,.15)';
+    t.beginPath(); t.moveTo(x0 - w / 2, y0); t.lineTo(x0 + w / 2, y0); t.lineTo(x1 + w / 2, y1); t.lineTo(x1 - w / 2, y1); t.closePath(); t.fill();
   }
   // 5. 邊：長邊有一點厚度、撕邊的纖維、布的鬚邊
   toPx();
@@ -719,7 +738,7 @@ function renderLayer(L, k) {
       const a = O[i], b = O[(i + 1) % O.length], seg = hypot(b[0] - a[0], b[1] - a[1]), nn = ceil(seg / (lh * 0.012));
       const nx = (b[1] - a[1]) / (seg || 1), ny = -(b[0] - a[0]) / (seg || 1);
       for (let j = 0; j < nn; j++) {
-        const s = j / nn, x = a[0] + (b[0] - a[0]) * s, y = a[1] + (b[1] - a[1]) * s, l = lh * (0.006 + r() * 0.014);
+        const s = j / nn, x = a[0] + (b[0] - a[0]) * s, y = a[1] + (b[1] - a[1]) * s, l = lh * (0.006 + r() * 0.014) * (matId === 'velvet' ? 0.7 : 1);
         t.moveTo(x - nx * l * 0.5, y - ny * l * 0.5); t.lineTo(x + nx * l + (r() - 0.5) * l, y + ny * l + (r() - 0.5) * l);
       }
     }
@@ -729,22 +748,30 @@ function renderLayer(L, k) {
   if (mat.cloud) overlayTex(t, 'cloud', CW, CH, ts * 1.4, mat.cloud, 'destination-out');
   // 7. 捲起一角：把角擦掉，畫翻起來的背面
   if (geom.flap) {
-    const { A, B, Cc } = geom.flap, big = lh * 2;
+    const { A, B, Cc, sx, sy } = geom.flap, big = lh * 2;
     toPx();
     t.globalCompositeOperation = 'destination-out';
-    t.beginPath(); t.moveTo(A[0], A[1]); t.lineTo(A[0] + (A[0] - B[0]) * 0.02, -big); t.lineTo(big, -big); t.lineTo(big, B[1] + (B[1] - A[1]) * 0.02); t.lineTo(B[0], B[1]); t.closePath(); t.fill();
+    t.beginPath(); t.moveTo(A[0], A[1]); t.lineTo(A[0], sy * big); t.lineTo(sx * big, sy * big); t.lineTo(sx * big, B[1]); t.lineTo(B[0], B[1]); t.closePath(); t.fill();
     const vx = B[0] - A[0], vy = B[1] - A[1], L2 = vx * vx + vy * vy, tt = ((Cc[0] - A[0]) * vx + (Cc[1] - A[1]) * vy) / L2;
     const Mp = [A[0] + vx * tt, A[1] + vy * tt], Cr = [2 * Mp[0] - Cc[0], 2 * Mp[1] - Cc[1]], Cs = [Mp[0] + (Cr[0] - Mp[0]) * 0.72, Mp[1] + (Cr[1] - Mp[1]) * 0.72];
-    const under = matId === 'cloth' ? '#d9d4c9' : matId === 'velvet' || matId === 'linen' || matId === 'cotton' ? mix(base, '#cfc8bb', 0.55) : matId === 'plastic' ? base : mix(base, '#ffffff', 0.42);
+    const under = matId === 'cloth' ? '#d9d4c9' : matId === 'velvet' || matId === 'linen' || matId === 'cotton' ? mix(base, '#cfc8bb', 0.4) : matId === 'plastic' ? base : mix(base, '#ffffff', 0.15);
+    const G = [(A[0] + B[0] + Cs[0]) / 3, (A[1] + B[1] + Cs[1]) / 3], bulge = (p, q) => { const m = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; return [m[0] + (m[0] - G[0]) * 0.18, m[1] + (m[1] - G[1]) * 0.18]; };
+    const c1 = bulge(A, Cs), c2 = bulge(Cs, B);
     t.globalCompositeOperation = 'source-over';
     t.save();
     t.shadowColor = 'rgba(40,28,20,.35)'; t.shadowBlur = lh * 0.08 * k; t.shadowOffsetX = -lh * 0.02 * k; t.shadowOffsetY = lh * 0.03 * k;
     t.globalAlpha = matId === 'plastic' ? 0.6 : 1;
-    t.beginPath(); t.moveTo(A[0], A[1]); t.quadraticCurveTo((A[0] + Cs[0]) / 2 + lh * 0.03, (A[1] + Cs[1]) / 2 + lh * 0.02, Cs[0], Cs[1]);
-    t.quadraticCurveTo((B[0] + Cs[0]) / 2 + lh * 0.02, (B[1] + Cs[1]) / 2 - lh * 0.01, B[0], B[1]); t.closePath();
+    t.beginPath(); t.moveTo(A[0], A[1]); t.quadraticCurveTo(c1[0], c1[1], Cs[0], Cs[1]);
+    t.quadraticCurveTo(c2[0], c2[1], B[0], B[1]); t.closePath();
     t.fillStyle = under; t.fill();
     t.restore();
     t.save(); t.clip();
+    // 背面透出鏡像的花紋（35%）：以折線 AB 為軸翻過去
+    if (kind !== 'plain') {
+      const L = sqrt(L2), ux = vx / L, uy = vy / L, a = ux * ux - uy * uy, b = 2 * ux * uy, d = -a;
+      t.save(); t.globalAlpha = 0.35; t.transform(a, b, b, d, A[0] - (a * A[0] + b * A[1]), A[1] - (b * A[0] + d * A[1]));
+      t.drawImage(P, -CW / (2 * k), -CH / (2 * k), CW / k, CH / k); t.restore();
+    }
     const g = t.createLinearGradient(Mp[0], Mp[1], Cs[0], Cs[1]);
     g.addColorStop(0, 'rgba(30,20,12,.32)'); g.addColorStop(0.25, 'rgba(255,255,255,.35)'); g.addColorStop(0.6, 'rgba(255,255,255,.08)'); g.addColorStop(1, 'rgba(30,20,12,.12)');
     t.fillStyle = g; t.fillRect(-big, -big, big * 2, big * 2);
@@ -765,8 +792,9 @@ function resolve(o) {
   const cw = p.colorways.find((c) => c[0] === color && (!o.color2 || c[1] === o.color2)) || p.colorways.find((c) => c[0] === color) || p.colors;
   const ink = o.color2 || (cw[0] === color ? cw[1] : p.colors[1]) || color;
   const cols = [color, ink, ...cw.slice(2)];
-  if (p.kind === 'rainbow') cols.splice(0, cols.length, ...p.colors);
+  if (p.kind === 'rainbow') cols.splice(0, cols.length, ...(cw[0] === color ? cw : p.colors));
   const material = MAT[o.material] ? o.material : 'washi';
+  if (MAT[material].sat) cols[0] = saturate(cols[0], MAT[material].sat); // 塑膠：顏色飽和、不要灰霧
   return { p, cols, material };
 }
 function render(o, w, h, k) {

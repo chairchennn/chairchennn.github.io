@@ -510,70 +510,19 @@ export const ART_FR_JP = [...FRENCH, ...FRENCH_V10, ...JAPAN, ...JAPAN_V10];
 // 只用三色：黑墨線、朱紅 'R'、粉藍 'B'（'M' = 主色，預設朱紅或粉藍，可換）；色塊故意偏出線外。
 // 全部原創造型；不畫真實人物、肖像、名畫，也不畫國旗（用三色緞帶代替）。
 const fi = (id, name, color, parts, vb) => ({ id, name, cat: 'french', style: 'ink', color, ...(vb ? { vb } : {}), parts });
-const IK = (d, w = 2.2) => ({ d, s: 'K', w }); // 墨線
-const IT = (d, w = 1.4) => ({ d, s: 'K', w, even: true }); // 細而均勻（字、格線）
+// 審查後：沾水筆的細線（參考圖 27）：預設 1.3，最粗 1.8；舊的數字一起按比例縮細
+const IK = (d, w = 2.2) => ({ d, s: 'K', w: Math.min(1.8, w * 0.6) }); // 墨線
+const IT = (d, w = 1.4) => ({ d, s: 'K', w: w * 0.8, even: true }); // 細而均勻（字、格線）
 const IF = (d, c = 'M') => ({ d, f: c }); // 色塊
 const IR = '#E8553A', IB = '#86B4E3';
-// 沿著波浪線的緞帶，分成 k 條平行色帶
-function ribbonBands(fx, fy, x0, x1, w, cols) {
-  const N = 40, P = Array.from({ length: N + 1 }, (_, i) => { const x = x0 + ((x1 - x0) * i) / N; return [x, fy(x)]; });
-  const nrm = P.map((p, i) => { const a = P[max(0, i - 1)], b = P[min(N, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], m = hypot(dx, dy); return [-dy / m, dx / m]; });
-  const off = (o) => P.map((p, i) => [p[0] + nrm[i][0] * o, p[1] + nrm[i][1] * o]);
-  const k = cols.length, bands = [];
-  for (let j = 0; j < k; j++) {
-    const a = off(-w / 2 + (w * j) / k), b = off(-w / 2 + (w * (j + 1)) / k);
-    bands.push(IF(poly([...a, ...b.reverse()]), cols[j]));
-  }
-  const top = off(-w / 2), bot = off(w / 2);
-  return { bands, top: poly(top, false), bot: poly(bot, false), ends: [top[0], bot[0], top[N], bot[N]] };
-}
-const RIB = ribbonBands(null, (x) => 30 + 9 * sin(((x - 6) / 88) * PI * 2.2), 14, 86, 18, ['B', 'W', 'R']);
-// 帽徽外圈的褶子
-const PLEAT = Array.from({ length: 18 }, (_, i) => { const a = (i / 18) * PI * 2; return `M${n(50 + 16 * cos(a))} ${n(36 + 16 * sin(a))}L${n(50 + 23 * cos(a))} ${n(36 + 23 * sin(a))}`; }).join('');
 // 旋轉木馬的頂棚：從尖端放射的紅白條紋
 const CANOPY = [14, 26, 38, 50, 62, 74].filter((_, i) => i % 2 === 0).map((x) => `M50 14L${x} 40L${x + 12} 40Z`).join('');
 const SCALLOP = (x0, x1, y, k, h) => { let d = `M${x0} ${y}`; const step = (x1 - x0) / k; for (let i = 0; i < k; i++) d += `Q${n(x0 + step * (i + 0.5))} ${y + h} ${n(x0 + step * (i + 1))} ${y}`; return d; };
 const horse = (x, y, fl = 1) => `M${x - 8 * fl} ${y}Q${x - 8 * fl} ${y - 5} ${x} ${y - 5}Q${x + 5 * fl} ${y - 5} ${x + 6 * fl} ${y - 11}Q${x + 9 * fl} ${y - 13} ${x + 10 * fl} ${y - 9}L${x + 8 * fl} ${y - 6}Q${x + 8 * fl} ${y + 3} ${x} ${y + 3}Q${x - 8 * fl} ${y + 3} ${x - 8 * fl} ${y}Z`;
 const bars = (x0, x1, y0, y1, step) => { let d = ''; for (let x = x0; x <= x1 + 0.01; x += step) d += `M${n(x)} ${y0}L${n(x)} ${y1}`; return d; };
 
+const blobLeaf = (x, y) => `M${x} ${y + 8}Q${x - 12} ${y + 6} ${x - 10} ${y - 4}Q${x - 6} ${y - 12} ${x} ${y - 8}Q${x + 6} ${y - 12} ${x + 10} ${y - 4}Q${x + 12} ${y + 6} ${x} ${y + 8}Z`;
 export const FRENCH_INK = [
-  fi('fi_eiffel', '鐵塔', IB, [
-    IF('M6 96Q20 70 23 58L27 30L29 10L31 10L33 30L37 58Q40 70 54 96L46 96Q30 72 14 96Z'),
-    IK('M6 96Q20 70 23 58L27 30L29 10M54 96Q40 70 37 58L33 30L31 10M14 96Q30 72 46 96M29 10L30 2L31 10'),
-    IK('M19 58H41M18 54H42M24 32H36', 1.8),
-    IT('M17 64L39 76M43 64L21 76M13 80L28 72M47 80L32 72M24 36L36 48M36 36L24 48M26 52L34 40M34 52L26 40M27 28L33 16M33 28L27 16', 1),
-  ], [60, 100]),
-  fi('fi_pyramid', '玻璃金字塔', IB, [
-    IF('M6 62L50 8L94 62Z'),
-    IK('M6 62L50 8L94 62Z'), IK('M0 64H100', 1.6),
-    IT('M37 24H63M24 40H76M15 52H85M50 8L28 62M50 8L50 62M50 8L72 62M50 8L39 62M50 8L61 62', 1),
-  ], [100, 68]),
-  fi('fi_sacre', '圓頂教堂', IB, [
-    IF('M36 42Q36 18 50 14Q64 18 64 42Z'), IF('M15 52Q15 38 23 34Q31 38 31 52Z'), IF('M69 52Q69 38 77 34Q85 38 85 52Z'),
-    IF('M44 92V76Q44 68 50 68Q56 68 56 76V92Z'),
-    IK('M36 42Q36 18 50 14Q64 18 64 42M15 52Q15 38 23 34Q31 38 31 52M69 52Q69 38 77 34Q85 38 85 52'),
-    IK('M38 42V58M62 42V58M34 42H66M17 52V60M29 52V60M71 52V60M83 52V60M14 52H32M68 52H86M12 60H88V92H12ZM8 92H92'),
-    IK('M48 14V8H52V14M50 8V2M47 4.5H53', 1.6),
-    IK('M44 92V76Q44 68 50 68Q56 68 56 76V92M20 84V74Q20 70 24 70Q28 70 28 74V84M72 84V74Q72 70 76 70Q80 70 80 74V84M42 54V48Q42 46 44 46Q46 46 46 48V54M54 54V48Q54 46 56 46Q58 46 58 48V54', 1.6),
-  ]),
-  fi('fi_arc', '凱旋門', IB, [
-    IF('M14 28H86V94H66V60Q66 44 50 44Q34 44 34 60V94H14Z'),
-    IK('M10 18H90V28H10ZM14 28V94M86 28V94M34 94V60Q34 44 50 44Q66 44 66 60V94M6 94H94'),
-    IK('M14 36H86M19 62H29V84H19ZM71 62H81V84H71Z', 1.6),
-    IT('M22 66Q24 72 22 78Q26 76 27 70M74 66Q76 72 74 80Q78 74 78 68M40 31H60', 1),
-  ]),
-  fi('fi_sign', '街牌', IB, [
-    IF('M8 16H92V62H8Z'),
-    IK('M8 16H92V62H8Z'),
-    { d: 'M14 28H86V56H14Z', s: 'W', w: 1.2, even: true },
-    { d: 'M28 52L30 33Q40 31 40 38Q39 44 30 43M48 41Q42 39 41 45Q41 51 46 50Q49 48 49 41L50 51M54 51L54 41M54 45Q56 40 60 41M64 42L64 51M64 36.5L64.4 37M73 42Q68 40 67 43Q67 46 71 46.5Q74 47.5 73 50Q71 52 66 50', s: 'W', w: 2.6 },
-  ], [100, 70]),
-  fi('fi_cockade', '三色帽徽', IR, [
-    IF('M44 54L34 92L40 87L44 94L53 58Z', 'B'), IF('M56 54L66 90L60 86L56 93L47 58Z', 'R'),
-    IF(circ(50, 36, 24) + circ(50, 36, 15), 'R'), IF(circ(50, 36, 15) + circ(50, 36, 8), 'W'), IF(circ(50, 36, 8), 'B'),
-    IK('M44 54L34 92L40 87L44 94L51 62M56 54L66 90L60 86L56 93L49 62', 1.8),
-    IK(circ(50, 36, 24)), IK(circ(50, 36, 8), 1.6), IT(PLEAT, 0.9),
-  ]),
   fi('fi_car', '老爺車', IR, [
     IF('M10 50Q10 40 20 38L30 38Q34 22 48 20L64 20Q72 22 76 36L88 40Q94 42 94 50L94 54H10Z'),
     IF('M36 36Q38 26 48 25H52V36Z', 'W'), IF('M56 36V25H62Q68 26 70 36Z', 'W'),
@@ -582,6 +531,51 @@ export const FRENCH_INK = [
     IK('M36 36Q38 26 48 25H52V36ZM56 36V25H62Q68 26 70 36ZM54 38V52M46 42H50M14 45Q20 42 24 46', 1.6),
     IF(circ(91, 44, 3), 'B'), IK(circ(91, 44, 3), 1.4),
   ], [100, 66]),
+  // 第九版審查後：生活小物（取代地標、街牌、帽徽、緞帶，不和參考圖 27 的題材重疊）
+  fi('fi_breadbasket', '麵包籃', IR, [
+    IF('M14 40H86L78 76H22Z'), IF(ell(38, 36, 17, 9), 'W'),
+    IK('M22 40Q50 2 78 40', 1.6), IK('M54 40L82 14Q88 12 87 19L62 42'), IT('M64 33L69 26M70 28L75 21M76 23L80 18', 1),
+    IK(ell(38, 36, 17, 9)), IT('M30 32L34 38M38 30L42 36M46 31L48 36', 1),
+    IK('M14 40H86L78 76H22Z'), IT('M17 52H83M20 64H80M30 40L32 76M42 40V76M54 40V76M66 40L64 76', 0.9),
+  ], [100, 80]),
+  fi('fi_cheese', '起司', IB, [
+    IF(ell(50, 80, 42, 8)),
+    IF('M12 62L66 34L88 46V74L12 78Z', 'W'), IF('M12 62L66 34L88 46Z', 'R'),
+    IK('M12 62L66 34L88 46V74L12 78ZM12 62L88 46'),
+    IK(ell(30, 70, 4, 3) + ell(52, 64, 5, 3.6) + ell(74, 64, 3.5, 2.6) + ell(62, 72, 3, 2.2), 1.1),
+    IK(ell(50, 80, 42, 8), 1.4),
+  ], [100, 92]),
+  fi('fi_newspaper', '報紙', IB, [
+    IF('M18 14L82 20L78 88L14 82Z', 'W'), IF('M24 38L50 40L49 60L23 58Z'), IF('M20 21L77 26L76.5 31L19.5 26Z', 'K'),
+    IK('M18 14L82 20L78 88L14 82Z'), IK('M24 38L50 40L49 60L23 58Z', 1.2),
+    IT('M56 41L74 43M56 47L74 49M56 53L73 55M56 59L74 61M22 66L72 70M22 72L60 75M21 78L70 82M23 34L40 35.5', 0.9),
+    { d: 'M60 30L76 31.5', s: 'R', w: 1.6 },
+  ]),
+  fi('fi_stamp', '郵票', IR, [
+    IF((() => { let d = 'M20 14'; for (let x = 20; x < 80; x += 6) d += `Q${x + 3} 18 ${x + 6} 14`; for (let y = 14; y < 86; y += 6) d += `Q76 ${y + 3} 80 ${y + 6}`; for (let x = 80; x > 20; x -= 6) d += `Q${x - 3} 82 ${x - 6} 86`; for (let y = 86; y > 14; y -= 6) d += `Q24 ${y - 3} 20 ${y - 6}`; return d + 'Z'; })(), 'W'),
+    IF('M28 22H72V70H28Z', 'B'), IF(circ(50, 42, 6) + circ(42, 48, 5) + circ(58, 48, 5) + circ(46, 56, 5) + circ(55, 56, 5)),
+    IK((() => { let d = 'M20 14'; for (let x = 20; x < 80; x += 6) d += `Q${x + 3} 18 ${x + 6} 14`; for (let y = 14; y < 86; y += 6) d += `Q76 ${y + 3} 80 ${y + 6}`; for (let x = 80; x > 20; x -= 6) d += `Q${x - 3} 82 ${x - 6} 86`; for (let y = 86; y > 14; y -= 6) d += `Q24 ${y - 3} 20 ${y - 6}`; return d + 'Z'; })(), 1.2),
+    IK('M28 22H72V70H28Z', 1.2), IK('M50 58V68M50 62Q56 60 58 64', 1),
+    IT('M56 72Q64 68 72 72Q80 76 88 72M56 78Q64 74 72 78Q80 82 88 78', 1),
+  ]),
+  fi('fi_flowerbucket', '花店水桶', IB, [
+    IF('M28 56H72L66 92H34Z'),
+    IF(circ(34, 22, 6) + circ(48, 14, 6) + circ(62, 20, 6) + circ(72, 32, 5), 'R'), IF(circ(26, 36, 5) + circ(56, 30, 5), 'W'),
+    IK('M34 26L40 56M48 20L48 56M62 26L56 56M72 36L62 56M26 40L36 56M56 34L52 56', 1.2),
+    IK(circ(34, 22, 6) + circ(48, 14, 6) + circ(62, 20, 6) + circ(72, 32, 5) + circ(26, 36, 5) + circ(56, 30, 5), 1.1),
+    IK('M28 56H72L66 92H34ZM26 56H74M30 70H70', 1.6), IK('M40 64Q50 60 60 64', 1),
+  ]),
+  fi('fi_windowpot', '窗台盆栽', IR, [
+    IF('M32 62H68L62 90H38Z'), IF(circ(38, 30, 5) + circ(44, 24, 5) + circ(58, 22, 5) + circ(64, 30, 5) + circ(51, 18, 4.4), 'R'),
+    IF(blobLeaf(30, 48) + blobLeaf(70, 46) + blobLeaf(50, 40), 'B'),
+    IK(blobLeaf(30, 48) + blobLeaf(70, 46) + blobLeaf(50, 40), 1.1), IK('M42 32L48 58M58 30L54 58M51 22V58', 1),
+    IK('M30 62H70V67H30ZM33 67L38 90H62L67 67', 1.6), IK('M8 92H92M8 96H92', 1.4),
+  ]),
+  fi('fi_key', '舊鑰匙', IR, [
+    IF('M66 28L88 22L92 38L70 44Z'),
+    IK(circ(22, 30, 14) + circ(22, 30, 6)), IK('M36 30H66M56 30V40H60V34M64 30V38', 1.5),
+    IK('M66 28L88 22L92 38L70 44ZM62 30Q64 33 68 34', 1.3), IF(circ(70, 32, 1.6), 'K'),
+  ], [100, 60]),
   fi('fi_baguette', '紙袋麵包', IR, [
     IF('M33 48H41L40 94H34ZM49 48H57V94H49ZM65 48H73L72 94H66Z'),
     IK(`${'M40 50Q30 30 34 10Q40 6 44 12Q50 30 46 50'}M36 20L42 16M36 30L44 26M38 40L45 36`),
@@ -648,14 +642,6 @@ export const FRENCH_INK = [
     IT('M30 22V34M40 22V34M50 22V34M60 22V34M70 22V34', 1.1),
     IK('M4 56Q12 52 20 56Q28 60 36 56M52 58Q60 54 68 58Q76 62 84 58', 1.4),
   ], [100, 64]),
-  fi('fi_ribbon', '三色緞帶', IB, [
-    ...RIB.bands,
-    IF(`M${n(RIB.ends[0][0])} ${n(RIB.ends[0][1])}L4 ${n(RIB.ends[0][1] - 2)}L10 ${n((RIB.ends[0][1] + RIB.ends[1][1]) / 2)}L4 ${n(RIB.ends[1][1] + 2)}L${n(RIB.ends[1][0])} ${n(RIB.ends[1][1])}Z`, 'B'),
-    IF(`M${n(RIB.ends[2][0])} ${n(RIB.ends[2][1])}L96 ${n(RIB.ends[2][1] - 2)}L90 ${n((RIB.ends[2][1] + RIB.ends[3][1]) / 2)}L96 ${n(RIB.ends[3][1] + 2)}L${n(RIB.ends[3][0])} ${n(RIB.ends[3][1])}Z`, 'R'),
-    IK(RIB.top), IK(RIB.bot),
-    IK(`M${n(RIB.ends[0][0])} ${n(RIB.ends[0][1])}L4 ${n(RIB.ends[0][1] - 2)}L10 ${n((RIB.ends[0][1] + RIB.ends[1][1]) / 2)}L4 ${n(RIB.ends[1][1] + 2)}L${n(RIB.ends[1][0])} ${n(RIB.ends[1][1])}`, 1.6),
-    IK(`M${n(RIB.ends[2][0])} ${n(RIB.ends[2][1])}L96 ${n(RIB.ends[2][1] - 2)}L90 ${n((RIB.ends[2][1] + RIB.ends[3][1]) / 2)}L96 ${n(RIB.ends[3][1] + 2)}L${n(RIB.ends[3][0])} ${n(RIB.ends[3][1])}`, 1.6),
-  ], [100, 60]),
   fi('fi_macaron', '馬卡龍', IB, [
     ...[[34, 'B'], [56, 'R'], [78, 'B']].flatMap(([y, c]) => [
       IF(`M26 ${y}Q26 ${y - 12} 50 ${y - 12}Q74 ${y - 12} 74 ${y}ZM26 ${y + 6}H74Q74 ${y + 13} 50 ${y + 13}Q26 ${y + 13} 26 ${y + 6}Z`, c),
@@ -712,9 +698,9 @@ export const FRENCH_INK = [
     IK('M12 28H88V78H12ZM12 28L50 54L88 28'), IK('M68 32H82V48H68Z', 1.3),
     IT('M60 40Q64 36 68 40M58 46Q62 42 66 46M16 70L36 54M84 70L64 54', 1),
   ]),
-  fi('fi_paris', '手寫 Paris', IR, [
+  fi('fi_paris', '手寫 Paris', IR, [ // noFlip（見下方）
     IK('M10 50L13 12Q32 9 31 22Q30 33 14 31M47 31Q36 27 34 37Q32 47 39 46Q46 44 47 31L48 47M56 47L56 31M56 38Q59 30 67 31M72 32L72 47M90 32Q82 28 80 34Q79 39 85 39.5Q91 41 89 45Q86 49 78 46', 2.4),
-    IF(heartD(72, 22, 9), 'M'), { d: 'M8 56Q50 51 94 56', s: 'M', w: 2 },
+    IF(heartD(72, 22, 9), 'M'), { d: 'M8 56Q50 51 94 56', s: 'M', w: 1.2 },
   ], [100, 62]),
   fi('fi_cafe', '手寫 café', IB, [
     IK('M26 30Q16 25 12 34Q9 45 17 47Q23 48 27 43M46 31Q35 27 32 37Q30 47 37 46Q44 44 46 31L47 47M66 12Q57 9 57 20L55 56M50 30L64 29M72 38L88 37Q88 27 80 27Q71 28 71 37Q71 47 80 47Q86 47 89 42M78 21L84 13', 2.4),
@@ -724,7 +710,7 @@ export const FRENCH_INK = [
     IF('M20 60Q22 40 40 40Q46 28 56 30Q64 32 64 40L72 42L64 46Q70 56 88 58Q70 74 46 72Q26 72 20 60Z'),
     IK('M20 60Q22 40 40 40Q46 28 56 30Q64 32 64 40L72 42L64 46Q70 56 88 58Q70 74 46 72Q26 72 20 60Z'),
     IK('M34 52Q46 46 60 56Q52 62 40 60', 1.5), IF(circ(57, 37, 1.8), 'K'),
-    { d: 'M44 72L42 84L38 86M42 84L46 86M52 72L54 84L50 86M54 84L58 86', s: 'R', w: 1.8 },
+    { d: 'M44 72L42 84L38 86M42 84L46 86M52 72L54 84L50 86M54 84L58 86', s: 'R', w: 1.1 },
   ]),
   fi('fi_bridge', '石橋', IB, [
     IF('M0 64Q10 60 20 64Q30 68 40 64Q50 60 60 64Q70 68 80 64Q90 60 100 64V74H0Z'),
@@ -735,9 +721,11 @@ export const FRENCH_INK = [
 ];
 // 侵權審查：地標不要連成一排（避免看起來像參考圖的物件清單），和生活小物交錯排
 {
-  const order = ['fi_croissant', 'fi_eiffel', 'fi_coffee', 'fi_bike', 'fi_beret', 'fi_sacre', 'fi_macaron', 'fi_lamp', 'fi_bouquet', 'fi_arc',
-    'fi_umbrella', 'fi_balcony', 'fi_cockade', 'fi_letter', 'fi_baguette', 'fi_pyramid', 'fi_chair', 'fi_mariniere', 'fi_carousel', 'fi_sign',
-    'fi_wine', 'fi_boat', 'fi_car', 'fi_ribbon', 'fi_awning', 'fi_perfume', 'fi_column', 'fi_books', 'fi_paris', 'fi_cafe', 'fi_pigeon', 'fi_bridge'];
+  const order = ['fi_croissant', 'fi_carousel', 'fi_coffee', 'fi_bike', 'fi_beret', 'fi_balcony', 'fi_macaron', 'fi_lamp', 'fi_bouquet', 'fi_awning',
+    'fi_umbrella', 'fi_stamp', 'fi_breadbasket', 'fi_letter', 'fi_baguette', 'fi_column', 'fi_chair', 'fi_mariniere', 'fi_cheese', 'fi_windowpot',
+    'fi_wine', 'fi_boat', 'fi_car', 'fi_key', 'fi_newspaper', 'fi_perfume', 'fi_flowerbucket', 'fi_books', 'fi_paris', 'fi_cafe', 'fi_pigeon', 'fi_bridge'];
+  // 有字的貼圖不能左右翻
+  for (const d of FRENCH_INK) if (d.id === 'fi_paris' || d.id === 'fi_cafe') d.noFlip = true;
   const rank = (d) => { const i = order.indexOf(d.id); return i < 0 ? 999 : i; };
   FRENCH_INK.sort((a, b) => rank(a) - rank(b));
 }

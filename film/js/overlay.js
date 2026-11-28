@@ -137,41 +137,43 @@ export function drawOverlay(kind, ctx, W, H, o, date) {
     drawStipple(ctx, W, H, { seed: o.seed, motifs });
   } else if (kind === 'printgrid') {
     // 版畫方格（第九版）：奶油紙上一格一格交錯印——墨色格挖出植物、紙色格印上植物，格與格之間留細紙縫（參考圖 11、13、32）。
-    // 排成「方格牆」：直式照片貼在一側（2–4 欄），橫式照片排成上下兩條帶（1–3 列）；數量多就真的多排、再多就換另一側、最後才縮小格子。
-    // 避開相機日期；主角（中間）留白。
-    const n = Math.max(1, Math.min(60, o.count || 4)), ink = INKS[Math.floor((o.seed || 1) % INKS.length)];
+    // 排成「方格牆」：直式照片貼在一側（最多 2 欄），橫式照片排在上或下（最多 2 列）；放不下才開另一側的第二面牆。
+    // 方格總面積不超過畫面 30%（超過就只用一面牆，不開第二面）。避開相機日期：碰到日期的那一排整排不放、牆就停在那裡（不會在一排中間留洞）。
+    const n = Math.max(1, Math.min(16, o.count || 4)), ink = INKS[Math.floor((o.seed || 1) % INKS.length)];
     const vertical = W <= H * 1.15;
     const margin = S * 0.03;
     const dateRight = date ? date.x0 > 0.5 : (o.seed || 1) % 2 === 1, dateBottom = date ? date.y0 > 0.5 : true;
     // 方向：along＝沿著邊排的方向，depth＝往照片中間長的方向
-    const lenAlong = vertical ? H : W, lenDepth = vertical ? W : H, depthMax = vertical ? 0.42 : 0.44;
-    let tile = S * 0.17 * sc, gap = tile * 0.06;
-    const fit = (t) => {
-      const g = t * 0.06, along = Math.floor((lenAlong - 2 * margin + g) / (t + g)), depth = Math.max(1, Math.min(vertical ? 4 : 3, Math.floor((lenDepth * depthMax - margin + g) / (t + g))));
-      return { along, depth, cap: along * depth };
+    const lenAlong = vertical ? H : W, lenDepth = vertical ? W : H;
+    const tile = S * 0.17 * sc, gap = tile * 0.06;
+    const F = {
+      along: Math.max(1, Math.floor((lenAlong - 2 * margin + gap) / (tile + gap))),
+      depth: Math.max(1, Math.min(2, Math.floor((lenDepth * 0.42 - margin + gap) / (tile + gap)))),
     };
-    let F = fit(tile);
-    while (n > 2 * F.cap && tile > S * 0.07) { tile *= 0.94; F = fit(tile); }
-    gap = tile * 0.06;
-    // 一面牆放幾格：少的時候一面（排成 2×2、2×3…），多了兩面平分
-    const walls = n <= Math.max(4, F.cap * 0.75) ? [Math.min(n, F.cap)] : [Math.ceil(n / 2), Math.floor(n / 2)].map((m) => Math.min(m, F.cap));
+    F.cap = F.along * F.depth;
+    const areaCap = Math.max(1, Math.floor((0.3 * W * H) / ((tile + gap) * (tile + gap))));
+    const walls = n <= F.cap ? [Math.min(n, areaCap)]
+      : n <= areaCap ? [Math.ceil(n / 2), Math.floor(n / 2)].map((m) => Math.min(m, F.cap))
+        : [Math.min(F.cap, areaCap)];
+    const hitDate = (x, y) => dateRect && x < dateRect[0] + dateRect[2] + gap && x + tile > dateRect[0] - gap && y < dateRect[1] + dateRect[3] + gap && y + tile > dateRect[1] - gap;
     const cells = [];
     walls.forEach((m, wi) => {
-      // 這面牆的深度（欄數）：大約是方的，至少兩排（4 格以上）
-      let d = Math.round(Math.sqrt(m * 0.55));
-      d = Math.max(m >= 4 ? 2 : 1, d, Math.ceil(m / F.along));
-      d = Math.min(d, F.depth);
+      // 這面牆的深度：4 格以上就兩排
+      const d = Math.min(F.depth, Math.max(m >= 4 ? 2 : 1, Math.ceil(m / F.along)));
       const sideA = wi === 0; // 第一面牆在沒有日期的那側
       const farSide = vertical ? (sideA ? dateRight : !dateRight) : (sideA ? dateBottom : !dateBottom); // true＝靠左／靠上
       const fromStart = vertical ? (sideA ? dateBottom : !dateBottom) : (sideA ? dateRight : !dateRight); // 沿邊從上（左）開始排
       let k = 0;
-      for (let a = 0; a < F.along && k < m; a++) for (let j = 0; j < d && k < m; j++) {
-        const alongPos = margin + a * (tile + gap), depthPos = margin + j * (tile + gap);
-        const ap = fromStart ? alongPos : lenAlong - alongPos - tile, dp = farSide ? depthPos : lenDepth - depthPos - tile;
-        const x = vertical ? dp : ap, y = vertical ? ap : dp;
-        if (dateRect && x < dateRect[0] + dateRect[2] + gap && x + tile > dateRect[0] - gap && y < dateRect[1] + dateRect[3] + gap && y + tile > dateRect[1] - gap) continue;
-        cells.push({ x, y, par: (a + j + wi) % 2 });
-        k++;
+      for (let a = 0; a < F.along && k < m; a++) {
+        const row = [];
+        for (let j = 0; j < d && k + row.length < m; j++) {
+          const alongPos = margin + a * (tile + gap), depthPos = margin + j * (tile + gap);
+          const ap = fromStart ? alongPos : lenAlong - alongPos - tile, dp = farSide ? depthPos : lenDepth - depthPos - tile;
+          row.push({ x: vertical ? dp : ap, y: vertical ? ap : dp, par: (a + j + wi) % 2 });
+        }
+        if (row.some((c) => hitDate(c.x, c.y))) break; // 碰到日期：這面牆到此為止
+        cells.push(...row);
+        k += row.length;
       }
     });
     if (cells.length) {

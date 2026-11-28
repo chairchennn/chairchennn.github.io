@@ -95,9 +95,11 @@ function inkStroke(ctx, d, w, col, r, nz, even) {
       const j = even ? 0.25 : 0.45;
       const x = p[0] + nz(s * 0.05 + ph) * j, y = p[1] + nz(s * 0.05 + ph + 31) * j;
       // 粗細：毛筆的按壓起伏＋頭尾收筆
-      const head = Math.min(1, (s + 0.6) / Math.min(6, tot * 0.3)), tail = Math.min(1, (tot - s + 0.6) / Math.min(8, tot * 0.35));
+      // 沾水筆：落筆稍細、很快到全寬；最後 40% 慢慢收到 0.3（參考圖 27 的細尾）
+      const u = s / tot;
+      const head = u < 0.1 ? 0.45 + 0.55 * (u / 0.1) : 1, tail = u > 0.6 ? 1 - 0.7 * ((u - 0.6) / 0.4) : 1;
       const vary = even ? 1 : press * (0.82 + 0.3 * nz(s * 0.09 + ph + 7));
-      const hw = (w / 2) * vary * (even ? 1 : 0.45 + 0.55 * Math.min(head, tail));
+      const hw = (w / 2) * vary * (even ? 1 : Math.min(head, tail));
       left.push([x + nx * hw, y + ny * hw]);
       right.push([x - nx * hw, y - ny * hw]);
     });

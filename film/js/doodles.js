@@ -73,7 +73,7 @@ export const PACKS = {
     medium: {
       fl_daisy: 1, fl_cosmos: 1, fl_round: 0.8, fl_tulip: 1, fl_ginkgo: 1, fl_poppy: 1, fl_anemone: 1, fl_hydrangea: 1, fl_sunflower: 1,
       fl_rosebud: 1, fl_chamomile: 1, fl_lupine: 1, fl_berries: 1, fl_monstera: 0.8,
-      fl_cornflower: 1, fl_peony: 1, fl_magnolia: 1, fl_clematis: 1, fl_daffodil: 1,
+      fl_cornflower: 1, fl_peony: 1, fl_magnolia: 1, fl_clematis: 1, fl_daffodil: 1, fl_violet: 1,
     },
     large: { fl_sprig: 1, fl_bunch: 1, fl_fern: 0.8, fl_starbranch: 1, fl_eucalyptus: 1, fl_lavender: 1, fl_mimosa: 1, fl_monstera: 1, fl_grass: 0.8, fl_lupine: 0.8, fl_berries: 0.8, fl_peony: 0.8, fl_magnolia: 0.8 },
   },
@@ -135,18 +135,20 @@ export const PACKS = {
       cr2_whale: 1, cr2_fuji: 1, cr2_twocats: 1, cr2_camp: 1, cr2_wave: 1, cr2_sleepcat: 1, cr2_teacup: 1, cr3_tree: 1, cr3_snail: 1,
     },
   },
-  // 法式手繪（第九版）：黑墨線＋朱紅／粉藍套色（style: 'ink'，參考圖 27 的畫法、29 的剪紙底）；'M' 是主色版
+  // 法式手繪（第九版）：細墨線＋朱紅／粉藍套色（style: 'ink'，參考圖 27 的畫法、29 的剪紙底）；'M' 是主色版
+  // 審查後：不放地標，改成生活小物；大小差距不到 2 倍（參考圖 28）
   french: {
-    name: '法式手繪', glow: 0, noGlow: true, lw: 0.009,
-    sizes: { small: [0.09, 0.11], medium: [0.12, 0.15], large: [0.17, 0.21] },
+    name: '法式手繪', glow: 0, noGlow: true, lw: 0.011, largeExtra: 0,
+    sizes: { small: [0.1, 0.12], medium: [0.12, 0.14], large: [0.15, 0.17] },
     colors: ['#E8553A', '#86B4E3'], recolor: 0.35,
-    small: { fi_croissant: 1, fi_macaron: 1, fi_beret: 1, fi_cockade: 1, fi_pigeon: 1, fi_coffee: 0.8, fi_paris: 0.8, fi_cafe: 0.8, fi_letter: 0.8, fi_perfume: 0.8, fi_ribbon: 0.8 },
+    small: { fi_croissant: 1, fi_macaron: 1, fi_beret: 1, fi_stamp: 1, fi_pigeon: 1, fi_coffee: 0.8, fi_paris: 0.8, fi_cafe: 0.8, fi_letter: 0.8, fi_perfume: 0.8, fi_key: 1 },
     medium: {
       fi_baguette: 1, fi_wine: 1, fi_coffee: 1, fi_mariniere: 1, fi_bike: 1, fi_car: 1, fi_umbrella: 1, fi_chair: 1, fi_books: 1, fi_bouquet: 1,
-      fi_perfume: 1, fi_sign: 1, fi_pyramid: 1, fi_boat: 1, fi_lamp: 1, fi_paris: 1, fi_cafe: 1, fi_ribbon: 1, fi_pigeon: 1, fi_letter: 1,
+      fi_perfume: 1, fi_newspaper: 1, fi_cheese: 1, fi_boat: 1, fi_lamp: 1, fi_paris: 1, fi_cafe: 1, fi_key: 1, fi_pigeon: 1, fi_letter: 1,
+      fi_breadbasket: 1, fi_flowerbucket: 1, fi_windowpot: 1, fi_stamp: 1,
     },
-    large: { fi_eiffel: 1.2, fi_sacre: 1, fi_arc: 1, fi_carousel: 1, fi_balcony: 1, fi_awning: 1, fi_column: 1, fi_bridge: 1, fi_pyramid: 0.8, fi_car: 0.6 },
-    max: { fi_eiffel: 1, fi_sacre: 1, fi_arc: 1, fi_carousel: 1, fi_balcony: 1, fi_awning: 1, fi_column: 1, fi_bridge: 1, fi_paris: 1, fi_cafe: 1, fi_sign: 1 },
+    large: { fi_carousel: 1, fi_balcony: 1, fi_awning: 1, fi_column: 1, fi_bridge: 1, fi_breadbasket: 1, fi_flowerbucket: 1, fi_windowpot: 1, fi_car: 0.6 },
+    max: { fi_carousel: 1, fi_balcony: 1, fi_awning: 1, fi_column: 1, fi_bridge: 1, fi_paris: 1, fi_cafe: 1 },
   },
   // 日式手繪（第八版）：木版畫色塊（招財貓、鯉魚、飯糰臉不放）
   japan: {
@@ -265,6 +267,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
   // 「最佳候選」取樣：找幾個合格位置，挑離其他塗鴉最遠的 → 平均、留白
   // tol：允許和別的塗鴉稍微重疊的比例（只在重新安置時用）
   const bleed = pack.bleed ?? 0.45;
+  let wantHalf = null; // 「上下」排列：前四個上下輪流放，數量少時天空也一定有圖案
   const tryPlace = (size, region, rand = r, tol = 0, tries = 160) => {
     const rad = (size / 2) * 0.82;
     const mx = Math.min(0.45, (size * bleed) / sx), my = Math.min(0.45, (size * bleed) / sy);
@@ -273,6 +276,7 @@ export function generateDoodles(o, aspect, avoidBox = null) {
       const x = region ? region.x0 + rand() * (region.x1 - region.x0) : mx + rand() * (1 - 2 * mx);
       const y = region ? region.y0 + rand() * (region.y1 - region.y0) : my + rand() * (1 - 2 * my);
       if (!region && rand() > fn(x, y, sx, sy)) continue;
+      if (wantHalf && (wantHalf === 'top' ? y > 0.5 : y < 0.5)) continue;
       const X = x * sx, Y = y * sy;
       if (hitsAvoid(X, Y, size * 0.7)) continue;
       let gap = Infinity;
@@ -326,14 +330,17 @@ export function generateDoodles(o, aspect, avoidBox = null) {
       const size = (lo + r() * (hi - lo)) * scale;
       const [vw, vh] = stickerBox(def);
       const anchor = pack.anchors?.[id];
-      const pos = anchor === 'bottom' ? placeBottom(size, vh, vw) : tryPlace(size);
+      wantHalf = o.layout === 'band' && !anchor && slots.length < 4 ? (slots.length % 2 ? 'bottom' : 'top') : null;
+      let pos = anchor === 'bottom' ? placeBottom(size, vh, vw) : tryPlace(size);
+      if (!pos && wantHalf) { wantHalf = null; pos = tryPlace(size); }
+      wantHalf = null;
       if (!pos) { tried.add(id); continue; }
       used.set(id, (used.get(id) || 0) + 1);
       const loose = def.cat === 'flora' || vh / vw < 0.7;
       slots.push({ spot: pos.spot, size, anchor, vh, vw,
         item: {
           kind: 'svg', id, color: colorFor(r, def, pack), x: pos.x, y: pos.y, size, seed: 1 + Math.floor(r() * 99999),
-          rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: r() < 0.35, lw: pack.lw, glow,
+          rot: anchor ? 0 : (r() - 0.5) * (loose ? 1.1 : 0.55), flip: !def.noFlip && r() < 0.35, lw: pack.lw, glow, // 有字的貼圖（noFlip）不翻
         } });
       break;
     }

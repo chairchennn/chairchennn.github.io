@@ -3,6 +3,7 @@
 // D 實驗性多媒材（十字繡格、點描線稿）。全部原創造型；不照搬參考圖的構圖與圖案組合。
 // 筆刷在 js/print.js（drawPencilDef / drawPrintDef / drawCrossStitch / drawStipple）。
 import { n, poly } from './shapes.js';
+import { flattenPath } from '../crayon.js';
 
 const { PI, cos, sin, hypot, atan2, max, min, abs, pow } = Math;
 const RAD = PI / 180;
@@ -881,18 +882,53 @@ function xfPath(d, k, dx, dy) {
   return out;
 }
 const TILE_INKS = [LIME, '#8FB0C9', TERRA, SAGE, LILAC, '#7FA9A0'];
+const TILE_IN = [2.6, 97.6]; // 方格的範圍（植物超出去的地方被格線切掉）
 const tileSq = soft([[2, 2.6], [98, 1.8], [98.4, 98], [1.6, 98.4]], 1.6);
-const tileFrame = poly([[7, 7], [93, 7], [93, 93], [7, 93]]) + poly([[9, 9], [9, 91], [91, 91], [91, 9]]);
-const tileDots = (seed) => [[12, 14], [86, 12], [88, 86], [13, 87], [80, 20], [20, 80]].filter((_, i) => (i + seed) % 3 !== 1).map(([x, y], i) => circle(x, y, 1.4 + ((i + seed) % 3) * 0.5)).join('');
+// 把 path 切在方格裡：先打散成折線，每一段子路徑用 Sutherland–Hodgman 切到矩形（evenodd 的挖空關係不變）
+function clipToTile(d) {
+  const [lo, hi] = TILE_IN;
+  const clipEdge = (pts, inside, cut) => {
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const P = pts[i], Q = pts[(i + 1) % pts.length], pi = inside(P), qi = inside(Q);
+      if (pi) out.push(P);
+      if (pi !== qi) out.push(cut(P, Q));
+    }
+    return out;
+  };
+  const atX = (X) => (P, Q) => [X, P[1] + ((Q[1] - P[1]) * (X - P[0])) / (Q[0] - P[0])];
+  const atY = (Y) => (P, Q) => [P[0] + ((Q[0] - P[0]) * (Y - P[1])) / (Q[1] - P[1]), Y];
+  return flattenPath(d, 0.8).map(({ pts }) => {
+    let q = pts.slice();
+    q = clipEdge(q, (p) => p[0] >= lo, atX(lo)); if (q.length < 3) return '';
+    q = clipEdge(q, (p) => p[0] <= hi, atX(hi)); if (q.length < 3) return '';
+    q = clipEdge(q, (p) => p[1] >= lo, atY(lo)); if (q.length < 3) return '';
+    q = clipEdge(q, (p) => p[1] <= hi, atY(hi)); if (q.length < 3) return '';
+    return poly(q);
+  }).join('');
+}
+// 漏墨：每張 0–3 點，位置隨機（不是固定一組）
+function tileDots(seed) {
+  let s = (seed * 2654435761) >>> 0 || 7;
+  const r = () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 10000) / 10000; };
+  const k = Math.floor(r() * 4);
+  return Array.from({ length: k }, () => {
+    const edge = r() < 0.5, x = edge ? 8 + r() * 84 : (r() < 0.5 ? 7 + r() * 8 : 85 + r() * 8), y = edge ? (r() < 0.5 ? 7 + r() * 8 : 85 + r() * 8) : 8 + r() * 84;
+    return circle(x, y, 0.9 + r() * 1.4);
+  }).join('');
+}
 export const ART_PRINTTILE = Array.from({ length: 30 }, (_, i) => {
-  const N = ART_PRINT.length, pl = ART_PRINT[(i * 7) % N], inkTile = (i + (i >= N ? 1 : 0)) % 2 === 0, extra = i % 3;
-  const [vw, vh] = pl.vb || [100, 100], k = (extra ? 0.8 : 0.96) * (100 / max(vw, vh));
-  const dx = 50 - (vw * k) / 2, dy = 50 - (vh * k) / 2 + 2;
+  const N = ART_PRINT.length, pl = ART_PRINT[(i * 7) % N], inkTile = (i + (i >= N ? 1 : 0)) % 2 === 0;
+  let s = ((i + 3) * 40503) >>> 0;
+  const r = () => { s = (s * 1103515245 + 12345) >>> 0; return (s >>> 8) / 16777216; };
+  // 植物放大、偏離中心，超出的地方被格子切掉（像參考圖那樣滿版，不像小 icon）
+  const [vw, vh] = pl.vb || [100, 100], k = (1.15 + r() * 0.2) * (100 / max(vw, vh));
+  const dx = 50 - (vw * k) / 2 + (r() - 0.5) * 24, dy = 50 - (vh * k) / 2 + (r() - 0.5) * 24;
   const plantF = inkTile ? 'P' : 'M', bgF = inkTile ? 'M' : 'P';
   const parts = [{ d: tileSq, f: bgF }];
-  if (extra === 1) parts.push({ d: tileFrame, f: plantF });
-  if (extra === 2) parts.push({ d: tileDots(i), f: plantF });
-  pl.parts.forEach((p) => parts.push({ d: xfPath(p.d, k, dx, dy), f: plantF }));
+  const dots = tileDots(i * 13 + 5);
+  if (dots) parts.push({ d: dots, f: plantF });
+  pl.parts.forEach((p) => { const d = clipToTile(xfPath(p.d, k, dx, dy)); if (d) parts.push({ d, f: plantF }); });
   return {
     id: `pt_${pl.id.replace(/^pr_/, '')}_${inkTile ? 'ink' : 'paper'}${i >= N ? 2 : ''}`,
     name: `${pl.name}${inkTile ? '墨格' : '紙格'}`,
