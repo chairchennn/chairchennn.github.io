@@ -39,7 +39,7 @@ const TOOLS = ['add', 'crop', 'tape', 'glue'];  // 文具工具列（快速創�
 const PANES = [...TABS, 'add', 'crop', 'tape'];
 const TOOL_INFO = {
   add: { name: '新增', tip: '新增：換照片、上傳自己的貼圖', icon: 'add' },
-  crop: { name: '裁切', tip: '裁切：縮放、角度、取景、比例', icon: 'scissors' },
+  crop: { name: '裁切', tip: '裁切・剪下：取景、縮放角度，或剪下形狀', icon: 'scissors' },
   tape: { name: '膠帶', tip: '紙膠帶：貼在照片邊上', icon: 'tape' },
   glue: { name: '膠水', tip: '膠水：把所有貼圖黏好，不會再被拖動', icon: 'glue' },
 };
@@ -49,7 +49,7 @@ const PANE_INFO = {
   sticker: ['貼圖', '點一下貼到照片上'],
   frame: ['相框', '相框樣式、相紙與相機日期'],
   add: ['新增', '換照片，或把自己的圖變成貼圖'],
-  crop: ['裁切', '縮放、角度、取景與比例'],
+  crop: ['裁切', '取景（縮放、角度、比例），或剪下形狀'],
   tape: ['紙膠帶', '點一下貼上；連續貼會換到別的邊角'],
 };
 const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1:1', polaroid: '1:1', square: '1:1', mini: '約 3:4', wide: '約 16:10' };
@@ -1188,6 +1188,7 @@ function setMode(m, initial = false) {
   refreshWorkspace();
   syncPaperUI();
   syncCropUI();
+  if (!initial) syncCutUI();
   if (!initial) queueDateClear();
   history = histories[m];
   rebaseHistory();
@@ -1267,9 +1268,9 @@ function togglePane(t, isTool = false) {
   if (isTool && t === state.tab && !closed && isPhone()) { setPanel(false); return; }
   setTab(t);
   // 四格在手機上格子很小：打開裁切時先把面板收起來，照片大一點
-  if (t === 'crop' && state.mode === 'four' && isPhone() && hasFour() && closed === false) {
+  if (t === 'crop' && state.mode === 'four' && state.cropMode !== 'cut' && isPhone() && hasFour() && closed === false) {
     setPanel(false);
-    toast('面板先收起來，照片比較大；再點一次「裁切」可以打開滑桿', { ms: 4000 });
+    toast('面板先收起來，照片比較大；再點一次「裁切」可以打開滑桿和「剪下形狀」', { ms: 4000 });
     return;
   }
   setPanel(true);
@@ -1418,6 +1419,7 @@ function refreshFrameThumbs() {
   $$('#frameList .card').forEach((b) => renderFrameThumb(b.querySelector('canvas'), b.dataset.id, src));
 }
 function selectFrame(id) {
+  commitHistory();
   if (state.frame.cut && id !== 'paper') {
     state.frame.cut = null;
     setTimeout(() => toast('剪下的形狀只能用在手帳紙，已恢復方形照片', { label: '復原', run: undo }), 0);
@@ -1717,7 +1719,7 @@ function renderMine(grid) {
   if (!state.mine.length) {
     const p = document.createElement('p');
     p.className = 'note';
-    p.textContent = '還沒有。用文具列的「新增」上傳圖片，或用「裁切 → 剪下」剪下照片裡的主體，就會出現在這裡。';
+    p.textContent = '還沒有。用文具列的「新增」上傳圖片，或用「裁切 → 剪下形狀」剪下照片裡的主體，就會出現在這裡（只保留在這次打開的頁面）。';
     grid.append(p);
     return;
   }
@@ -1815,6 +1817,7 @@ function openCut(opt = {}) {
   const pasteOk = state.mode === 'single' && !cut.src;
   $('#btnCutPaste').hidden = !pasteOk;
   $('#btnCutSticker').className = pasteOk ? 'ghost-btn' : 'primary-btn';
+  $('#cutTip').textContent = finePointer() ? '沿著要留的地方拖曳畫一圈・滾輪放大檢視' : '用手指沿著要留的地方畫一圈・兩指放大檢視';
   $('#cutDialog').showModal();
   requestAnimationFrame(() => { fitCutCanvas(); openCutSync(); });
 }
@@ -1925,6 +1928,7 @@ function buildCutUI() {
   $('#btnCutPaste').addEventListener('click', () => {
     const cc = curCut();
     if (!cc) return;
+    commitHistory();
     const was = state.frame.id;
     state.frame.cut = cc;
     $('#cutDialog').close();
@@ -1934,9 +1938,11 @@ function buildCutUI() {
   $('#btnCutSticker').addEventListener('click', () => {
     const cc = curCut();
     if (!cc) return;
+    commitHistory();
     const img = makeCutSticker(cut.image, cc);
     $('#cutDialog').close();
     if (cut.replaceUid != null) state.stickers = state.stickers.filter((s) => s.uid !== cut.replaceUid);
+    if (cut.src) state.mine = state.mine.filter((m) => m.img !== cut.src); // 剪好的取代方形原圖
     addMine(img, 0.4);
     addSticker({ kind: 'img', img, size: 0.4 });
     toast('剪好了；「貼圖 → 我的」裡也找得到');
@@ -1945,7 +1951,7 @@ function buildCutUI() {
   // 裁切面板：取景／剪下形狀
   $$('[data-crop]').forEach((b) => b.addEventListener('click', () => { state.cropMode = b.dataset.crop; syncCutUI(); }));
   $('#btnCutStart').addEventListener('click', () => openCut());
-  $('#btnCutClear').addEventListener('click', () => { state.frame.cut = null; syncCutUI(); requestRender(); toast('已恢復方形照片', { label: '復原', run: undo }); });
+  $('#btnCutClear').addEventListener('click', () => { commitHistory(); state.frame.cut = null; syncCutUI(); requestRender(); toast('已恢復方形照片', { label: '復原', run: undo }); });
 }
 function syncCutUI() {
   const cutMode = state.cropMode === 'cut';

@@ -1567,3 +1567,7 @@ details.cute-group summary { color: var(--ink-2); }
   .cut-actions > * { flex: none; padding: 0 24px; }
   .cards.wrap .card { width: calc((100% - 20px) / 3); }
 }
+
+/* 互動審查：剪紙台的「重畫」在上方，白邊按鈕 44px */
+.cut-top-r { display: flex; gap: 8px; align-items: center; }
+#cutMargins .chip { min-height: 44px; }

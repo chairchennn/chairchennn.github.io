@@ -302,7 +302,7 @@
             <button type="button" role="tab" data-crop="cut" aria-selected="false">剪下形狀</button>
           </div>
           <div id="cropCut" hidden>
-            <p class="note first" id="cutHint">沿著想留下的地方用手指畫一圈，就像用剪刀把照片剪下來。</p>
+            <p class="note first" id="cutHint">沿著想留下的地方畫一圈，就像用剪刀把照片剪下來。</p>
             <button class="primary-btn" type="button" id="btnCutStart">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.1C7.7 4 9 5.3 9 7C9 8.7 7.7 10 6 10C4.3 10 3 8.7 3 7C3 5.3 4.3 4.1 6 4.1Z"/><path d="M6 14C7.7 14 9 15.3 9 17C9 18.7 7.6 20 5.9 19.9C4.2 19.9 3 18.6 3 16.9C3.1 15.2 4.4 14 6 14Z"/><path d="M8.5 8.6L20.1 18.1M8.6 15.4L20 5.9"/></svg>
               <span>開始剪</span></button>
@@ -372,8 +372,11 @@
   <div class="cut-top">
     <button class="ghost-btn" type="button" id="btnCutCancel">取消</button>
     <h2 id="cutTitle">剪下</h2>
+    <span class="cut-top-r">
+    <button class="ghost-btn" type="button" id="btnCutRedo">重畫</button>
     <button class="icon-btn" type="button" id="btnCutUndo" aria-label="上一步" disabled>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 14.2L4.2 9.3L8.9 4.6"/><path d="M4.6 9.2C8.6 8.9 12 8.8 14.6 9.1C17.9 9.5 19.7 12 19.5 14.6C19.3 17.5 16.9 19.6 13.9 19.6H11"/></svg></button>
+    </span>
   </div>
   <div class="cut-cells chips" id="cutCells" hidden></div>
   <div class="cut-stage" id="cutStage">
@@ -384,7 +387,6 @@
     <div class="sub">
       <span class="sub-label">白邊</span>
       <div class="chips" id="cutMargins"></div>
-      <button class="chip" type="button" id="btnCutRedo">重畫</button>
     </div>
     <div class="cut-actions">
       <button class="ghost-btn" type="button" id="btnCutSticker" disabled>做成貼圖</button>
