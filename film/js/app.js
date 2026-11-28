@@ -857,6 +857,9 @@ function photoTargetAt(p) {
     return { cell: i, t: ph.t, w: c.w * k, h: c.h * k, iw: ph.preview.width, ih: ph.preview.height };
   }
   const L = lastL;
+  if (state.frame.id === 'paper' && state.frame.cut && state.preview && L) {
+    return { cut: state.frame.cut, t: state.frame.cut, w: L.pw, h: L.ph };
+  }
   if (!state.preview || !L || p.x < L.x || p.y < L.y || p.x > L.x + L.pw || p.y > L.y + L.ph) return null;
   return { t: state.frame.crop, w: L.pw, h: L.ph, iw: state.preview.width, ih: state.preview.height };
 }
@@ -883,6 +886,12 @@ view.addEventListener('pointermove', (e) => {
     const g = gesture, dx = p.x - g.p0.x, dy = p.y - g.p0.y;
     if (!g.moved && Math.hypot(dx, dy) < 4 * pxPerCss()) return;
     g.moved = true;
+    if (g.tgt.cut) {
+      g.tgt.cut.dx = (g.t0.dx || 0) + dx / g.tgt.w;
+      g.tgt.cut.dy = (g.t0.dy || 0) + dy / g.tgt.h;
+      requestRender();
+      return;
+    }
     state.dragging = 'photo';
     xfPan(g.tgt.t, g.t0, dx, dy, g.tgt.w, g.tgt.h, g.tgt.iw, g.tgt.ih);
     syncXfOutputs();
@@ -891,6 +900,13 @@ view.addEventListener('pointermove', (e) => {
   }
   if (gesture?.type === 'photoPinch' && pointers.size >= 2) {
     const g = gesture, [a, b] = [...pointers.values()], m = mid(a, b), t = g.tgt.t;
+    if (g.tgt.cut) {
+      t.s = Math.min(2.5, Math.max(0.4, ((g.t0.s || 1) * dist(a, b)) / g.d0));
+      t.dx = (g.t0.dx || 0) + (m.x - g.m0.x) / g.tgt.w;
+      t.dy = (g.t0.dy || 0) + (m.y - g.m0.y) / g.tgt.h;
+      requestRender();
+      return;
+    }
     t.zoom = clampZoom((g.t0.zoom * dist(a, b)) / g.d0);
     t.angle = clampAngle(g.t0.angle + ((ang(a, b) - g.a0) * 180) / Math.PI);
     if (Math.abs(t.angle) < 1.5) t.angle = 0;
@@ -949,6 +965,7 @@ view.addEventListener('wheel', (e) => {
     if (!tgt) return;
     e.preventDefault();
     if (tgt.cell != null && tgt.cell !== state.cropCell) { state.cropCell = tgt.cell; syncCropUI(); }
+    if (tgt.cut) { tgt.cut.s = Math.min(2.5, Math.max(0.4, (tgt.cut.s || 1) * Math.exp(-e.deltaY * 0.0015))); requestRender(); return; }
     if (e.shiftKey) tgt.t.angle = clampAngle(tgt.t.angle + e.deltaY * 0.05);
     else tgt.t.zoom = clampZoom(tgt.t.zoom * Math.exp(-e.deltaY * 0.0015));
     state.dragging = 'photo';

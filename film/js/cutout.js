@@ -78,10 +78,22 @@ export function cutPaths(cut, w, h) {
 const toPath = (pts) => { const p = new Path2D(); pts.forEach(([x, y], i) => (i ? p.lineTo(x, y) : p.moveTo(x, y))); p.closePath(); return p; };
 
 // 把剪好的照片畫在 (x, y)：白紙邊＋紙的影子＋照片
+// 剪下的那一塊在紙上的位置：dx, dy（照片寬高的比例）、s 縮放（以剪形中心為準）
+export function cutCenter(cut) {
+  let cx = 0, cy = 0;
+  for (const [x, y] of cut.pts) { cx += x; cy += y; }
+  return [cx / cut.pts.length, cy / cut.pts.length];
+}
 export function drawCutPhoto(ctx, photo, x, y, w, h, cut) {
   const { inner, outer, margin } = cutPaths(cut, w, h), S = Math.min(w, h);
   ctx.save();
   ctx.translate(x, y);
+  if (cut.dx || cut.dy || (cut.s && cut.s !== 1)) {
+    const [cx, cy] = cutCenter(cut), k = cut.s || 1;
+    ctx.translate((cx + (cut.dx || 0)) * w, (cy + (cut.dy || 0)) * h);
+    ctx.scale(k, k);
+    ctx.translate(-cx * w, -cy * h);
+  }
   const op = toPath(outer);
   ctx.shadowColor = 'rgba(60,40,30,.28)';
   ctx.shadowBlur = S * 0.02;
