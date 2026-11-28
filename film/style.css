@@ -203,7 +203,8 @@ a { color: var(--pink-ink); }
 .primary-btn.big { min-height: 54px; padding: 0 30px; font-size: 18px; }
 .primary-btn.big svg { width: 22px; height: 22px; }
 .ghost-btn { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-2); }
-.ghost-btn:active { transform: translateY(1px); }
+.ghost-btn:not(:disabled):active { transform: translateY(1px); }
+.ghost-btn:disabled { color: #8a7768; background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
 .icon-btn {
   width: 44px;
   padding: 0;
@@ -421,12 +422,12 @@ a { color: var(--pink-ink); }
 .tool[data-tool="tape"] { --tilt: -8deg;  --nudge: 0px; }
 .tool[data-tool="glue"] { --tilt: -12deg; --nudge: 2px; }
 .tool.tool-edit         { --tilt: -15deg; --nudge: -1px; }
-.tool-art {
+.tool .tool-art {
   position: absolute;
   left: 50%;
   top: 19px;
   display: block;
-  width: 60px;
+  width: 64px;
   height: auto;
   aspect-ratio: 160 / 56;
   pointer-events: none;
@@ -484,7 +485,7 @@ a { color: var(--pink-ink); }
   bottom: 10px;
   border-left: 1.5px dashed rgba(101, 80, 71, .3);
 }
-.tool-edit .tool-art { width: 48px; }
+.tool-edit .tool-art { width: 50px; }
 /* 提示泡泡（電腦 hover／鍵盤焦點） */
 .tool::after { display: none; }
 
@@ -1260,7 +1261,7 @@ dialog.sheet::backdrop { background: rgba(46, 38, 33, .38); -webkit-backdrop-fil
   .stationery-dock { bottom: 18px; padding: 0 16px; }
   .stationery { gap: 2px; padding: 4px 10px 3px; border-radius: 16px; overflow: visible; }
   .tool { width: 96px; height: 76px; }
-  .tool-art { width: 80px; top: 25px; }
+  .tool .tool-art { width: 80px; top: 25px; }
   .tool .tool-name { bottom: 6px; font-size: 13px; }
   .tool[aria-pressed="true"] .tool-name::after { width: 46px; margin-left: -23px; }
   .tool-edit { width: 80px; margin-left: 8px; }
@@ -1351,7 +1352,7 @@ dialog.sheet::backdrop { background: rgba(46, 38, 33, .38); -webkit-backdrop-fil
 @media (min-width: 900px) and (max-width: 1023px) {
   :root { --rail-w: 84px; --panel-w: 320px; }
   .tool { width: 84px; height: 72px; }
-  .tool-art { width: 70px; top: 23px; }
+  .tool .tool-art { width: 70px; top: 23px; }
   .tool-edit { width: 70px; }
   .card, .frames .card { width: calc((100% - 10px) / 2); }
 }
@@ -1402,7 +1403,7 @@ dialog.sheet::backdrop { background: rgba(46, 38, 33, .38); -webkit-backdrop-fil
   .chip:not(:disabled):not([aria-pressed="true"]):not(.strong):hover { background: var(--paper-2); }
   .chip.strong:hover { background: #eed2c3; }
   .sticker-grid button:hover, .tape-grid button:hover { transform: translateY(-2px) rotate(-2deg); }
-  .ghost-btn:hover { background: var(--paper-2); }
+  .ghost-btn:not(:disabled):hover { background: var(--paper-2); }
   .icon-btn:not(:disabled):hover { background: var(--pink-soft); color: var(--ink); }
   .primary-btn:not(:disabled):hover { filter: brightness(1.04); }
   .rail button:not([aria-selected="true"]):hover { background: var(--paper-2); color: var(--ink); }
