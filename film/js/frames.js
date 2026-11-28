@@ -188,6 +188,7 @@ export function drawFrameBack(ctx, L, id, o = {}) {
       break;
     case 'paper': {
       drawPaper(ctx, { W, H }, o.paper || 'dots', Math.min(W, H) / 640);
+      if (o.cut) break; // 剪成形狀的照片自己畫白邊（見 cutout.js）
       const { x, y, pw, ph, mat } = L;
       ctx.save();
       ctx.shadowColor = 'rgba(60,40,30,.22)';

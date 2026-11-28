@@ -11,6 +11,7 @@ import { TAPES, TAPE_RATIO, TAPE_COLORS, tapeOf, drawTape } from './tape.js';
 import { STICKERS, CATEGORIES, HIDDEN_CATS, HIDDEN_IDS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
+import { MARGINS, smoothLoop, polyArea, drawCutPhoto, makeCutSticker, drawCutPreview, hasTransparency } from './cutout.js';
 import { XF0, normXf, xfCrop, xfPan, drawXf, ZOOM_MAX, ANGLE_MAX } from './photoxf.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -90,7 +91,7 @@ const state = {
   doodle: { preset: 'none', pack: 'cream', layout: 'band', count: 20, countTouched: false, scale: 100, seed: 1, glow: null },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   cropCell: 0,
-  tools: { order: [...TOOLS], hidden: [] },
+  tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame',
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
   glow: true,
   stickers: [], stash: { single: [], four: [] }, selected: null,
@@ -118,7 +119,7 @@ function loadPrefs() {
     }
     if (p.tools && Array.isArray(p.tools.order)) {
       const order = p.tools.order.filter((t) => TOOLS.includes(t));
-      for (const t of TOOLS) if (!order.includes(t)) order.push(t);
+      TOOLS.forEach((t, i) => { if (!order.includes(t)) order.splice(Math.min(i, order.length), 0, t); });
       const hidden = [...new Set((Array.isArray(p.tools.hidden) ? p.tools.hidden : []).filter((t) => TOOLS.includes(t) && t !== 'add'))];
       state.tools = { order: [...new Set(order)], hidden };
     }
@@ -419,6 +420,7 @@ function frameOpts() {
   const f = state.frame, [Y, M] = (state.date.value || todayISO()).split('-');
   return {
     color: f.color, slideColor: f.slideColor, caption: '', filmNo: f.filmNo, seed: f.seed, paper: f.paper,
+    cut: f.id === 'paper' ? f.cut : null,
     dateText: `${MONTHS[(+M || 1) - 1]} ${Y}`,
   };
 }
@@ -563,10 +565,13 @@ function compose(ctx, photo, L, o) {
   } else {
     const id = state.frame.id;
     drawFrameBack(ctx, L, id, o);
-    ctx.save();
-    photoClip(ctx, L, id);
-    ctx.drawImage(photo, L.x, L.y, L.pw, L.ph);
-    ctx.restore();
+    if (o?.cut) drawCutPhoto(ctx, photo, L.x, L.y, L.pw, L.ph, o.cut);
+    else {
+      ctx.save();
+      photoClip(ctx, L, id);
+      ctx.drawImage(photo, L.x, L.y, L.pw, L.ph);
+      ctx.restore();
+    }
     drawFrameFront(ctx, L, id, o);
   }
   for (const st of state.stickers) drawSticker(ctx, st, L);
@@ -995,6 +1000,7 @@ async function loadFile(file) {
     state.full = null;
     state.rotation = 0;
     state.frame.crop = XF0();
+    state.frame.cut = null;
     const d = (await readPhotoDate(file)) || (file.lastModified ? isoOf(new Date(file.lastModified)) : todayISO());
     state.photoDate = d;
     state.date.value = d;
@@ -1387,6 +1393,10 @@ function refreshFrameThumbs() {
   $$('#frameList .card').forEach((b) => renderFrameThumb(b.querySelector('canvas'), b.dataset.id, src));
 }
 function selectFrame(id) {
+  if (state.frame.cut && id !== 'paper') {
+    state.frame.cut = null;
+    setTimeout(() => toast('剪下的形狀只能用在手帳紙，已恢復方形照片', { label: '復原', run: undo }), 0);
+  }
   state.frame.id = id;
   state.frame.crop.x = 0.5; state.frame.crop.y = 0.5;
   $$('#frameList .card').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === id)));
@@ -1713,12 +1723,198 @@ stickerInput.addEventListener('change', async () => {
     const up = downscale(c, 1200);
     addMine(up, 0.32);
     addSticker({ kind: 'img', img: up, size: 0.32 });
+    const uidUp = state.selected;
+    if (!hasTransparency(up)) toast('要把這張圖剪成形狀嗎？', { label: '剪下', ms: 6000, run: () => openCut({ img: up, replaceUid: uidUp }) });
   } catch {
     toast('這個貼圖檔打不開，請用 PNG');
   } finally {
     URL.revokeObjectURL(url);
   }
 });
+
+// ---------------------------------------------------------------- 剪下：剪紙台
+// 一指沿著主體畫一圈 → 自動平滑、白紙邊、剪刀折線；兩指只放大檢視（不改照片取景）
+const cut = { src: null, cell: -1, replaceUid: null, loops: [], drawing: null, view: { k: 1, x: 0, y: 0 }, margin: 'thin', seed: 1, pts: new Map(), pinch: null };
+function cutSourceImage() {
+  // 剪的是「已經套好色調」的照片，貼上去才和畫面一致
+  if (cut.src) return cut.src;
+  if (state.mode === 'four') {
+    const ph = state.four.photos[cut.cell];
+    if (!ph) return null;
+    const L = fourLayout(state.four.layout), c = L.cells[cut.cell], k = 900 / Math.max(c.w, c.h);
+    const w = Math.round(c.w * k), h = Math.round(c.h * k);
+    return applyFx(developBase(ph.preview, xfCrop(ph.preview.width, ph.preview.height, L.aspect, ph.t), w, h, { preset: state.preset, adj: state.adj, lutN: 33 }), { adj: state.adj, date: null }, null, true);
+  }
+  // 複製一份：預覽的快取之後會被釋放
+  const pv = getPreviewPhoto(), c = makeCanvas(pv.width, pv.height);
+  c.getContext('2d').drawImage(pv, 0, 0);
+  return c;
+}
+function openCut(opt = {}) {
+  if (!opt.img && !hasContent()) { toast('先選照片'); return; }
+  cut.src = opt.img || null;
+  cut.replaceUid = opt.replaceUid ?? null;
+  cut.cell = state.mode === 'four' ? (state.four.photos[state.cropCell] ? state.cropCell : state.four.photos.findIndex(Boolean)) : -1;
+  cut.loops = [];
+  cut.view = { k: 1, x: 0, y: 0 };
+  cut.margin = state.frame.cut?.margin || 'thin';
+  cut.seed = 1 + Math.floor(Math.random() * 9999);
+  cut.image = cutSourceImage();
+  const cells = $('#cutCells');
+  cells.hidden = !(state.mode === 'four' && !cut.src);
+  if (!cells.hidden) {
+    cells.innerHTML = '';
+    state.four.photos.forEach((ph, i) => {
+      if (!ph) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = `第 ${i + 1} 格`;
+      b.setAttribute('aria-pressed', String(i === cut.cell));
+      b.addEventListener('click', () => { cut.cell = i; cut.loops = []; cut.image = cutSourceImage(); openCutSync(); $$('#cutCells .chip').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+      cells.append(b);
+    });
+  }
+  const pasteOk = state.mode === 'single' && !cut.src;
+  $('#btnCutPaste').hidden = !pasteOk;
+  $('#btnCutSticker').className = pasteOk ? 'ghost-btn' : 'primary-btn';
+  $('#cutDialog').showModal();
+  requestAnimationFrame(() => { fitCutCanvas(); openCutSync(); });
+}
+function openCutSync() {
+  const has = cut.loops.length > 0;
+  $('#btnCutPaste').disabled = !has;
+  $('#btnCutSticker').disabled = !has;
+  $('#btnCutUndo').disabled = !has;
+  $('#cutTip').hidden = has;
+  $$('#cutMargins .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.id === cut.margin)));
+  drawCut();
+}
+function fitCutCanvas() {
+  const c = $('#cutCanvas'), st = $('#cutStage'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = Math.round(st.clientWidth * dpr); c.height = Math.round(st.clientHeight * dpr);
+  c.style.width = st.clientWidth + 'px'; c.style.height = st.clientHeight + 'px';
+}
+// 照片在剪紙台畫布上的位置（含放大檢視）
+function cutRect() {
+  const c = $('#cutCanvas'), img = cut.image, pad = 18 * Math.min(2, window.devicePixelRatio || 1);
+  const k0 = Math.min((c.width - pad * 2) / img.width, (c.height - pad * 2) / img.height), k = k0 * cut.view.k;
+  const w = img.width * k, h = img.height * k;
+  return { x: (c.width - w) / 2 + cut.view.x, y: (c.height - h) / 2 + cut.view.y, w, h };
+}
+const curCut = () => (cut.loops.length ? { pts: cut.loops[cut.loops.length - 1], margin: cut.margin, seed: cut.seed } : null);
+function drawCut() {
+  const c = $('#cutCanvas'), ctx = c.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  if (!cut.image) return;
+  const R = cutRect();
+  ctx.drawImage(cut.image, R.x, R.y, R.w, R.h);
+  const cc = curCut();
+  if (cc) { ctx.save(); ctx.translate(R.x, R.y); drawCutPreview(ctx, R.w, R.h, cc); ctx.restore(); }
+  if (cut.drawing && cut.drawing.length > 1) {
+    ctx.save();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3 * Math.min(2, window.devicePixelRatio || 1);
+    ctx.setLineDash([8, 6]);
+    ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 4;
+    ctx.beginPath();
+    cut.drawing.forEach(([x, y], i) => { const X = R.x + x * R.w, Y = R.y + y * R.h; if (i) ctx.lineTo(X, Y); else ctx.moveTo(X, Y); });
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+function cutPoint(e) {
+  const c = $('#cutCanvas'), r = c.getBoundingClientRect(), R = cutRect();
+  const px = ((e.clientX - r.left) * c.width) / r.width, py = ((e.clientY - r.top) * c.height) / r.height;
+  return { px, py, x: (px - R.x) / R.w, y: (py - R.y) / R.h };
+}
+function buildCutUI() {
+  for (const [id, name] of MARGINS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
+    b.addEventListener('click', () => { cut.margin = id; openCutSync(); });
+    $('#cutMargins').append(b);
+  }
+  const c = $('#cutCanvas');
+  c.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    try { c.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    const p = cutPoint(e);
+    cut.pts.set(e.pointerId, p);
+    if (cut.pts.size === 2) {
+      cut.drawing = null;
+      const [a, b] = [...cut.pts.values()];
+      cut.pinch = { d0: Math.hypot(a.px - b.px, a.py - b.py) || 1, k0: cut.view.k, x0: cut.view.x, y0: cut.view.y, m0: { x: (a.px + b.px) / 2, y: (a.py + b.py) / 2 } };
+    } else if (cut.pts.size === 1) cut.drawing = [[p.x, p.y]];
+    drawCut();
+  });
+  c.addEventListener('pointermove', (e) => {
+    if (!cut.pts.has(e.pointerId)) return;
+    const p = cutPoint(e);
+    cut.pts.set(e.pointerId, p);
+    if (cut.pinch && cut.pts.size >= 2) {
+      const [a, b] = [...cut.pts.values()], m = { x: (a.px + b.px) / 2, y: (a.py + b.py) / 2 };
+      cut.view.k = Math.min(5, Math.max(1, (cut.pinch.k0 * Math.hypot(a.px - b.px, a.py - b.py)) / cut.pinch.d0));
+      cut.view.x = cut.pinch.x0 + m.x - cut.pinch.m0.x;
+      cut.view.y = cut.pinch.y0 + m.y - cut.pinch.m0.y;
+    } else if (cut.drawing) cut.drawing.push([p.x, p.y]);
+    drawCut();
+  });
+  const end = (e) => {
+    cut.pts.delete(e.pointerId);
+    if (cut.pts.size) return;
+    if (cut.pinch) { cut.pinch = null; drawCut(); return; }
+    const raw = cut.drawing;
+    cut.drawing = null;
+    if (!raw) return;
+    const clamped = raw.map(([x, y]) => [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y))]);
+    const loop = smoothLoop(clamped);
+    if (!loop || Math.abs(polyArea(loop)) < 0.01) { toast('再畫大一點，繞著主角畫一整圈'); drawCut(); return; }
+    cut.loops.push(loop);
+    openCutSync();
+  };
+  c.addEventListener('pointerup', end);
+  c.addEventListener('pointercancel', end);
+  c.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    cut.view.k = Math.min(5, Math.max(1, cut.view.k * Math.exp(-e.deltaY * 0.0015)));
+    if (cut.view.k === 1) { cut.view.x = 0; cut.view.y = 0; }
+    drawCut();
+  }, { passive: false });
+  $('#btnCutUndo').addEventListener('click', () => { cut.loops.pop(); openCutSync(); });
+  $('#btnCutRedo').addEventListener('click', () => { cut.loops = []; cut.view = { k: 1, x: 0, y: 0 }; openCutSync(); });
+  $('#btnCutCancel').addEventListener('click', () => $('#cutDialog').close());
+  $('#btnCutPaste').addEventListener('click', () => {
+    const cc = curCut();
+    if (!cc) return;
+    const was = state.frame.id;
+    state.frame.cut = cc;
+    $('#cutDialog').close();
+    if (was !== 'paper') { selectFrame('paper'); state.frame.cut = cc; toast('已換成「手帳紙」相框', { label: '復原', run: undo }); }
+    syncCutUI(); syncPaperUI(); requestRender(); savePrefs();
+  });
+  $('#btnCutSticker').addEventListener('click', () => {
+    const cc = curCut();
+    if (!cc) return;
+    const img = makeCutSticker(cut.image, cc);
+    $('#cutDialog').close();
+    if (cut.replaceUid != null) state.stickers = state.stickers.filter((s) => s.uid !== cut.replaceUid);
+    addMine(img, 0.4);
+    addSticker({ kind: 'img', img, size: 0.4 });
+    toast('剪好了；「貼圖 → 我的」裡也找得到');
+  });
+  window.addEventListener('resize', () => { if ($('#cutDialog').open) { fitCutCanvas(); drawCut(); } });
+  // 裁切面板：取景／剪下形狀
+  $$('[data-crop]').forEach((b) => b.addEventListener('click', () => { state.cropMode = b.dataset.crop; syncCutUI(); }));
+  $('#btnCutStart').addEventListener('click', () => openCut());
+  $('#btnCutClear').addEventListener('click', () => { state.frame.cut = null; syncCutUI(); requestRender(); toast('已恢復方形照片', { label: '復原', run: undo }); });
+}
+function syncCutUI() {
+  const cutMode = state.cropMode === 'cut';
+  $$('[data-crop]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.crop === state.cropMode)));
+  $('#cropCut').hidden = !cutMode;
+  $('#cropFrame').hidden = cutMode;
+  $('#btnCutClear').hidden = !(state.mode === 'single' && state.frame.cut);
+}
 
 // ---------------------------------------------------------------- 文具：紙膠帶
 function buildTapeUI() {
@@ -1879,7 +2075,7 @@ function snapshot() {
   const all = {
     preset: state.preset, adj: state.adj, doodle: state.doodle, date: state.date, glow: state.glow,
     stickers: state.stickers.map((st) => (st.img ? { ...st, img: ref(st.img) } : st)),
-    frame: { id: f.id, color: f.color, slideColor: f.slideColor, crop: f.crop, ratio: f.ratio, paper: f.paper },
+    frame: { id: f.id, color: f.color, slideColor: f.slideColor, crop: f.crop, ratio: f.ratio, paper: f.paper, cut: f.cut || null },
     rotation: state.rotation, photoDate: state.photoDate,
     four: { layout: state.four.layout, paper: state.four.paper, xf: state.four.photos.map((x) => x?.t || null) },
   };
@@ -2211,6 +2407,8 @@ function init() {
   buildPaperUI();
   buildCropUI();
   buildTapeUI();
+  buildCutUI();
+  syncCutUI();
   buildStationery();
   buildDateUI();
   syncSliders();

@@ -297,6 +297,19 @@
 
         <!-- 文具：剪刀 -->
         <section class="pane" data-pane="crop" role="tabpanel" hidden>
+          <div class="seg" role="tablist" aria-label="裁切方式">
+            <button type="button" role="tab" data-crop="frame" aria-selected="true">取景</button>
+            <button type="button" role="tab" data-crop="cut" aria-selected="false">剪下形狀</button>
+          </div>
+          <div id="cropCut" hidden>
+            <p class="note first" id="cutHint">沿著想留下的地方用手指畫一圈，就像用剪刀把照片剪下來。</p>
+            <button class="primary-btn" type="button" id="btnCutStart">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 18M8.5 15.5L20 6"/></svg>
+              <span>開始剪</span></button>
+            <button class="chip" type="button" id="btnCutClear" hidden>恢復方形照片</button>
+            <p class="note" id="cutFourNote" data-only="four" hidden>四格的照片可以剪下來做成貼圖。</p>
+          </div>
+          <div id="cropFrame">
           <p class="note first" id="xfHint">直接在照片上<b>拖曳移動</b>、<b>兩指縮放和轉動</b>；也可以用下面的滑桿。</p>
           <div data-only="single">
             <div class="sub">
@@ -320,6 +333,7 @@
             <button class="chip" id="btnRotate" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>轉 90°</button>
             <button class="chip" id="btnXfReset" type="button">重設</button>
+          </div>
           </div>
         </section>
 
@@ -350,6 +364,32 @@
       <button class="ghost-btn" type="button" id="btnCloseResult">繼續編輯</button>
     </div>
     <p class="note center">手機也可以長按上面的圖片直接儲存。<br>匯出的照片已移除 GPS 位置等 EXIF 資訊。</p>
+  </div>
+</dialog>
+
+<!-- 剪紙台：沿著主體畫一圈 -->
+<dialog class="cut-dialog" id="cutDialog" aria-labelledby="cutTitle">
+  <div class="cut-top">
+    <button class="ghost-btn" type="button" id="btnCutCancel">取消</button>
+    <h2 id="cutTitle">剪下</h2>
+    <button class="icon-btn" type="button" id="btnCutUndo" aria-label="上一步" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+  </div>
+  <div class="cut-cells chips" id="cutCells" hidden></div>
+  <div class="cut-stage" id="cutStage">
+    <canvas id="cutCanvas"></canvas>
+    <p class="cut-tip" id="cutTip">沿著要留的地方畫一圈</p>
+  </div>
+  <div class="cut-bottom">
+    <div class="sub">
+      <span class="sub-label">白邊</span>
+      <div class="chips" id="cutMargins"></div>
+      <button class="chip" type="button" id="btnCutRedo">重畫</button>
+    </div>
+    <div class="cut-actions">
+      <button class="ghost-btn" type="button" id="btnCutSticker" disabled>做成貼圖</button>
+      <button class="primary-btn" type="button" id="btnCutPaste" disabled>貼在手帳紙上</button>
+    </div>
   </div>
 </dialog>
 
