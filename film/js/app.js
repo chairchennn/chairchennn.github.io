@@ -8,7 +8,7 @@ import { drawOverlay } from './overlay.js';
 import {
   FRAMES, FRAME_COLORS, FREE_RATIO_FRAMES, cropAspect, computeCrop, layoutFrame, drawFrameBack, drawFrameFront, photoClip,
 } from './frames.js';
-import { TAPES, TAPE_RATIO, TAPE_COLORS, TAPE_MATERIALS, tapeOf, drawTape } from './tape.js';
+import { TAPE_SHAPES, TAPE_PATTERNS, TAPE_COLORS, TAPE_MATERIALS, tapeOf, tapeAspect, drawTape } from './tape.js';
 import { STICKERS, CATEGORIES, HIDDEN_CATS, HIDDEN_IDS, PALETTE, drawStickerDef, stickerBox, isRecolorable } from './stickers.js';
 import { FOUR_LAYOUTS, PAPERS, fourLayout, drawPaper, drawPaperFront, cellCrop } from './fourcut.js';
 import { readPhotoDate } from './exif.js';
@@ -50,7 +50,7 @@ const PANE_INFO = {
   frame: ['相框', '相框樣式、相紙與相機日期'],
   add: ['新增', '照片，以及剪貼：匯入圖片或剪照片做成貼圖'],
   crop: ['裁切', '取景、縮放、角度與比例'],
-  tape: ['紙膠帶', '點一下貼上；連續貼會換到別的邊角'],
+  tape: ['紙膠帶', '先選貼法，再選花紋和顏色，最後按「貼上」'],
   glue: ['膠水・圖層', '上面的在最上層；黏住的不會被拖動'],
 };
 const FIXED_RATIO = { film35: '3:2', film35neg: '3:2', slide: '3:2', film120: '1:1', polaroid: '1:1', square: '1:1', mini: '約 3:4', wide: '約 16:10' };
@@ -60,7 +60,7 @@ const TAPE_SPOTS = [[0.5, 0.02, 0, 0.42], [0.5, 0.98, 0, 0.42], [0.07, 0.05, -0.
 const RATIOS = [[0, '原比例'], [1, '1:1'], [5 / 4, '4:5'], [3 / 2, '2:3'], [16 / 9, '9:16']];
 // 貼圖分類（第六版精簡）：新風格在前，舊的可愛系列收成一類；「我的」是這次上傳或剪下的圖
 // 貼圖分類＝塗鴉框的名字（每一款塗鴉框裡的圖案都可以單獨當貼圖用）
-const OVERLAY_CAT = { stitch: 'stitch', stipple: 'stipple', printgrid: 'print' };
+const OVERLAY_CAT = { stitch: 'stitch', stipple: 'stipple', printgrid: 'printtile' };
 let stickerSets = null;
 function stickerGroups() {
   if (!stickerSets) {
@@ -107,7 +107,7 @@ const state = {
   doodle: { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 16, countTouched: false, scale: 100, seed: 1, glow: null },
   frame: { id: 'none', color: FRAME_COLORS[0], slideColor: '#f4f1ea', archColor: '#a99bc5', caption: '', filmNo: 12, crop: XF0(), seed: 7, ratio: 0, paper: 'dots' },
   cropCell: 0,
-  tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame', tapeMat: 'washi', tool: 'add', zoom: 1,
+  tools: { order: [...TOOLS], hidden: [] }, cropMode: 'frame', tapeMat: 'washi', tapeShape: 'strip', tapePattern: 'tp_plain', tapeWay: 0, tool: 'add', zoom: 1,
   date: { on: false, value: todayISO(), format: 'yy', color: 'orange', pos: 'br', size: 'md' },
   glow: true,
   stickers: [], stash: { single: [], four: [] }, selected: null,
@@ -158,6 +158,9 @@ function loadPrefs() {
     if (TABS.includes(p.tab)) state.tab = p.tab;
     { const dp = DOODLE_PRESETS.find((x) => x.id === state.doodle.preset); if (dp?.pack) state.doodle.pack = dp.pack; }
     if (TAPE_MATERIALS.some(([id]) => id === p.tapeMat)) state.tapeMat = p.tapeMat;
+    if (TAPE_SHAPES.some((x) => x.id === p.tapeShape)) state.tapeShape = p.tapeShape;
+    if (TAPE_PATTERNS.some((x) => x.id === p.tapePattern)) state.tapePattern = p.tapePattern;
+    if (Number.isInteger(p.tapeWay) && p.tapeWay >= 0 && p.tapeWay < tapeOf(state.tapePattern).colorways.length) state.tapeWay = p.tapeWay;
     if (p.ver !== 8 && state.doodle.preset === 'none') Object.assign(state.doodle, { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 16 }); // 文具面板不記，下次打開回到主工具
   } catch { /* 無法讀取就用預設值 */ }
 }
@@ -172,7 +175,7 @@ function savePrefs() {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         preset: state.preset, adj: state.adj, mode: state.mode,
         frame: { id: f.id, color: f.color, slideColor: f.slideColor, archColor: f.archColor, ratio: f.ratio, paper: f.paper },
-        tools: state.tools, ver: 8, tapeMat: state.tapeMat,
+        tools: state.tools, ver: 8, tapeMat: state.tapeMat, tapeShape: state.tapeShape, tapePattern: state.tapePattern, tapeWay: state.tapeWay,
         date: { on: d.on, format: d.format, color: d.color, pos: d.pos, size: d.size },
         glow: state.glow, tab: TABS.includes(state.tab) ? state.tab : 'film',
         doodle: { ...state.doodle, seed: 1 },
@@ -293,7 +296,7 @@ function stickerGeom(st, L) {
     const a = st.img.width / st.img.height;
     if (a >= 1) { w = unit; h = unit / a; } else { h = unit; w = unit * a; }
   } else if (st.kind === 'tape') {
-    w = unit; h = unit * TAPE_RATIO;
+    w = unit; h = unit * tapeAspect(st.shape || 'strip');
   } else {
     h = unit * 0.42;
     w = textLayout(st, h).w;
@@ -371,7 +374,8 @@ function drawSticker(ctx, st, L) {
   } else if (st.kind === 'img') {
     ctx.drawImage(st.img, -g.w / 2, -g.h / 2, g.w, g.h);
   } else if (st.kind === 'tape') {
-    drawTape(ctx, g.w, g.h, tapeOf(st.id), st.color, st.seed ?? st.uid ?? 1, st.material || 'washi');
+    if (st.shape) drawTape(ctx, g.w, g.h, { shape: st.shape, pattern: st.id, color: st.color, color2: st.color2, material: st.material || 'washi', seed: st.seed ?? st.uid ?? 1 });
+    else drawTape(ctx, g.w, g.h, tapeOf(st.id), st.color, st.seed ?? st.uid ?? 1, st.material || 'washi');
   } else {
     drawTextSticker(ctx, st, g.w, g.h, st.glow ?? state.glow);
   }
@@ -728,6 +732,7 @@ const selectedSticker = () => state.stickers.find((s) => s.uid === state.selecte
 
 function select(id) {
   state.selected = id;
+  if (state.tool === 'tape') buildTapeUI();
   updateStickerBar();
   syncGlueUI();
   renderLayers();
@@ -1401,7 +1406,7 @@ function setPanel(open, w = 'main') {
   // 手機一次只開一個（底部面板）
   if (open && isPhone()) $('#app').dataset[WINS[w === 'main' ? 'tool' : 'main'].attr] = 'closed';
   markSelected();
-  if (open) { placeWin(w); raiseWin(w); if (w === 'tool' && state.tool === 'glue') renderLayers(); }
+  if (open) { placeWin(w); raiseWin(w); if (w === 'tool' && state.tool === 'glue') renderLayers(); if (w === 'tool' && state.tool === 'tape') buildTapeUI(); }
   fitView();
 }
 function raiseWin(w) {
@@ -1785,7 +1790,7 @@ function countRange() {
 function amountOf(id) {
   const [mn, mx] = countRange();
   if (overlayKind()) return id === 'few' ? mn : id === 'many' ? mx : Math.round((mn + mx) / 2);
-  return { few: 8, mid: 16, many: 26 }[id];
+  return { few: 6, mid: 12, many: 20 }[id];
 }
 function selectDoodle(id) {
   const p = DOODLE_PRESETS.find((x) => x.id === id);
@@ -2226,51 +2231,144 @@ function renderCutHistory() {
 }
 
 // ---------------------------------------------------------------- 文具：紙膠帶
+// 流程：① 先選貼法與形狀 → ② 選花紋 → ③ 選配色（每種花紋有幾組搭好的顏色）→ 材質 → 按「貼上」。
+// 照片上選著一條膠帶時，改的就是那一條（不會多貼一條）。
+// 縮圖第一次畫比較慢（擬真皺褶），所以排隊慢慢畫、畫好的留著。
+const tapeThumbs = new Map();
+let tapeQueue = [], tapeQueueTimer = 0;
+function tapeThumb(key, w, h, opts) {
+  let c = tapeThumbs.get(key);
+  if (c) return c;
+  c = makeCanvas(w, h);
+  tapeThumbs.set(key, c);
+  if (tapeThumbs.size > 160) tapeThumbs.delete(tapeThumbs.keys().next().value);
+  tapeQueue.push(() => {
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    const a = tapeAspect(opts.shape), tw = Math.min(w * 0.86, (h * 0.8) / a);
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(-0.05);
+    drawTape(ctx, tw, tw * a, opts);
+  });
+  if (!tapeQueueTimer) tapeQueueTimer = setTimeout(runTapeQueue, 0);
+  return c;
+}
+function runTapeQueue() {
+  const t0 = performance.now();
+  while (tapeQueue.length && performance.now() - t0 < 30) tapeQueue.shift()();
+  tapeQueueTimer = tapeQueue.length ? setTimeout(runTapeQueue, 16) : 0;
+}
+const tapeWayOf = (pid, k) => { const ways = tapeOf(pid).colorways; return ways[Math.min(k, ways.length - 1)] || ways[0]; };
+function tapeOpts(shape = state.tapeShape, pid = state.tapePattern, way = state.tapeWay, mat = state.tapeMat) {
+  const cw = tapeWayOf(pid, way);
+  return { shape, pattern: pid, color: cw[0], color2: cw[1] || cw[0], material: mat, seed: 5 };
+}
+// 選著的膠帶跟著改
+function applyTapeToSelected() {
+  const st = selectedSticker();
+  if (st?.kind !== 'tape') return;
+  const o = tapeOpts();
+  Object.assign(st, { shape: o.shape, id: o.pattern, color: o.color, color2: o.color2, material: o.material });
+  updateStickerBar();
+  requestRender();
+}
+// 點到一條膠帶時，面板也顯示它的設定
+function syncTapeFromSticker(st) {
+  if (st?.kind !== 'tape') return;
+  const p = tapeOf(st.id);
+  state.tapeShape = st.shape || 'strip';
+  state.tapePattern = p.id;
+  const k = p.colorways.findIndex((w) => w[0] === st.color);
+  state.tapeWay = Math.max(0, k);
+  if (st.material) state.tapeMat = st.material;
+}
+function tapeBtn(label, canvas, checked, onClick, extraClass = '') {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = extraClass;
+  b.setAttribute('role', 'radio');
+  b.setAttribute('aria-checked', String(checked));
+  b.setAttribute('aria-label', label);
+  b.title = label;
+  const n = document.createElement('span'); n.textContent = label;
+  if (canvas) b.append(canvas);
+  b.append(n);
+  b.addEventListener('click', onClick);
+  return b;
+}
 function buildTapeUI() {
+  if (!$('#tapeShapes')) return;
+  const sel = selectedSticker();
+  if (sel?.kind === 'tape') syncTapeFromSticker(sel);
+  const pick = (fn) => () => { fn(); applyTapeToSelected(); buildTapeUI(); savePrefs(); };
+  // ① 貼法與形狀（用目前選的花紋和顏色畫）
+  const shapes = $('#tapeShapes');
+  shapes.innerHTML = '';
+  for (const sh of TAPE_SHAPES) {
+    const o = tapeOpts(sh.id);
+    const c = tapeThumb(['s', sh.id, o.pattern, o.color, o.color2, o.material].join('|'), 200, 96, o);
+    shapes.append(tapeBtn(sh.name, c, sh.id === state.tapeShape, pick(() => { state.tapeShape = sh.id; })));
+  }
+  // ② 花紋（用長條畫，每種花紋的第一組配色）
   const grid = $('#tapeGrid');
-  // 材質：選了會套到之後貼的膠帶；選中的膠帶也一起換
+  grid.innerHTML = '';
+  for (const p of TAPE_PATTERNS) {
+    const o = tapeOpts('strip', p.id, 0, p.material || state.tapeMat);
+    const c = tapeThumb(['p', p.id, o.material].join('|'), 200, 72, o);
+    grid.append(tapeBtn(p.name, c, p.id === state.tapePattern, pick(() => {
+      state.tapePattern = p.id; state.tapeWay = 0;
+      if (p.material) state.tapeMat = p.material;
+    })));
+  }
+  // ③ 配色：這個花紋搭好的幾組顏色
+  const ways = $('#tapeWays');
+  ways.innerHTML = '';
+  tapeOf(state.tapePattern).colorways.forEach((cw, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tape-way';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(k === Math.min(state.tapeWay, tapeOf(state.tapePattern).colorways.length - 1)));
+    b.setAttribute('aria-label', `配色 ${k + 1}`);
+    b.style.background = `linear-gradient(135deg, ${cw[0]} 0 50%, ${cw[1] || cw[0]} 50% 100%)`;
+    b.addEventListener('click', pick(() => { state.tapeWay = k; }));
+    ways.append(b);
+  });
+  // 材質
   const mats = $('#tapeMats');
   if (!mats.children.length) {
     for (const [id, name] of TAPE_MATERIALS) {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'chip'; b.dataset.id = id; b.textContent = name;
       b.setAttribute('role', 'radio');
-      b.addEventListener('click', () => {
-        state.tapeMat = id;
-        const st = selectedSticker();
-        if (st?.kind === 'tape') st.material = id;
-        buildTapeUI(); requestRender(); savePrefs();
-      });
+      b.addEventListener('click', () => { state.tapeMat = id; applyTapeToSelected(); buildTapeUI(); savePrefs(); });
       mats.append(b);
     }
   }
   $$('#tapeMats .chip').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.id === state.tapeMat)));
-  grid.innerHTML = '';
-  for (const t of TAPES) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.setAttribute('aria-label', `${t.name}紙膠帶`);
-    b.title = t.name;
-    const c = makeCanvas(200, 80), ctx = c.getContext('2d');
-    ctx.fillStyle = '#e9ddc8';
-    for (let x = -80; x < 200; x += 16) { ctx.beginPath(); ctx.moveTo(x, 80); ctx.lineTo(x + 8, 80); ctx.lineTo(x + 88, 0); ctx.lineTo(x + 80, 0); ctx.fill(); }
-    ctx.translate(100, 40);
-    ctx.rotate(-0.06);
-    drawTape(ctx, 180, 180 * TAPE_RATIO, t, t.color, 5, state.tapeMat);
-    const n = document.createElement('span'); n.textContent = t.name;
-    b.append(c, n);
-    // 第一條貼在照片上緣中間（像把照片貼在手帳上），之後輪流換到下緣、四個角
-    b.addEventListener('click', () => {
-      const n = state.stickers.filter((x) => x.kind === 'tape').length, db = dateBoxNorm();
-      const near = ([sx, sy]) => db && sx > db.x0 - 0.15 && sx < db.x1 + 0.15 && sy > db.y0 - 0.15 && sy < db.y1 + 0.15;
-      let k = n;
-      while (k < n + TAPE_SPOTS.length && near(TAPE_SPOTS[k % TAPE_SPOTS.length])) k++;
-      const [x, y, rot, size] = TAPE_SPOTS[k % TAPE_SPOTS.length];
-      addSticker({ kind: 'tape', id: t.id, color: t.color, material: state.tapeMat, size: state.mode === 'four' ? size * 1.15 : size, x, y, rot: rot + (Math.random() - 0.5) * 0.16 });
-    });
-    grid.append(b);
-  }
+  // 預覽＋貼上
+  const o = tapeOpts();
+  const pv = $('#tapePreview'), pc = pv.getContext('2d');
+  const prev = tapeThumb(['v', o.shape, o.pattern, o.color, o.color2, o.material].join('|'), 320, 150, o);
+  const paint = () => { pc.clearRect(0, 0, pv.width, pv.height); pc.drawImage(prev, 0, 0, pv.width, pv.height); };
+  paint(); setTimeout(paint, 60); setTimeout(paint, 400);
+  const editing = sel?.kind === 'tape';
+  $('#tapeEditNote').hidden = !editing;
+  $('#btnTapeAdd').textContent = editing ? '再貼一條一樣的' : '貼到照片上';
 }
+function addTape() {
+  const o = tapeOpts();
+  // 第一條貼在照片上緣中間（像把照片貼在手帳上），之後輪流換到下緣、四個角
+  const n = state.stickers.filter((x) => x.kind === 'tape').length, db = dateBoxNorm();
+  const near = ([sx, sy]) => db && sx > db.x0 - 0.15 && sx < db.x1 + 0.15 && sy > db.y0 - 0.15 && sy < db.y1 + 0.15;
+  let k = n;
+  while (k < n + TAPE_SPOTS.length && near(TAPE_SPOTS[k % TAPE_SPOTS.length])) k++;
+  const [x, y, rot, size] = TAPE_SPOTS[k % TAPE_SPOTS.length];
+  const sz = o.shape === 'block' ? size * 0.7 : o.shape === 'short' ? size * 0.8 : size;
+  addSticker({ kind: 'tape', id: o.pattern, shape: o.shape, color: o.color, color2: o.color2, material: o.material,
+    size: state.mode === 'four' ? sz * 1.15 : sz, x, y, rot: rot + (Math.random() - 0.5) * 0.16 });
+  buildTapeUI();
+}
+$('#btnTapeAdd')?.addEventListener('click', addTape);
 
 // ---------------------------------------------------------------- 膠水：把貼圖黏好（點照片不會再選到、拖動）
 function glueState() {

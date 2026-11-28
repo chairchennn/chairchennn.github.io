@@ -343,11 +343,27 @@
 
         <!-- 文具：紙膠帶 -->
         <section class="pane" data-pane="tape" role="tabpanel" hidden>
+          <div class="tape-go">
+            <canvas id="tapePreview" width="320" height="150" aria-hidden="true"></canvas>
+            <button type="button" class="chip tape-add" id="btnTapeAdd">貼到照片上</button>
+            <p class="hint" id="tapeEditNote" hidden>照片上選著一條膠帶：下面改的就是那一條。</p>
+          </div>
           <div class="sub first">
+            <span class="sub-label">① 貼法與形狀</span>
+            <div class="tape-grid tape-shapes" id="tapeShapes" role="radiogroup" aria-label="貼法與形狀"></div>
+          </div>
+          <div class="sub">
+            <span class="sub-label">② 花紋</span>
+            <div class="tape-grid" id="tapeGrid" role="radiogroup" aria-label="花紋"></div>
+          </div>
+          <div class="sub">
+            <span class="sub-label">③ 配色</span>
+            <div class="tape-ways" id="tapeWays" role="radiogroup" aria-label="配色"></div>
+          </div>
+          <div class="sub">
             <span class="sub-label">材質</span>
             <div class="chips" id="tapeMats" role="radiogroup" aria-label="膠帶材質"></div>
           </div>
-          <div class="tape-grid" id="tapeGrid"></div>
         </section>
 
       </div>

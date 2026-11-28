@@ -6,7 +6,7 @@ import { ART_FR_JP, FRENCH_INK } from './art/fr_jp.js';
 import { drawInkDef } from './inkbrush.js';
 import { ART_Y2K_EMOJI } from './art/y2k_emoji.js';
 import { ART_CRAYON } from './art/crayon.js';
-import { ART_PENCIL, ART_PRINT, ART_TOOLS, MOTIF_STITCH, MOTIF_STIPPLE } from './art/v8.js';
+import { ART_PENCIL, ART_PRINT, ART_PRINTTILE, ART_TOOLS, MOTIF_STITCH, MOTIF_STIPPLE } from './art/v8.js';
 import { ART_PIXEL, ART_DOTSTAR, ART_CATS, MOTIF_STITCH2, MOTIF_STIPPLE2 } from './art/v9.js';
 import { drawCrayonDef } from './crayon.js';
 import { drawPencilDef, drawPrintDef, drawPixelDef, drawStitchDef, drawStippleDef, drawDotstarDef, drawScribbleDef } from './print.js';
@@ -971,7 +971,7 @@ restyle(ART_Y2K_EMOJI.filter((d) => d.cat === 'y2k'), 'print', {
   // 反光線（白色的線）和白色小亮點拿掉；其餘不透明，像一次印上去
   d.parts = d.parts.filter((p) => !(p.s === IV)).map((p) => ({ ...p, a: p.a != null && p.a < 1 ? 1 : p.a }));
 });
-STICKERS.push(...CUTE, ...ART_FR_JP, ...FRENCH_INK, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_TOOLS, ...ART_PIXEL, ...ART_DOTSTAR, ...ART_CATS,
+STICKERS.push(...CUTE, ...ART_FR_JP, ...FRENCH_INK, ...ART_Y2K_EMOJI, ...ART_CRAYON, ...ART_PENCIL, ...ART_PRINT, ...ART_PRINTTILE, ...ART_TOOLS, ...ART_PIXEL, ...ART_DOTSTAR, ...ART_CATS,
   // 十字繡、點描的圖案也可以當單張貼圖用
   ...[...MOTIF_STITCH, ...MOTIF_STITCH2].map((d) => ({ ...d, id: d.id.startsWith('stx_') ? d.id : `stx_${d.id}`, cat: 'stitch', style: 'stitch', color: d.color || '#ffffff' })),
   ...[...MOTIF_STIPPLE, ...MOTIF_STIPPLE2].map((d) => ({ ...d, id: d.id.startsWith('spx_') ? d.id : `spx_${d.id}`, cat: 'stipple', style: 'stipple', color: d.color || '#ffffff' })));

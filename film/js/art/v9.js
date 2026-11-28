@@ -1082,7 +1082,7 @@ export const PACKS_V9 = {
   // 8-bit 像素：色票的低飽和色；像素格看得到
   pixel: {
     name: '8-bit 像素', glow: 0, noGlow: true,
-    sizes: { small: [0.06, 0.08], medium: [0.09, 0.12], large: [0.14, 0.18] },
+    sizes: { small: [0.07, 0.09], medium: [0.095, 0.12], large: [0.14, 0.17] },
     colors: ['#D9A3A0', '#E9D79A', '#A99BC5', '#9CB9D0', '#A6B58A', '#CB8875'], recolor: 0.35,
     small: each(['px_sparkle', 'px_heart', 'px_star', 'px_note', 'px_drop', 'px_clover', 'px_cherry', 'px_snow', 'px_gem', 'px_leaf', 'px_pear']),
     medium: each(['px_flower', 'px_daisy', 'px_moon', 'px_mushroom', 'px_bird', 'px_tulip', 'px_butterfly', 'px_cup', 'px_apple', 'px_bow', 'px_letter', 'px_cloud', 'px_pear', 'px_candle', 'px_umbrella']),

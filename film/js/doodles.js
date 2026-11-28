@@ -24,14 +24,15 @@ const LAYOUT_FN = {
   top: (x, y, sx, sy) => Math.max(1 - smooth(0.2, 0.32, y * sy), 0.3 * smooth(0.88, 0.94, y)),
 };
 
-const SIZES = { small: [0.035, 0.06], medium: [0.09, 0.13], large: [0.18, 0.26] };
+// 第九版：大中小的差距縮小（參考圖 28：圖案大小差不多、平均散開），最小的也要一眼看得出是什麼
+const SIZES = { small: [0.075, 0.095], medium: [0.105, 0.135], large: [0.155, 0.2] };
 
 // 風格包：每一包參考一種使用者提供的範例「風格」，圖案全部是原創
 export const PACKS = {
   // 第六版：A 色鉛筆小物（參考圖 14 的彩鉛顆粒；保持原本配色，不換色）
   pencil: {
     name: '色鉛筆小物', glow: 0, noGlow: true, lw: 0.0034,
-    sizes: { small: [0.06, 0.085], medium: [0.1, 0.14], large: [0.17, 0.23] },
+    sizes: { small: [0.075, 0.095], medium: [0.105, 0.135], large: [0.16, 0.2] },
     small: { pc_star8: 2, pc_button: 1, pc_cherry: 1.2, pc_flower: 1.5, pc_moon: 0.6, pc_heart: 1, pc_lemon: 0.8, pc_strawberry: 1, pc_apple: 0.8, pc_cloud: 0.8, pc_letter: 0.6, pc_orange: 0.8, pc_cookie: 0.8 },
     medium: { pc_cherry: 1, pc_bow: 1, pc_flower: 1, pc_cutlery: 0.8, pc_teacup: 1, pc_bread: 0.8, pc_mitten: 0.8, pc_star8: 1, pc_moon: 0.8,
       pc_apple: 1, pc_pear: 1, pc_lemon: 1, pc_mushroom: 1, pc_sock: 0.8, pc_heart: 0.8, pc_cloud: 1, pc_jar: 0.8, pc_candle: 0.8, pc_tulip: 1, pc_strawberry: 1, pc_letter: 0.8,
@@ -42,7 +43,7 @@ export const PACKS = {
   // 第六版：B 植物版畫（參考圖 13 的印壓顆粒、挖空）
   print: {
     name: '植物版畫', glow: 0, noGlow: true, lw: 0.0034,
-    sizes: { small: [0.08, 0.11], medium: [0.13, 0.18], large: [0.22, 0.3] },
+    sizes: { small: [0.1, 0.12], medium: [0.13, 0.17], large: [0.2, 0.25] },
     colors: ['#9dc044', '#8fb0c9', '#cb8875', '#a99bc5'], recolor: 0.25,
     small: { pr_clover: 1.5, pr_daisy: 1, pr_oak: 1, pr_ginkgo: 1, pr_maple: 1, pr_mushroom: 0.8, pr_acorn: 0.8, pr_eucalyptus: 0.8, pr_leaf: 0.8, pr_grass: 0.8, pr_pinecone: 0.8, pr_rosemary: 0.8 },
     medium: { pr_wheat: 1, pr_daisy: 1, pr_clover: 1, pr_olive: 1, pr_dandelion: 1, pr_oak: 0.8,
@@ -53,7 +54,7 @@ export const PACKS = {
   // 奶油貼紙（第八版）：象牙紙底＋玫瑰色細線的色鉛筆貼紙；'M' 換成色票的低飽和色
   cream: {
     name: '奶油貼紙', glow: 0, noGlow: true, lw: 0.0034,
-    sizes: { small: [0.05, 0.075], medium: [0.09, 0.13], large: [0.16, 0.22] },
+    sizes: { small: [0.07, 0.09], medium: [0.1, 0.13], large: [0.15, 0.19] },
     colors: ['#D69C98', '#CB8875', '#A99BC5', '#9CB9D0', '#A6B58A', '#E3C77E'], recolor: 0.35,
     small: { cr_dotheart: 1.2, cr_sparkle: 1.2, cr_cross: 1, cr_flower4: 1.2, cr_candy: 0.8, cr_twinstar: 1, cr_button: 1, cr_drop: 1, cr_star5: 1, cr_clover: 0.8, cr_cutheart: 0.8 },
     medium: {
@@ -65,7 +66,7 @@ export const PACKS = {
   // 花花世界（第八版）：版畫色塊，配色換成色票
   flora: {
     name: '花花世界', glow: 0, noGlow: true, lw: 0.0034, largeExtra: 1, bleed: 0.3,
-    sizes: { small: [0.06, 0.09], medium: [0.11, 0.16], large: [0.2, 0.28] },
+    sizes: { small: [0.08, 0.1], medium: [0.11, 0.15], large: [0.18, 0.23] },
     colors: ['#CB8875', '#D69C98', '#9CB9D0', '#A99BC5', '#E9D79A'], recolor: 0.25,
     keepColor: ['fl_ginkgo', 'fl_monstera', 'fl_eucalyptus', 'fl_grass', 'fl_sprig', 'fl_fern'],
     small: { fl_star: 1.2, fl_blue: 1.2, kt_blossom2: 1, fl_round: 1, fl_anemone: 1, fl_chamomile: 0.8, fl_hydrangea: 0.8, fl_poppy: 0.8, fl_cornflower: 0.8, fl_clematis: 0.8 },
@@ -79,7 +80,7 @@ export const PACKS = {
   // 夢幻粉彩（第八版）：淡粉彩的色鉛筆細線
   pastel: {
     name: '夢幻粉彩', glow: 0, noGlow: true, lw: 0.0032,
-    sizes: { small: [0.04, 0.065], medium: [0.09, 0.13], large: [0.2, 0.28] },
+    sizes: { small: [0.07, 0.09], medium: [0.1, 0.13], large: [0.17, 0.22] },
     colors: ['#F4EEDF', '#E7B7C0', '#B9CFE0', '#A99BC5', '#EADFA8', '#BFD3B4'], recolor: 0.4,
     small: { pl_twinkle: 1.6, pl_star: 1, pl_daisy: 0.8, pl_dotarc: 0.8, pl_crosses: 1.2, pl_bubbles: 1, pl_heart: 1, pl_moon: 0.8, pl_twostar: 0.8, pl_clover: 0.8 },
     medium: {
@@ -106,7 +107,7 @@ export const PACKS = {
   // 蠟筆天空（第八版）：月亮、雲、星星、氣球、飛行的東西，排在照片上方
   crayon: {
     name: '蠟筆天空', glow: 0, noGlow: true, // 蠟筆筆刷不畫光暈，所以不顯示光暈滑桿
-    sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.2, 0.28] },
+    sizes: { small: [0.08, 0.1], medium: [0.11, 0.145], large: [0.17, 0.22] },
     colors: ['#fff3df', '#ffe38a', '#ffb98a', '#ff9fc1', '#8fe0e0', '#c9b8f0'], recolor: 0.3,
     small: { cr2_stars: 1.6, cr2_birds: 1.2, cr3_sparkles: 1.4, cr3_constellation: 1, cr3_snowflake: 0.8, cr3_moon: 0.8, cr3_bigstar: 0.8, cr4_burst: 1, cr4_rain: 0.8, cr4_bubbles: 0.8 },
     medium: {
@@ -120,7 +121,7 @@ export const PACKS = {
   // 蠟筆花園（第八版）：花草、海邊、小動物，排在照片四周（小草、海草長在底邊）
   crayon2: {
     name: '蠟筆花園', glow: 0, noGlow: true,
-    sizes: { small: [0.07, 0.1], medium: [0.11, 0.16], large: [0.2, 0.28] },
+    sizes: { small: [0.08, 0.1], medium: [0.11, 0.145], large: [0.17, 0.22] },
     colors: ['#9fe3c0', '#ffb98a', '#ff9fc1', '#ffe38a', '#fff3df'], recolor: 0.3,
     anchors: { cr2_grass: 'bottom', cr3_seaweed: 'bottom' },
     small: { cr2_hearts: 1, cr2_starfish: 1, cr2_shell: 1, cr2_grass: 0.8, cr3_clover: 1.2, cr3_ladybug: 1, cr3_daisy: 1.2, cr3_leaf: 1, cr3_strawberry: 0.8, cr3_bee: 0.8, cr4_burstflower: 1.2, cr4_sprout: 0.8 },
@@ -137,7 +138,7 @@ export const PACKS = {
   // 法式手繪（第九版）：黑墨線＋朱紅／粉藍套色（style: 'ink'，參考圖 27 的畫法、29 的剪紙底）；'M' 是主色版
   french: {
     name: '法式手繪', glow: 0, noGlow: true, lw: 0.009,
-    sizes: { small: [0.08, 0.11], medium: [0.12, 0.16], large: [0.2, 0.26] },
+    sizes: { small: [0.09, 0.11], medium: [0.12, 0.15], large: [0.17, 0.21] },
     colors: ['#E8553A', '#86B4E3'], recolor: 0.35,
     small: { fi_croissant: 1, fi_macaron: 1, fi_beret: 1, fi_cockade: 1, fi_pigeon: 1, fi_coffee: 0.8, fi_paris: 0.8, fi_cafe: 0.8, fi_letter: 0.8, fi_perfume: 0.8, fi_ribbon: 0.8 },
     medium: {
@@ -176,7 +177,7 @@ export const PACKS = {
     // 第八版：顏色換成像鉛筆手寫／印泥的褪色墨色（巧克力、赤陶、炭灰、灰藍、橄欖、灰紫）
     name: '顏文字', glow: 0, noGlow: true, kao: true,
     colors: ['#655047', '#B8735F', '#65645D', '#5F7D99', '#7B8A5C', '#8A7BAB'],
-    sizes: { small: [0.045, 0.06], medium: [0.06, 0.075], large: [0.08, 0.1] },
+    sizes: { small: [0.055, 0.07], medium: [0.065, 0.08], large: [0.085, 0.1] },
     small: { '♡': 2, '☆': 1.5, '✧': 1.5, '♪': 1, '✿': 1.2, '✦': 1, '❀': 1 },
     medium: {
       '(｡•ᴗ•｡)': 1, '(*^▽^*)': 1, '(◍•ᴗ•◍)': 1, 'ʕ•ᴥ•ʔ': 1, '(≧▽≦)': 1, '(｡>﹏<｡)': 1, '( ˘ω˘ )': 1,
@@ -200,21 +201,21 @@ for (const id of Object.keys({ ...PACKS.neon.small, ...PACKS.neon.medium, ...PAC
 export const DOODLE_SECTIONS = [['draw', '手繪'], ['print', '印刷'], ['mixed', '實驗媒材'], ['sticker', '貼紙'], ['line', '線描']];
 export const DOODLE_PRESETS = [
   { id: 'none', name: '無' },
-  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 16, section: 'draw' },
+  { id: 'pencil', name: '色鉛筆小物', pack: 'pencil', layout: 'edge', count: 14, section: 'draw' },
   { id: 'crayon', name: '蠟筆天空', pack: 'crayon', layout: 'top', count: 10, section: 'draw' },
   { id: 'crayon2', name: '蠟筆花園', pack: 'crayon2', layout: 'edge', count: 14, section: 'draw' },
   { id: 'print', name: '植物版畫', pack: 'print', layout: 'corner', count: 8, section: 'print' },
   { id: 'printgrid', name: '版畫方格', overlay: 'printgrid', count: 4, section: 'print' },
-  { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 16, section: 'print' },
-  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 16, section: 'print' },
+  { id: 'flora', name: '花花世界', pack: 'flora', layout: 'corner', count: 12, section: 'print' },
+  { id: 'japan', name: '日式手繪', pack: 'japan', layout: 'band', count: 14, section: 'print' },
   { id: 'stitch', name: '十字繡邊', overlay: 'stitch', count: 6, section: 'mixed' },
   { id: 'stipple', name: '點描植物', overlay: 'stipple', count: 4, section: 'mixed' },
-  { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 18, section: 'sticker' },
-  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 16, section: 'sticker' },
-  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 14, section: 'line' },
-  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 20, section: 'line' },
-  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 22, section: 'line' },
-  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 14, section: 'line' },
+  { id: 'cream', name: '奶油貼紙', pack: 'cream', layout: 'band', count: 14, section: 'sticker' },
+  { id: 'y2k', name: 'Y2K', pack: 'y2k', layout: 'edge', count: 14, section: 'sticker' },
+  { id: 'french', name: '法式手繪', pack: 'french', layout: 'edge', count: 12, section: 'line' },
+  { id: 'pastel', name: '夢幻粉彩', pack: 'pastel', layout: 'sides', count: 16, section: 'line' },
+  { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 16, section: 'line' },
+  { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 12, section: 'line' },
 ];
 export const OVERLAY_COUNT = { stitch: [2, 40], stipple: [1, 14], printgrid: [2, 60] }; // 版畫方格放到排滿為止
 export const COUNT_MIN = 4, COUNT_MAX = 30;
@@ -296,9 +297,9 @@ export function generateDoodles(o, aspect, avoidBox = null) {
     return null;
   };
 
-  // 大：1~5 個；中：約 35%；小：其餘
-  const nLarge = Math.min(count, Math.max(1, Math.min(5, Math.round(count * 0.18))) + (pack.largeExtra || 0));
-  const nMedium = Math.round((count - nLarge) * 0.35);
+  // 第九版：大 1~4 個（約 12%）當主角旁的重點；中約一半；小其餘。大小差距不大，像參考圖平均散開
+  const nLarge = Math.min(count, Math.max(1, Math.min(4, Math.round(count * 0.12))) + (pack.largeExtra || 0));
+  const nMedium = Math.round((count - nLarge) * 0.5);
   const plan = [...Array(nLarge).fill('large'), ...Array(nMedium).fill('medium'), ...Array(count - nLarge - nMedium).fill('small')];
   for (const kind of plan) {
     // 放不下就換一個圖案再試（最多 3 次），不讓整格空掉
