@@ -6,10 +6,11 @@
 | --- | --- | --- |
 | 網頁美感執行 | `.claude/agents/web-aesthetics.md` | 介面與成品畫面的視覺品質、手機／電腦操作手感、塗鴉框構圖 |
 | 侵權審查 | `.claude/agents/ip-compliance.md` | 貼圖原創性、商標用語、字型與素材授權、參考圖不得進 repo |
-| 貼圖美術 | `.claude/agents/sticker-artist.md` | 原創貼圖（`js/stickers.js`）與風格包（`js/doodles.js`） |
+| 貼圖與材質美術 | `.claude/agents/sticker-artist.md` | 原創貼圖（`js/stickers.js`、`js/art/`）、風格包（`js/doodles.js`）、紙膠帶與筆刷材質 |
 | 專案總監 | `.claude/agents/project-lead.md` | 整體方向、取捨與優先順序、是否新增職位、維護本文件 |
 | 品質與發布（QA） | `.claude/agents/qa-release.md` | 回歸測試（手機寬度、WebKit）、效能、無障礙、快取版本、上線檢查清單、給使用者的實機測試步驟（2026-11-27 新增） |
 | 互動設計 | `.claude/agents/interaction-design.md` | 互動是否直覺：找不找得到、看不看得懂、有沒有回饋、能不能復原、手勢與手機單手操作、核心任務步數（2026-11-27 使用者要求新增） |
+| 美術總監 | `.claude/agents/art-director.md` | 美感＝使用者傳過的所有參考圖（`film/STYLE.md`）。所有美術產出上線前逐項對照參考圖審核（2026-11-28 使用者要求新增） |
 
 ## 流程
 
