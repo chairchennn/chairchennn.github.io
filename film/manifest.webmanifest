@@ -1,7 +1,7 @@
 {
   "name": "FilmDoodle 底片塗鴉機",
   "short_name": "FilmDoodle",
-  "description": "底片色調、相框、手繪塗鴉與手帳文具（印章、紙膠帶、便條紙），照片只在裝置上處理。",
+  "description": "底片色調、相框、色鉛筆與版畫風的塗鴉、剪下形狀與紙膠帶，照片只在裝置上處理。",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",

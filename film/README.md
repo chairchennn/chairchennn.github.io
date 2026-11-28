@@ -51,7 +51,6 @@ film/
 ├── js/crayon.js          蠟筆筆刷（SVG path 打散成點、手抖、顆粒質感）
 ├── js/tape.js            紙膠帶（程式畫的花紋與撕邊）
 ├── js/art/               新風格貼圖（法式、日式、Y2K、蠟筆）與共用形狀工具
-├── icons/tools/          文具工具列圖示（原創）
 ├── js/exif.js            讀取拍攝日期
 ├── sw.js                 離線快取
 ├── manifest.webmanifest  PWA 設定

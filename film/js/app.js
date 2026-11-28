@@ -140,7 +140,8 @@ function loadPrefs() {
       if (PAPERS.some((x) => x.id === p.four.paper)) state.four.paper = p.four.paper;
     }
     if (p.mode === 'single' || p.mode === 'four') state.mode = p.mode;
-    if (TABS.includes(p.tab)) state.tab = p.tab; // 文具面板不記，下次打開回到主工具
+    if (TABS.includes(p.tab)) state.tab = p.tab;
+    if (p.ver !== 8 && state.doodle.preset === 'none') Object.assign(state.doodle, { preset: 'pencil', pack: 'pencil', layout: 'edge', count: 12 }); // 文具面板不記，下次打開回到主工具
   } catch { /* 無法讀取就用預設值 */ }
 }
 let saveTimer = 0, savePending = null;
@@ -154,7 +155,7 @@ function savePrefs() {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         preset: state.preset, adj: state.adj, mode: state.mode,
         frame: { id: f.id, color: f.color, slideColor: f.slideColor, archColor: f.archColor, ratio: f.ratio, paper: f.paper },
-        tools: state.tools,
+        tools: state.tools, ver: 8,
         date: { on: d.on, format: d.format, color: d.color, pos: d.pos, size: d.size },
         glow: state.glow, tab: TABS.includes(state.tab) ? state.tab : 'film',
         doodle: { ...state.doodle, seed: 1 },
@@ -1418,8 +1419,8 @@ function refreshFrameThumbs() {
   const src = state.thumb || SAMPLE;
   $$('#frameList .card').forEach((b) => renderFrameThumb(b.querySelector('canvas'), b.dataset.id, src));
 }
-function selectFrame(id) {
-  commitHistory();
+function selectFrame(id, inStep = false) {
+  if (!inStep) commitHistory(); // 從「貼在手帳紙上」呼叫時已經存過，避免拆成兩步
   if (state.frame.cut && id !== 'paper') {
     state.frame.cut = null;
     setTimeout(() => toast('剪下的形狀只能用在手帳紙，已恢復方形照片', { label: '復原', run: undo }), 0);
@@ -1616,7 +1617,7 @@ function selectDoodle(id) {
   if (p.pack) {
     Object.assign(state.doodle, { pack: p.pack, layout: p.layout });
     // 使用者自己調過數量就保留那個數字，沒調過就用這一款的預設
-    if (!state.doodle.countTouched) state.doodle.count = p.count;
+    if (!state.doodle.countTouched || p.overlay) state.doodle.count = p.count;
   }
   syncDoodleUI();
   requestRender();
@@ -1932,7 +1933,7 @@ function buildCutUI() {
     const was = state.frame.id;
     state.frame.cut = cc;
     $('#cutDialog').close();
-    if (was !== 'paper') { selectFrame('paper'); state.frame.cut = cc; toast('已換成「手帳紙」相框', { label: '復原', run: undo }); }
+    if (was !== 'paper') { selectFrame('paper', true); state.frame.cut = cc; toast('已換成「手帳紙」相框', { label: '復原', run: undo }); }
     syncCutUI(); syncPaperUI(); requestRender(); savePrefs();
   });
   $('#btnCutSticker').addEventListener('click', () => {
