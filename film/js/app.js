@@ -1242,7 +1242,7 @@ function setTab(t) {
   if (t === 'crop') $('#xfHint').textContent = `直接在照片上${xfHowTo()}；也可以用下面的滑桿。`;
   state.tab = t;
   $$('.tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
-  $$('#stationery .tool[data-tool]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+  $$('#stationery .tool[data-tool]').forEach((b) => { if (b.dataset.tool !== 'glue') b.setAttribute('aria-pressed', String(b.dataset.tool === t)); });
   $$('.pane').forEach((p) => { p.hidden = p.dataset.pane !== t; });
   const [title, hint] = PANE_INFO[t];
   $('#panelTitle').textContent = title;
@@ -1358,7 +1358,7 @@ function buildSliders() {
     ls.append(b);
   }
   const dice = document.createElement('button');
-  dice.type = 'button'; dice.className = 'chip'; dice.textContent = '🎲 換位置';
+  dice.type = 'button'; dice.className = 'chip'; dice.textContent = '換位置';
   dice.addEventListener('click', () => {
     state.adj.leakSeed = 1 + Math.floor(Math.random() * 9999);
     state.adj.dustSeed = 1 + Math.floor(Math.random() * 9999);
@@ -2426,9 +2426,9 @@ function drawDeco() {
   const topBand = Math.max(0, card.top - r.top), botBand = Math.max(0, r.bottom - card.bottom - 7);
   const bands = { t: { y: topBand / 2, h: topBand }, b: { y: H - botBand / 2, h: botBand } };
   const items = [
-    ['cr2_balloon', 0.1, 't', 0.14, -0.1], ['cr2_stars', 0.37, 't', 0.11, 0.05], ['cr2_whale', 0.63, 't', 0.14, 0.05],
-    ['cr2_hearts', 0.9, 't', 0.12, 0.2], ['cr2_flower', 0.1, 'b', 0.12, 0.1], ['cr2_starfish', 0.37, 'b', 0.11, -0.1],
-    ['cr2_shoot', 0.63, 'b', 0.12, -0.1], ['cr2_firework', 0.9, 'b', 0.12, 0],
+    ['pc_star8', 0.1, 't', 0.1, -0.1], ['pc_cherry', 0.37, 't', 0.11, 0.05], ['pc_teacup', 0.63, 't', 0.13, 0.05],
+    ['pc_moon', 0.9, 't', 0.1, 0.2], ['pr_clover', 0.1, 'b', 0.12, 0.1], ['pc_bow', 0.37, 'b', 0.11, -0.1],
+    ['pc_flower', 0.63, 'b', 0.12, -0.1], ['pr_wheat', 0.9, 'b', 0.13, 0],
   ];
   for (const [id, x, band, s, rot] of items) {
     const def = STICKERS.find((d) => d.id === id), bd = bands[band];
