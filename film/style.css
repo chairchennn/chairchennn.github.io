@@ -1818,7 +1818,8 @@ details.cute-group summary { color: var(--ink-2); }
 
 /* 手機：底部導覽和文具列都是同一張點點紙，沒有白底條 */
 @media (max-width: 899px) {
-  .rail { background: var(--grain) 0 0 / 180px 180px; padding-top: 4px; }
+  /* 同一張點點紙（不透明：抽屜裡的卡片不會透出來），沒有上緣線與陰影 */
+  .rail { background: var(--grain) 0 0 / 180px 180px, var(--dots) 9px 9px / 18px 18px, var(--stage); padding-top: 4px; }
   .rail button { flex: 1; min-height: 62px; }
   .rail .tool-art { width: 62px; top: 22px; }
   .stationery-dock { bottom: 4px; }
@@ -1847,7 +1848,11 @@ details.cute-group summary { color: var(--ink-2); }
   .tool[data-tool="tape"] { margin-left: -1px; }
   .tool[data-tool="glue"] { margin-left: 7px; }
 }
-@media (min-width: 900px) and (max-width: 1023px) {
+/* 畫布不夠寬：文具往左讓出右下角的縮放鈕 */
+@media (min-width: 900px) and (max-width: 1279px) {
+  .stationery-dock { padding: 0 184px 0 16px; }
+}
+@media (min-width: 900px) and (max-width: 1279px) {
   .stationery-dock { gap: 28px; }
   .tool,
   .stationery-dock .rail button { width: 80px; height: 76px; min-height: 76px; }
@@ -1856,3 +1861,5 @@ details.cute-group summary { color: var(--ink-2); }
   .tool-edit { width: 66px; margin-left: 8px; }
   .tool-edit .tool-art { width: 54px; }
 }
+/* 縮放鈕也要 44px 高 */
+.zoom-bar button { min-height: 44px; }
