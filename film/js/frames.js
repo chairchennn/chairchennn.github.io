@@ -280,14 +280,14 @@ function drawArchNight(ctx, L, o) {
   }
   sky.forEach(([sx, sy, t], i) => {
     if (i === 0) { // 月亮
-      const R = m * 0.42, p = new Path2D();
+      const R = m * 0.55, p = new Path2D();
       p.arc(sx, sy, R, 0, Math.PI * 2);
       p.arc(sx + R * 0.45, sy - R * 0.2, R * 0.85, 0, Math.PI * 2, true);
       pencilFill(ctx, p, butter, cell, 3);
     } else if (t < 0.55) {
-      pencilFill(ctx, star8Path(sx, sy, m * (0.2 + t * 0.3)), t < 0.25 ? butter : cream, cell, i);
+      pencilFill(ctx, star8Path(sx, sy, m * (0.3 + t * 0.45)), t < 0.25 ? butter : cream, cell, i);
     } else if (t < 0.8) {
-      pencilFill(ctx, sparkPath(sx, sy, m * (0.14 + (t - 0.55) * 0.5)), cream, cell, i);
+      pencilFill(ctx, sparkPath(sx, sy, m * (0.22 + (t - 0.55) * 0.8)), cream, cell, i);
     } else {
       const p = new Path2D(); p.arc(sx, sy, m * 0.06, 0, Math.PI * 2);
       pencilFill(ctx, p, cream, cell, i);
