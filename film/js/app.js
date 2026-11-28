@@ -1798,6 +1798,7 @@ function countRange() {
 }
 function amountOf(id) {
   const [mn, mx] = countRange();
+  if (overlayKind() === 'printgrid') return { few: 4, mid: 8, many: 12 }[id]; // 美術總監：方格不能蓋過畫面 30%
   if (overlayKind()) return id === 'few' ? mn : id === 'many' ? mx : Math.round((mn + mx) / 2);
   return { few: 6, mid: 12, many: 20 }[id];
 }

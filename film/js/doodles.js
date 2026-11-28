@@ -217,7 +217,7 @@ export const DOODLE_PRESETS = [
   { id: 'neon', name: '螢光塗鴉', pack: 'neon', layout: 'band', count: 16, section: 'line' },
   { id: 'kao', name: '顏文字', pack: 'kao', layout: 'edge', count: 12, section: 'line' },
 ];
-export const OVERLAY_COUNT = { stitch: [2, 40], stipple: [1, 14], printgrid: [2, 60] }; // 版畫方格放到排滿為止
+export const OVERLAY_COUNT = { stitch: [2, 40], stipple: [1, 14], printgrid: [2, 16] }; // 版畫方格：最多兩排，不蓋住主角
 export const COUNT_MIN = 4, COUNT_MAX = 30;
 
 const byId = new Map(STICKERS.map((d) => [d.id, d]));
