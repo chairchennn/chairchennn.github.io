@@ -1694,3 +1694,165 @@ details.cute-group summary { color: var(--ink-2); }
 @media (max-width: 899px) { .zoom-bar { top: 8px; right: 8px; } .zoom-bar button { min-height: 44px; } }
 @media (min-width: 900px) { .zoom-bar { top: auto; bottom: 22px; right: 18px; z-index: 25; } }
 .sticker-grid .kao-btn { aspect-ratio: auto; min-height: 56px; grid-column: span 2; font: 700 15px/1.2 var(--round); background: #fffdf6; border-radius: 12px; border: 1px solid var(--line); }
+
+/* =========================================================
+   第八版之二（網站 v10）：數位工作桌——文具直接散放在點點紙上，沒有托盤
+   主要編輯（底片、塗鴉框、貼圖、相框）和文具（新增、裁切、膠帶、膠水、整理）同一套
+   ========================================================= */
+/* 拿掉托盤：沒有背景、外框、陰影 */
+.stationery,
+.stationery-dock .rail,
+.rail { background: none; box-shadow: none; }
+.app[data-panel="closed"] .rail { box-shadow: none; }
+.stationery { padding: 0 2px; border-radius: 0; overflow: visible; }
+
+/* 每件文具：角度（--tilt）、高低（--dy）、標籤歪斜（--lr）都不一樣，像隨手放下 */
+.tool, .rail button { --tilt: -8deg; --nudge: 0px; --dy: 0px; --lr: 0deg; transform: translateY(var(--dy)); }
+.rail button[data-tab="film"]    { --tilt: -7deg;  --dy: 1px;  --lr: -2deg; --nudge: -1px; }
+.rail button[data-tab="doodle"]  { --tilt: 8deg;   --dy: -3px; --lr: 1.5deg; --nudge: 1px; }
+.rail button[data-tab="sticker"] { --tilt: -3deg;  --dy: 3px;  --lr: -1deg; --nudge: 0px; }
+.rail button[data-tab="frame"]   { --tilt: 5deg;   --dy: -1px; --lr: 2deg;  --nudge: -2px; }
+.tool[data-tool="add"]  { --tilt: -10deg; --dy: 2px;  --lr: 1deg;  --nudge: -1px; }
+.tool[data-tool="crop"] { --tilt: 11deg;  --dy: -3px; --lr: -2deg; --nudge: 2px; }
+.tool[data-tool="tape"] { --tilt: -4deg;  --dy: 1px;  --lr: 1.5deg; --nudge: 0px; }
+.tool[data-tool="glue"] { --tilt: 7deg;   --dy: -2px; --lr: -1deg; --nudge: 1px; }
+.tool.tool-edit         { --tilt: -15deg; --dy: 3px;  --lr: 2deg;  --nudge: -1px; }
+
+/* 主要編輯的按鈕改成和文具一樣的擺法（canvas 文具＋下方小字） */
+.rail button {
+  display: block;
+  gap: 0;
+  padding: 0;
+  border-radius: 12px;
+  background: transparent;
+  min-height: 62px;
+}
+.rail button::before { display: none; }
+.tool .tool-art,
+.rail .tool-art {
+  position: absolute;
+  left: 50%;
+  top: 21px;
+  display: block;
+  width: 64px;
+  height: auto;
+  aspect-ratio: 160 / 56;
+  pointer-events: none;
+  transform: translate(-50%, -50%) translateX(var(--nudge)) rotate(var(--tilt));
+  /* 實物放在紙上：貼地的短影＋往右下散開的柔影 */
+  filter: drop-shadow(0 1px .5px rgba(60, 40, 30, .34)) drop-shadow(2px 3px 2.5px rgba(60, 40, 30, .14));
+  transition: transform .22s cubic-bezier(.3, 1.4, .5, 1), filter .22s;
+}
+
+/* 標籤：小小的鉛筆字，有一點歪；字後面墊一圈紙色，點點不會干擾閱讀 */
+.tool .tool-name,
+.rail button > span {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: 3px;
+  width: max-content;
+  height: 16px;
+  font: 500 12px/16px var(--round);
+  letter-spacing: .06em;
+  color: var(--ink-2);                 /* 點點紙 #f7f2e5 上 7.8:1 */
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 2px var(--stage), 0 0 3px var(--stage), 0 0 5px var(--stage);
+  transform: translateX(-50%) rotate(var(--lr));
+  pointer-events: none;
+  transition: transform .2s, color .15s;
+}
+
+/* 選中＝被拿起來：上移、轉正、影子拉長；字變深赤陶＋鉛筆底線 */
+.tool[aria-pressed="true"] .tool-art,
+.tool.glued .tool-art,
+.rail button[aria-selected="true"] .tool-art {
+  transform: translate(-50%, -50%) translateY(-8px) rotate(0deg) scale(1.04);
+  filter: drop-shadow(0 2px 1px rgba(60, 40, 30, .14)) drop-shadow(3px 11px 6px rgba(60, 40, 30, .2));
+}
+.tool[aria-pressed="true"] .tool-name,
+.tool.glued .tool-name,
+.rail button[aria-selected="true"] > span {
+  font-weight: 700;
+  color: #843c2b;                      /* 深赤陶：點點紙上 6.6:1 */
+  -webkit-text-stroke: 0;
+  transform: translateX(-50%) rotate(0deg);
+}
+.tool.glued .tool-name { color: var(--sage-ink); }
+.tool[aria-pressed="true"] .tool-name::after,
+.tool.glued .tool-name::after,
+.rail button[aria-selected="true"] > span::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -3px;
+  width: auto;
+  height: 5px;
+  margin: 0;
+  background: var(--pencil) center / 100% 100% no-repeat;
+}
+.rail button[aria-selected="true"] svg { color: inherit; }
+/* 按下：往下沉 */
+.tool:active .tool-art,
+.rail button:not([aria-selected="true"]):active .tool-art { transform: translate(-50%, -50%) translateX(var(--nudge)) translateY(1px) rotate(var(--tilt)); filter: drop-shadow(0 .5px .4px rgba(60, 40, 30, .35)); }
+.tool[aria-pressed="true"]:active .tool-art, .tool.glued:active .tool-art { transform: translate(-50%, -50%) translateY(-6px) rotate(0deg) scale(1.04); }
+
+/* 「整理」不再用虛線隔開，靠留白 */
+.tool-edit::before { display: none; }
+.tool-edit { margin-left: 4px; }
+.tool-edit .tool-art { width: 52px; }
+
+@media (hover: hover) {
+  .rail button:not([aria-selected="true"]):hover { background: transparent; }
+  /* 滑過：手指碰一下，文具微微抬起（不轉正，和選中分得出來） */
+  .tool:not([aria-pressed="true"]):not(.glued):hover .tool-art,
+  .rail button:not([aria-selected="true"]):hover .tool-art {
+    transform: translate(-50%, -50%) translateX(var(--nudge)) translateY(-3px) rotate(var(--tilt));
+    filter: drop-shadow(0 2px 1px rgba(60, 40, 30, .22)) drop-shadow(2px 6px 4px rgba(60, 40, 30, .16));
+  }
+  .tool:not([aria-pressed="true"]):not(.glued):hover .tool-name,
+  .rail button:not([aria-selected="true"]):hover > span { color: var(--ink); }
+}
+
+/* 手機：底部導覽和文具列都是同一張點點紙，沒有白底條 */
+@media (max-width: 899px) {
+  .rail { background: var(--grain) 0 0 / 180px 180px; padding-top: 4px; }
+  .rail button { flex: 1; min-height: 62px; }
+  .rail .tool-art { width: 62px; top: 22px; }
+  .stationery-dock { bottom: 4px; }
+  .tool { height: 62px; }
+  .tool .tool-art { top: 21px; }
+}
+
+/* 電腦：兩組文具散放在畫布底部中間，兩組之間只用留白分開 */
+@media (min-width: 900px) {
+  .stationery-dock { bottom: 14px; gap: 40px; align-items: flex-end; }
+  .stationery-dock .rail { gap: 0; padding: 0 2px; border-radius: 0; }
+  .stationery { gap: 0; }
+  .tool,
+  .stationery-dock .rail button { width: 88px; height: 80px; min-height: 80px; border-radius: 14px; font-size: inherit; }
+  .tool .tool-art,
+  .stationery-dock .rail .tool-art { width: 76px; top: 27px; }
+  .tool .tool-name,
+  .rail button > span { bottom: 6px; font-size: 13px; }
+  .tool-edit { width: 74px; margin-left: 12px; }
+  .tool-edit .tool-art { width: 60px; }
+  /* 間距不平均：像一件一件放下去 */
+  .stationery-dock .rail button[data-tab="doodle"]  { margin-left: 6px; }
+  .stationery-dock .rail button[data-tab="sticker"] { margin-left: -2px; }
+  .stationery-dock .rail button[data-tab="frame"]   { margin-left: 8px; }
+  .tool[data-tool="crop"] { margin-left: 4px; }
+  .tool[data-tool="tape"] { margin-left: -1px; }
+  .tool[data-tool="glue"] { margin-left: 7px; }
+}
+@media (min-width: 900px) and (max-width: 1023px) {
+  .stationery-dock { gap: 28px; }
+  .tool,
+  .stationery-dock .rail button { width: 80px; height: 76px; min-height: 76px; }
+  .tool .tool-art,
+  .stationery-dock .rail .tool-art { width: 68px; top: 25px; }
+  .tool-edit { width: 66px; margin-left: 8px; }
+  .tool-edit .tool-art { width: 54px; }
+}
