@@ -1619,3 +1619,47 @@ details.cute-group summary { color: var(--ink-2); }
   #doodleList .cards-divider { flex: none; flex-basis: auto; align-self: center; margin: 0 2px; padding: 0 0 0 8px; border-top: 0; border-left: 1.5px dashed var(--line-2, #d9c9b0); writing-mode: vertical-rl; }
   .doodle-opts { border-bottom: 0; margin-bottom: 0; }
 }
+
+/* =========================================================
+   第七版：電腦上沒有左右欄——工具都在底部，點了以小視窗出現（可拖曳、改大小）
+   ========================================================= */
+@media (min-width: 900px) {
+  .workspace { display: block; position: relative; padding: 2px 16px 16px; }
+  .stage { height: 100%; }
+  .panel {
+    position: absolute;
+    z-index: 20;
+    width: 380px;
+    height: 560px;
+    min-width: 300px;
+    min-height: 240px;
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 16px);
+    margin: 0;
+    resize: both;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: inset 0 0 0 1px var(--line), 0 18px 40px rgba(60, 44, 34, .24), 0 2px 6px rgba(60, 44, 34, .12);
+  }
+  .app[data-panel="closed"] .panel { display: none; }
+  .panel .tab-body { flex: 1; min-height: 0; height: auto; overflow-y: auto; }
+  .panel-head { cursor: grab; user-select: none; touch-action: none; position: relative; }
+  .panel-head.dragging { cursor: grabbing; }
+  .panel-head::after { content: ""; position: absolute; left: 50%; top: 6px; width: 34px; height: 4px; margin-left: -17px; border-radius: 4px; background: var(--line-2, #d9c9b0); }
+  .panel-close { display: inline-flex; position: absolute; top: 10px; right: 10px; margin: 0; padding: 0 10px; min-height: 44px; }
+  .panel-close span { display: none; }
+  .panel-close svg { width: 18px; height: 18px; }
+}
+
+/* 第七版：新增視窗的剪貼與紀錄、剪紙台的剪法 */
+.win-sub { margin: 14px 0 6px; font: 700 13.5px/1.3 var(--round); color: var(--ink-2); }
+.add-cut { display: flex; flex-wrap: wrap; gap: 8px; }
+.add-cut .chip { min-height: 44px; }
+.cut-history { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+.cut-modes { flex: 1; margin: 0; }
+#btnCutClose { min-height: 44px; }
+#tapeMats .chip { min-height: 44px; }
+#tapeMats .chip[aria-checked="true"] { background: var(--sel, #f3e3b8); border-color: var(--ink-2); font-weight: 700; }
+.seg button[aria-checked="true"] { background: #fffdf8; color: var(--ink); box-shadow: 0 1px 3px rgba(110, 72, 46, .18); }
+.cut-history > p, .sticker-grid > p.note { grid-column: 1 / -1; }

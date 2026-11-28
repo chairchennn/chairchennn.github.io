@@ -137,7 +137,7 @@
         <h2 id="panelTitle">底片</h2>
         <p id="panelHint"></p>
         <button class="panel-close" id="btnPanelClose" type="button" aria-label="收起面板，讓照片大一點">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7.2L12 12.1L18 7M6 13.1L12 18L18 12.9"/></svg><span>收起</span></button>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.2 6.4L17.6 17.8M17.8 6.2L6.4 17.6"/></svg><span>收起</span></button>
       </div>
       <div class="tab-body">
         <!-- 底片：底片色調＋常用調整，其他收進「更多」 -->
@@ -281,28 +281,24 @@
             <div class="slots" id="fourSlots"></div>
             <button class="chip" type="button" id="btnFourAll">重選 4 張</button>
           </div>
-          <div class="sub">
-            <span class="sub-label">自己的圖</span>
-            <button class="chip" type="button" id="btnUploadSticker">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16.1L12.1 5.1M7.1 9.9L12 5L16.9 10.1M4.9 19.1C9.6 18.9 14.4 18.9 19.1 19.1"/></svg>上傳成貼圖（去背 PNG 最好）</button>
+          <h3 class="win-sub">剪貼</h3>
+          <div class="add-cut">
+            <button class="chip strong" type="button" id="btnUploadSticker">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16.1L12.1 5.1M7.1 9.9L12 5L16.9 10.1M4.9 19.1C9.6 18.9 14.4 18.9 19.1 19.1"/></svg>匯入圖片來剪</button>
+            <button class="chip" type="button" id="btnCutStart" data-only="single">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 18M8.5 15.5L20 6"/></svg>剪這張照片</button>
+            <button class="chip" type="button" id="btnCutCell" data-only="four" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 18M8.5 15.5L20 6"/></svg>剪四格裡的照片</button>
+            <button class="chip" type="button" id="btnCutClear" hidden>恢復方形照片</button>
           </div>
+          <p class="note" id="cutHint">匯入的圖會打開剪紙台：手繪一圈或一點一點點出形狀，剪好變成貼圖。</p>
+          <h3 class="win-sub">剪過的</h3>
+          <div class="sticker-grid cut-history" id="cutHistory"></div>
           <p class="note">照片只在你的裝置上處理，不會上傳。 <button class="link-btn inline" type="button" id="btnAbout2">關於 FilmDoodle</button></p>
         </section>
 
         <!-- 文具：剪刀 -->
         <section class="pane" data-pane="crop" role="tabpanel" hidden>
-          <div class="seg" role="tablist" aria-label="裁切方式">
-            <button type="button" role="tab" data-crop="frame" aria-selected="true">取景</button>
-            <button type="button" role="tab" data-crop="cut" aria-selected="false">剪下形狀</button>
-          </div>
-          <div id="cropCut" hidden>
-            <p class="note first" id="cutHint">沿著想留下的地方畫一圈，就像用剪刀把照片剪下來。</p>
-            <button class="primary-btn" type="button" id="btnCutStart">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.1C7.7 4 9 5.3 9 7C9 8.7 7.7 10 6 10C4.3 10 3 8.7 3 7C3 5.3 4.3 4.1 6 4.1Z"/><path d="M6 14C7.7 14 9 15.3 9 17C9 18.7 7.6 20 5.9 19.9C4.2 19.9 3 18.6 3 16.9C3.1 15.2 4.4 14 6 14Z"/><path d="M8.5 8.6L20.1 18.1M8.6 15.4L20 5.9"/></svg>
-              <span>開始剪</span></button>
-            <button class="chip" type="button" id="btnCutClear" hidden>恢復方形照片</button>
-            <p class="note" id="cutFourNote" data-only="four" hidden>四格的照片可以剪下來做成貼圖。</p>
-          </div>
           <div id="cropFrame">
           <p class="note first" id="xfHint">直接在照片上<b>拖曳移動</b>、<b>兩指縮放和轉動</b>；也可以用下面的滑桿。</p>
           <div data-only="single">
@@ -333,6 +329,10 @@
 
         <!-- 文具：紙膠帶 -->
         <section class="pane" data-pane="tape" role="tabpanel" hidden>
+          <div class="sub first">
+            <span class="sub-label">材質</span>
+            <div class="chips" id="tapeMats" role="radiogroup" aria-label="膠帶材質"></div>
+          </div>
           <div class="tape-grid" id="tapeGrid"></div>
         </section>
 
@@ -379,10 +379,19 @@
   </div>
   <div class="cut-bottom">
     <div class="sub">
+      <span class="sub-label">剪法</span>
+      <div class="seg cut-modes" role="radiogroup" aria-label="剪法">
+        <button type="button" role="radio" data-cutmode="draw" aria-checked="true">手繪一圈</button>
+        <button type="button" role="radio" data-cutmode="points" aria-checked="false">一點一點點</button>
+      </div>
+      <button class="chip" type="button" id="btnCutClose" hidden>連成形狀</button>
+    </div>
+    <div class="sub">
       <span class="sub-label">白邊</span>
       <div class="chips" id="cutMargins"></div>
     </div>
     <div class="cut-actions">
+      <button class="ghost-btn" type="button" id="btnCutWhole" hidden>整張直接貼上</button>
       <button class="ghost-btn" type="button" id="btnCutSticker" disabled>做成貼圖</button>
       <button class="primary-btn" type="button" id="btnCutPaste" disabled>貼在手帳紙上</button>
     </div>

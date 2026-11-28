@@ -158,3 +158,24 @@ export function hasTransparency(c) {
   for (let i = 3; i < d.length; i += 4) if (d[i] < 200) clear++;
   return clear > s * s * 0.03;
 }
+
+// 控制點（使用者可以拖）→ 穿過每個點的平滑閉合曲線（Catmull-Rom）
+export function splineLoop(ctrl, per = 10) {
+  const n = ctrl.length, out = [];
+  if (n < 3) return ctrl.slice();
+  for (let i = 0; i < n; i++) {
+    const p0 = ctrl[(i - 1 + n) % n], p1 = ctrl[i], p2 = ctrl[(i + 1) % n], p3 = ctrl[(i + 2) % n];
+    for (let k = 0; k < per; k++) {
+      const t = k / per, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push([f(p0[0], p1[0], p2[0], p3[0]), f(p0[1], p1[1], p2[1], p3[1])]);
+    }
+  }
+  return polyArea(out) < 0 ? out.reverse() : out;
+}
+// 手繪的一圈 → 平均挑出 n 個控制點，之後可以一個一個拖來修
+export function toCtrl(loop, n = 18) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(loop[Math.floor((i * loop.length) / n)].slice());
+  return out;
+}
